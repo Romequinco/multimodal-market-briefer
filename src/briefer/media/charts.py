@@ -38,6 +38,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import matplotlib
 
@@ -329,7 +330,8 @@ def make_price_chart(
     if not snapshot.history:
         raise ValueError(f"{snapshot.ticker}: sin histórico de precios")
     history = sorted(snapshot.history, key=lambda item: item[0])
-    dates = [d for d, _ in history]
+    # Fechas tal cual: matplotlib las convierte con su conversor de unidades (sus stubs no lo modelan).
+    dates: Any = [d for d, _ in history]
     closes = [c for _, c in history]
     index = is_index(snapshot.ticker)
     # Tema claro: la línea toma el color de tendencia. Oscuro: línea coral fija y la tendencia va
