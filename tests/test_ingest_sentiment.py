@@ -217,3 +217,32 @@ def test_pipeline_impact_failure_does_not_break_briefing(finbert_settings, real_
     impact = next(m for m in briefing.metrics if m.step == "ingest.impact")
     assert impact.error and "fallo inesperado" in impact.error
     assert briefing.analysis.headline
+
+
+def test_failures_are_logged_without_secrets(monkeypatch):
+    """Los avisos del log usan ``error_text``: una clave dentro del error no llega al log."""
+    secret = "sk-ant-api03-" + "x" * 40
+    logged: list[str] = []
+
+    class Log:
+        def warning(self, msg, *args):
+            logged.append(msg % args)
+
+        info = warning
+
+    monkeypatch.setattr(sentiment, "log", Log())
+
+    class Broken(FakeLLM):
+        def complete(self, *a, **k):
+            raise RuntimeError(f"401 invalid x-api-key {secret}")
+
+    sentiment.translate_to_english([news("Santander gana", nid="es1")], Broken())
+    monkeypatch.setattr(sentiment, "finbert_available", lambda: True)
+
+    def boom(texts):
+        raise RuntimeError(f"fallo con {secret}")
+
+    monkeypatch.setattr(sentiment, "classify", boom)
+    sentiment.news_impact([news("x", language="en", nid="a")])
+    warnings = [m for m in logged if "fall" in m.lower()]
+    assert len(warnings) == 2 and all(secret not in m for m in warnings)

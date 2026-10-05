@@ -21,6 +21,8 @@ Robustez (D2):
 - ``list_briefings`` ordena por nombre de carpeta y solo comprueba en disco las ``limit`` primeras
   (rápido con cientos de briefings); ``briefing_summaries`` da filas ligeras para el histórico sin
   validar el modelo completo.
+- ``load_news_impact`` lee el ``news_impact.json`` opcional (FinBERT) de la carpeta del briefing;
+  tolerante (sin fichero o corrupto -> ``{}``). ``export_briefing`` lo copia si existe.
 - ``export_briefing_zip`` empaqueta un briefing autocontenido (rutas relativas) en un ZIP portable.
 
 Privacidad (RGPD): la cartera del usuario **no se persiste**. ``save_briefing`` y
@@ -60,6 +62,9 @@ from briefer.schemas import Briefing
 log = get_logger("storage")
 
 BRIEFING_FILE = "briefing.json"
+#: «Impacto de la noticia» (FinBERT, opcional): lo escribe el pipeline junto a ``briefing.json``.
+#: Fuera del contrato ``Briefing``: lista de ``ingest.sentiment.NewsImpact`` serializados.
+NEWS_IMPACT_FILE = "news_impact.json"
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
 
@@ -424,13 +429,70 @@ def _copy_into(src: Path | None, folder: Path, rel: str) -> Path | None:
     return dest
 
 
+def _impact_candidates(briefing: Briefing, base_dir: Path | None) -> list[Path]:
+    """Carpetas donde puede estar el ``news_impact.json`` de un briefing (la suya, deducida de sus
+    ficheros —también vale para el pregenerado de ``data/samples``— o ``<outputs>/<id>``)."""
+    files = [briefing.audio.path if briefing.audio else None,
+             briefing.transcript.srt_path if briefing.transcript else None,
+             briefing.cover_path,
+             briefing.video.path if briefing.video else None]
+    folders = [Path(f).parent for f in files if f]
+    folders += [Path(c.path).parent.parent for c in briefing.charts if c.path]  # charts/<png>
+    try:
+        folders.append(_base(base_dir) / _check_id(briefing.id))
+    except Exception:  # id raro o .env mal formado: solo las carpetas deducidas
+        pass
+    return list(dict.fromkeys(folders))
+
+
+def news_impact_path(briefing_or_dir: Briefing | Path | str, base_dir: Path | None = None) -> Path | None:
+    """Ruta del ``news_impact.json`` de un briefing (o de una carpeta) si existe; si no, ``None``."""
+    if isinstance(briefing_or_dir, Briefing):
+        folders = _impact_candidates(briefing_or_dir, base_dir)
+    else:
+        p = Path(briefing_or_dir)
+        folders = [p.parent if p.is_file() else p]
+    for folder in folders:
+        path = folder / NEWS_IMPACT_FILE
+        if path.is_file():
+            return path
+    return None
+
+
+def load_news_impact(briefing_or_dir: Briefing | Path | str, base_dir: Path | None = None) -> dict[str, dict]:
+    """``{id_noticia: fila}`` del «impacto de la noticia» (FinBERT) de un briefing.
+
+    Acepta el ``Briefing``, su carpeta o la ruta del JSON. Tolerante: sin fichero, JSON corrupto o
+    filas mal formadas -> se ignoran (``{}`` si no queda ninguna). Cada fila es el
+    ``NewsImpact.model_dump()`` (``impact``, ``score``, ``probs``, ``translated``, ``model``…) y
+    solo se devuelven las que tienen ``news_id`` y un ``impact`` conocido.
+    """
+    path = news_impact_path(briefing_or_dir, base_dir)
+    if path is None:
+        return {}
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError) as exc:
+        log.warning("news_impact.json ilegible (%s): se ignora", type(exc).__name__)
+        return {}
+    if not isinstance(rows, list):
+        return {}
+    out: dict[str, dict] = {}
+    for row in rows:
+        if (isinstance(row, dict) and isinstance(row.get("news_id"), str)
+                and row.get("impact") in ("positivo", "negativo", "neutral")):
+            out[row["news_id"]] = row
+    return out
+
+
 def export_briefing(briefing: Briefing, dest_dir: Path) -> Path:
     """Copia un briefing y sus ficheros a ``dest_dir`` (autocontenido) y escribe su JSON.
 
     Pensado para crear ``data/samples/demo_briefing/`` a partir de un briefing real:
     ``export_briefing(b, demo_briefing_dir())``. Copia audio, SRT, gráficos (``charts/``),
-    portada y vídeo con nombres estables; las rutas del JSON quedan relativas. Los ficheros que no
-    existan se quitan del briefing exportado (sin enlaces rotos). Devuelve la ruta del JSON.
+    portada, vídeo y ``news_impact.json`` (FinBERT, si existe) con nombres estables; las rutas del
+    JSON quedan relativas. Los ficheros que no existan se quitan del briefing exportado (sin enlaces
+    rotos). Devuelve la ruta del JSON.
     """
     folder = Path(dest_dir).resolve()  # relativa -> absoluta: si no, las rutas del JSON no serían relativas a la carpeta
     folder.mkdir(parents=True, exist_ok=True)
@@ -453,6 +515,9 @@ def export_briefing(briefing: Briefing, dest_dir: Path) -> Path:
     if briefing.video is not None:
         new = _copy_into(briefing.video.path, folder, "video" + Path(briefing.video.path).suffix)
         update["video"] = briefing.video.model_copy(update={"path": new}) if new else None
+    impact = news_impact_path(briefing)  # «impacto de la noticia» (FinBERT), si se calculó
+    if impact is not None:
+        _copy_into(impact, folder, NEWS_IMPACT_FILE)
     exported = briefing.model_copy(update=update)
     data = _map_paths(exported.model_dump(mode="json"), _to_relative(folder))
     return _write_json_atomic(folder / BRIEFING_FILE, data)

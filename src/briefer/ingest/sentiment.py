@@ -31,7 +31,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from briefer.logging_utils import get_logger
+from briefer.logging_utils import error_text, get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import NewsItem
 
@@ -114,7 +114,7 @@ def translate_to_english(items: list[NewsItem], llm: LLMProvider | None) -> dict
                 response_model=_Translations,
             )
         except Exception as exc:  # noqa: BLE001 - sin traducción, esas noticias se omiten
-            log.warning("Traducción para FinBERT fallida (%d noticias): %s", len(batch), exc)
+            log.warning("Traducción para FinBERT fallida (%d noticias): %s", len(batch), error_text(exc))
             continue
         valid = {i.id for i in batch}
         for t in getattr(result, "items", []):
@@ -199,7 +199,7 @@ def news_impact(
     try:
         probs = classify([texts[i] for i in ids])
     except Exception as exc:  # noqa: BLE001
-        log.warning("FinBERT falló: %s", exc)
+        log.warning("FinBERT falló: %s", error_text(exc))
         stats["status"] = f"error: {type(exc).__name__}"
         return {}
     result = {nid: to_impact(nid, p, texts[nid], nid not in english) for nid, p in zip(ids, probs, strict=True)}

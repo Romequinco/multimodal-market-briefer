@@ -26,7 +26,7 @@ from pathlib import Path
 import streamlit as st
 from streamlit.errors import StreamlitAPIException
 
-from briefer import brand, costs
+from briefer import brand, costs, storage
 from briefer.config import Settings, get_settings
 from briefer.logging_utils import error_text, redact_secrets
 from briefer.providers import registry
@@ -742,9 +742,30 @@ def render_key_points(briefing: Briefing, max_points: int | None = None, *, comp
         st.write("Este briefing no tiene puntos clave.")
         return
     news = _news_index(briefing)
+    impacts = {} if compact else news_impacts(briefing)
     for kp in points:
         sources = [] if compact else [source_parts(s, news) for s in kp.sources]
-        keypoint_card(kp, sources, compact=compact)
+        tones = [source_impact(s, news, impacts) for s in kp.sources] if impacts else []
+        keypoint_card(kp, sources, compact=compact, impacts=tones)
+
+
+def news_impacts(briefing: Briefing) -> dict[str, dict]:
+    """«Impacto de la noticia» (FinBERT) del briefing, de ``news_impact.json`` vía ``storage``.
+
+    ``{}`` si no se calculó (``BRIEFER_FINBERT`` apagado) o si el fichero falta o está corrupto:
+    la etiqueta es opcional y nunca rompe la página.
+    """
+    try:
+        return storage.load_news_impact(briefing)
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def source_impact(source: str, news: dict[str, NewsItem], impacts: dict[str, dict]) -> str | None:
+    """Impacto (``positivo``/``negativo``/``neutral``) de la noticia citada como fuente, o ``None``."""
+    item = news.get(source)
+    row = impacts.get(item.id if item is not None else source)
+    return str(row["impact"]) if row else None
 
 
 def briefing_tape(briefing: Briefing | None) -> None:

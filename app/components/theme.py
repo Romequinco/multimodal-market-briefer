@@ -96,6 +96,10 @@ FONT_MONO = "'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, 
 
 SENTIMENT_CLASS = {"positivo": "up", "negativo": "down", "neutral": "flat"}
 SENTIMENT_TEXT = {"positivo": "▲ positivo", "negativo": "▼ negativo", "neutral": "● neutral"}
+# «Impacto de la noticia» (FinBERT): símbolo + palabra (el color nunca es la única señal).
+IMPACT_TEXT = {"positivo": "▲ positiva", "negativo": "▼ negativa", "neutral": "● neutral"}
+IMPACT_TOOLTIP = ("Tono de la noticia según FinBERT (modelo abierto de análisis de noticias "
+                  "financieras). Informa del tono del texto, no es una recomendación sobre el valor.")
 TECH_TONES = ("amber", "ok", "warn", "err", "muted", "accent")
 _WEEKDAYS = ("LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM")
 
@@ -240,6 +244,8 @@ input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 .mb-kp__meta { font-family: var(--mb-mono); font-size: 12px; color: var(--mb-muted); margin-top: .4rem; }
 .mb-kp__src { font-size: 13px; color: var(--mb-muted); margin-top: .3rem; }
 .mb-kp__src a { color: var(--mb-accent-soft); text-decoration: underline; text-underline-offset: 2px; }
+.mb-impact { font-family: var(--mb-mono); font-size: 11px; white-space: nowrap; cursor: help; }
+.mb-impact__note { font-size: 12px; color: var(--mb-muted); margin-top: .2rem; }
 
 /* Etiquetas técnicas (tono terminal) */
 .mb-tech { font-family: var(--mb-mono); font-size: 12px; letter-spacing: .03em; }
@@ -443,8 +449,26 @@ def player_header_html(title: str, meta: str | Sequence[str] | None = None, seed
     )
 
 
+def impact_chip_html(impact: str | None) -> str:
+    """Etiqueta «impacto de la noticia: ▲ positiva · FinBERT» (vacía si no hay impacto conocido).
+
+    Color del tema + símbolo + palabra; el ``title`` (tooltip) aclara que es el tono de la noticia,
+    no una recomendación (MAR).
+    """
+    text = IMPACT_TEXT.get(str(impact or ""))
+    if text is None:
+        return ""
+    tone = SENTIMENT_CLASS.get(str(impact), "flat")
+    return (f'<span class="mb-impact mb-{tone}" title="{_e(IMPACT_TOOLTIP)}">'
+            f"impacto de la noticia: {_e(text)} · FinBERT</span>")
+
+
 def keypoint_card_html(
-    kp: Any, sources: Sequence[tuple[str, str | None]] = (), *, compact: bool = False
+    kp: Any,
+    sources: Sequence[tuple[str, str | None]] = (),
+    *,
+    compact: bool = False,
+    impacts: Sequence[str | None] = (),
 ) -> str:
     """Tarjeta de un punto clave con borde izquierdo por sentimiento.
 
@@ -452,6 +476,8 @@ def keypoint_card_html(
         kp: ``KeyPoint`` (o dict con ``title``, ``explanation``, ``tickers``, ``sentiment``).
         sources: ``(texto, url)`` ya resueltos; solo se enlazan URL ``http(s)``.
         compact: sin explicación ni fuentes (portada).
+        impacts: «impacto de la noticia» (FinBERT) de cada fuente, alineado con ``sources``
+            (``"positivo"`` / ``"negativo"`` / ``"neutral"`` o ``None``). Vacío: sin etiquetas.
     """
     sentiment = str(_get(kp, "sentiment", "neutral") or "neutral")
     tone = SENTIMENT_CLASS.get(sentiment, "flat")
@@ -470,13 +496,20 @@ def keypoint_card_html(
         out.append(f'<div class="mb-kp__meta">Valores: {_e(", ".join(tickers))}</div>')
     if sources and not compact:
         links = []
-        for text, url in sources:
+        any_impact = False
+        for i, (text, url) in enumerate(sources):
             safe = _safe_url(url)
             if safe:
-                links.append(f'<a href="{_e(safe)}" target="_blank" rel="noopener noreferrer">{_e(text)}</a>')
+                link = f'<a href="{_e(safe)}" target="_blank" rel="noopener noreferrer">{_e(text)}</a>'
             else:
-                links.append(_e(text))
+                link = _e(text)
+            chip = impact_chip_html(impacts[i] if i < len(impacts) else None)
+            any_impact = any_impact or bool(chip)
+            links.append(f"{link} {chip}" if chip else link)
         out.append(f'<div class="mb-kp__src">Fuentes: {" · ".join(links)}</div>')
+        if any_impact:
+            out.append('<div class="mb-impact__note">El impacto es el tono de cada noticia según FinBERT; '
+                       "no es una recomendación de compra o venta.</div>")
     out.append("</article>")
     return "".join(out)
 
@@ -524,5 +557,6 @@ def player_card(
         st.audio(str(audio_path))
 
 
-def keypoint_card(kp: Any, sources: Sequence[tuple[str, str | None]] = (), *, compact: bool = False) -> None:
-    st.html(keypoint_card_html(kp, sources, compact=compact))
+def keypoint_card(kp: Any, sources: Sequence[tuple[str, str | None]] = (), *, compact: bool = False,
+                  impacts: Sequence[str | None] = ()) -> None:
+    st.html(keypoint_card_html(kp, sources, compact=compact, impacts=impacts))
