@@ -77,6 +77,14 @@ def test_provider_metadata(settings: Settings) -> None:
     assert tts.audio_extension == ".mp3"
 
 
+def test_default_rate_is_option_b(settings: Settings) -> None:
+    """Opción «B» de la cata: +10 % por defecto, también con ``BRIEFER_TTS_RATE=`` vacío en .env."""
+    assert EdgeTTS(Settings(_env_file=None)).rate == "+10%"
+    assert EdgeTTS(Settings(_env_file=None, briefer_tts_rate="")).rate == "+10%"
+    assert EdgeTTS(None).rate == "+10%"
+    assert EdgeTTS(Settings(_env_file=None, briefer_tts_rate="+0%")).rate == "+0%"  # override por .env
+
+
 def test_rate_and_pitch_default_and_override(fake_edge, settings: Settings, tmp_path: Path) -> None:
     tts = _tts(settings, rate="+8%", pitch="-2Hz")
     tts.synthesize("uno", "v", tmp_path / "a")

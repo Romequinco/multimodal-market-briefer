@@ -24,7 +24,9 @@ Tolerancia a fallos:
   ``data/samples`` o precios sintéticos. El ``StepMetric`` queda con ``provider`` = sustituto y
   ``error = "Fallback a <sustituto> tras <Tipo>: <mensaje>"`` (``logging_utils.step_fell_back``)
   para que la UI avise de que ese paso usó datos simulados. El Guionista tiene además su propio
-  respaldo determinista (``fallback_script``), marcado igual.
+  respaldo determinista (``fallback_script``), marcado igual. Si el podcast usa **Gemini TTS**
+  (``BRIEFER_TTS_PROVIDER=gemini``, de pago) y falla, el sustituto es **edge-tts** (opción «B»,
+  gratis; ``podcast_tts_fallback``), y el Q&A hablado usa siempre edge-tts (``qa_tts``).
 - Si no hay sustituto (pasos locales, modo mock o fallback desactivado), el paso núcleo lanza
   ``PipelineStepError`` (o ``StepNotImplementedError``, que además es ``NotImplementedError``
   para que la UI lo muestre como «Pendiente») con el nombre del paso y la causa encadenada.
@@ -178,6 +180,86 @@ class Providers:
 def demo_voice_tts(settings: Settings) -> TTSProvider:
     """TTS del modo ``demo_voices``: edge-tts real (no necesita clave), con rate/pitch de ``settings``."""
     return registry.get_tts(settings.model_copy(update={"briefer_tts_provider": "edge"}))
+
+
+#: TTS que sintetizan el podcast en tramos de diálogo largos (de pago, lentos por petición): el
+#: Q&A hablado no los usa (objetivo < 10 s) y, si fallan, el podcast cae a edge-tts.
+DIALOGUE_TTS_PROVIDERS = frozenset({"gemini"})
+
+
+def qa_tts(settings: Settings, tts: TTSProvider) -> TTSProvider:
+    """TTS de la respuesta hablada del Q&A.
+
+    Con Gemini como TTS del podcast, la respuesta sigue saliendo por **edge-tts** (opción «B»,
+    voz B = Osa, la misma que en el resto de modos): una petición a Gemini TTS tarda varios
+    segundos más y rompería el objetivo de < 10 s; además es gratis. Resto: el mismo ``tts``.
+    """
+    if tts.provider_name in DIALOGUE_TTS_PROVIDERS:
+        return demo_voice_tts(settings)
+    return tts
+
+
+def podcast_tts_retries(tts: TTSProvider) -> int:
+    """Reintentos por línea/tramo en ``synthesize_podcast``: 0 con edge-tts (ya reintenta dentro;
+    sin anidar 3×3 intentos el paso cae antes al sustituto), 1 con Gemini (el SDK ya reintenta
+    429/5xx; el reintento cubre audios cortados) y 2 en el resto."""
+    if tts.provider_name == "edge":
+        return 0
+    if tts.provider_name in DIALOGUE_TTS_PROVIDERS:
+        return 1
+    return 2
+
+
+def tts_cost_eur(tts: TTSProvider, n_chars: int, usage_before: dict[str, int] | None = None) -> tuple[float, str | None]:
+    """Coste estimado del podcast y nota para ``StepMetric.detail``.
+
+    Si el proveedor factura por tokens (Gemini TTS: ``last_usage`` con tokens de texto de entrada
+    y de audio de salida) se usa la diferencia de ``last_usage`` desde ``usage_before``; si no,
+    los caracteres del guion (``n_chars``).
+    """
+    usage = getattr(tts, "last_usage", None)
+    if isinstance(usage, dict) and tts.provider_name in DIALOGUE_TTS_PROVIDERS:
+        before = usage_before or {}
+        delta = {k: int(usage.get(k, 0)) - int(before.get(k, 0)) for k in ("input_tokens", "output_tokens")}
+        cost = costs.estimate_cost_eur(tts.provider_name, tts.model, **delta)
+        note = (f"{tts.provider_name} TTS: {delta['input_tokens']} tokens de texto, "
+                f"{delta['output_tokens']} tokens de audio (coste estimado)")
+        return cost, note
+    return costs.estimate_cost_eur(tts.provider_name, tts.model, n_chars=n_chars), None
+
+
+def podcast_tts_fallback(
+    settings: Settings,
+    tts: TTSProvider,
+    podcast_with: Callable[[TTSProvider], Callable[[StepHandle], AudioAsset]],
+) -> _Fallback | None:
+    """Sustituto del paso ``media.podcast``.
+
+    - TTS de diálogo (Gemini): **edge-tts** opción «B» (siempre, es gratis y real); si edge-tts
+      tampoco responde y ``BRIEFER_FALLBACK_TO_MOCK=true``, ``MockTTS`` (anotado en ``detail``).
+    - Otro TTS real: ``MockTTS`` si ``BRIEFER_FALLBACK_TO_MOCK=true``.
+    """
+    mock_tts = registry.get_tts(settings, force_mock=True) if settings.briefer_fallback_to_mock else None
+    if tts.provider_name in DIALOGUE_TTS_PROVIDERS:
+        edge = demo_voice_tts(settings)
+        edge_run = podcast_with(edge)
+        mock_run = podcast_with(mock_tts) if mock_tts is not None and edge.provider_name != "mock" else None
+
+        def run(step: StepHandle) -> AudioAsset:
+            try:
+                return edge_run(step)
+            except Exception as exc:
+                if mock_run is None or mock_tts is None:
+                    raise
+                log.warning("media.podcast: edge-tts tampoco respondió (%s); se usa el TTS mock", error_text(exc))
+                step.provider, step.model = mock_tts.provider_name, mock_tts.model
+                step.detail = _join_details(step.detail, f"edge-tts tampoco respondió ({error_text(exc)}); TTS mock")
+                return mock_run(step)
+
+        return _Fallback(edge.provider_name, edge.model, run, "edge-tts" if edge.provider_name == "edge" else "mock")
+    if mock_tts is not None and tts.provider_name != "mock":
+        return _Fallback(mock_tts.provider_name, mock_tts.model, podcast_with(mock_tts), "mock")
+    return None
 
 
 def _providers_for_mode(settings: Settings, mode: str) -> Providers:
@@ -909,22 +991,21 @@ def _run_briefing(
 
     def _podcast_with(tts: TTSProvider) -> Callable[[StepHandle], AudioAsset]:
         def run(step: StepHandle) -> AudioAsset:
-            asset = podcast.synthesize_podcast(
-                script, tts, out_dir, voice_a=s.briefer_voice_a, voice_b=s.briefer_voice_b,
-                max_workers=PODCAST_TTS_WORKERS,
-                # EdgeTTS ya reintenta por dentro (con espera): sin reintentos anidados (3×3 por
-                # línea) el paso cae antes al sustituto si el servicio está caído.
-                retries=0 if tts.provider_name == "edge" else 2,
-            )
-            step.est_cost_eur = costs.estimate_cost_eur(tts.provider_name, tts.model, n_chars=n_chars)
-            return asset
+            usage_before = dict(getattr(tts, "last_usage", None) or {})
+            try:
+                return podcast.synthesize_podcast(
+                    script, tts, out_dir, voice_a=s.briefer_voice_a, voice_b=s.briefer_voice_b,
+                    max_workers=PODCAST_TTS_WORKERS,
+                    retries=podcast_tts_retries(tts),
+                )
+            finally:
+                # También si falla: los tramos de Gemini ya sintetizados se han facturado.
+                step.est_cost_eur, note = tts_cost_eur(tts, n_chars, usage_before)
+                step.detail = _join_details(step.detail, note)
 
         return run
 
-    tts_fallback = None
-    if s.briefer_fallback_to_mock and providers.tts.provider_name != "mock":
-        mock_tts = registry.get_tts(s, force_mock=True)
-        tts_fallback = _Fallback(mock_tts.provider_name, mock_tts.model, _podcast_with(mock_tts), "mock")
+    tts_fallback = podcast_tts_fallback(s, providers.tts, _podcast_with)
     audio = _run_core(
         "media.podcast", providers.tts.provider_name, providers.tts.model, metrics,
         _podcast_with(providers.tts), tts_fallback,
@@ -1113,7 +1194,8 @@ def warmup(settings: Settings | None = None, *, mode: RunMode | None = None) -> 
 
 
 #: Módulo del SDK de cada TTS real que ``warmup`` importa por adelantado.
-_TTS_MODULES = {"edge": "edge_tts", "elevenlabs": "elevenlabs"}
+#: Con Gemini en el podcast, el Q&A habla con edge-tts (``qa_tts``): se calienta ``edge_tts``.
+_TTS_MODULES = {"edge": "edge_tts", "gemini": "edge_tts", "elevenlabs": "elevenlabs"}
 #: Módulo del SDK de cada STT real que ``warmup`` importa por adelantado (``whisper_api``).
 _STT_MODULES = {"openai": "openai"}
 
@@ -1199,7 +1281,11 @@ def answer_question(
 
 
 def _speak(answer: QAAnswer, briefing: Briefing | None, tts: TTSProvider, s: Settings) -> QAAnswer:
-    """Paso opcional ``qa.tts``: añade ``audio_path`` y su ``StepMetric`` a ``answer.metrics``."""
+    """Paso opcional ``qa.tts``: añade ``audio_path`` y su ``StepMetric`` a ``answer.metrics``.
+
+    El TTS sale de ``qa_tts``: si el podcast usa Gemini, la respuesta va por edge-tts (latencia).
+    """
+    tts = qa_tts(s, tts)
     metrics = list(answer.metrics)
     qa_dir = s.output_path / (briefing.id if briefing else "sin_briefing") / "qa"
 
@@ -1243,6 +1329,7 @@ def speak_answer(
 
 __all__ = [
     "DELIVERY_CHANNELS",
+    "DIALOGUE_TTS_PROVIDERS",
     "PODCAST_TTS_WORKERS",
     "RUN_MODES",
     "PipelineStepError",
@@ -1253,10 +1340,14 @@ __all__ = [
     "answer_question",
     "demo_voice_tts",
     "get_providers",
+    "podcast_tts_fallback",
+    "podcast_tts_retries",
     "process_upload",
+    "qa_tts",
     "resolve_mode",
     "run_briefing",
     "scriptwriter_llm",
     "speak_answer",
+    "tts_cost_eur",
     "warmup",
 ]

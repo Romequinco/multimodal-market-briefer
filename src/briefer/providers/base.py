@@ -79,10 +79,35 @@ class TTSProvider(_Provider):
     #: Extensión del audio que produce esta implementación (".mp3", ".wav"...).
     audio_extension: str = ".mp3"
 
+    #: (v0.3.4) Extensión del episodio final del podcast; ``None`` = la de las partes. Un TTS que
+    #: entrega WAV (Gemini) pide ``".mp3"`` para que el episodio pase por ``loudnorm`` e ID3.
+    podcast_extension: str | None = None
+    #: (v0.3.4) ``True`` si implementa ``synthesize_dialogue`` (varias voces en una petición).
+    supports_dialogue: bool = False
+
     @abstractmethod
     def synthesize(self, text: str, voice: str, out_path: Path) -> Path:
         """Sintetiza ``text`` con ``voice`` y lo guarda; devuelve la ruta REAL escrita
         (puede cambiar la extensión de ``out_path`` según ``audio_extension``)."""
+
+    def synthesize_dialogue(
+        self, lines: list[tuple[str, str]], out_path: Path
+    ) -> tuple[Path, list[float]]:
+        """(v0.3.4, opcional) Sintetiza un tramo de diálogo en **una** petición.
+
+        Args:
+            lines: ``[(locutor, texto)]`` con locutor ``"A"`` o ``"B"`` (``ScriptLine.speaker``),
+                ya normalizado para voz.
+            out_path: ruta deseada (la extensión puede cambiar, como en ``synthesize``).
+
+        Returns:
+            ``(ruta escrita, duraciones por línea en segundos)``; las duraciones suman la del
+            audio y pueden ser **aproximadas** (el modelo no da marcas de tiempo por línea).
+
+        Por defecto no está implementado (``supports_dialogue = False``): ``media.podcast``
+        sintetiza entonces línea a línea con ``synthesize``.
+        """
+        raise NotImplementedError(f"{type(self).__name__} no sintetiza diálogos en una petición")
 
 
 class ImageGenProvider(_Provider):

@@ -10,7 +10,17 @@ Decisiones:
   (``max_workers``): edge-tts es I/O (websocket) y cada hilo puede ejecutar su propio
   ``asyncio.run``. El orden del episodio se conserva siempre.
 - Los tiempos de cada ``AudioSegment`` se calculan con la duración **real** de cada parte
-  (no con estimaciones por palabras), más una pausa fija entre intervenciones.
+  (no con estimaciones por palabras), más la pausa entre intervenciones.
+- **Pausas variables** (v0.3.4, ``line_pauses``; por defecto, ``pause_s=None``): ~0,15 s cuando
+  la intervención responde a una pregunta (la anterior acaba en «?»), ~0,30 s lo normal y
+  ~0,45 s al cambiar de tema (tras la apertura o si la línea empieza por «Vamos con», «Pasamos
+  a», «Por otro lado»…, ``TOPIC_CUES``). Regla determinista; ``pause_s=<float>`` la fija.
+- **Diálogo en una petición** (v0.3.4): si el TTS lo admite (``tts.supports_dialogue``, Gemini
+  multi-locutor), el episodio se trocea en tramos de como mucho ``DIALOGUE_MAX_LINES`` líneas y
+  ``DIALOGUE_MAX_CHARS`` caracteres hablados (≈ 2 min), cada tramo se sintetiza de una vez (el
+  modelo pone sus propias pausas dentro) y los tramos se unen con la pausa variable de la
+  frontera. Los tiempos por línea **dentro** de un tramo son aproximados: los da el proveedor
+  repartiendo la duración del tramo en proporción a la longitud hablada de cada línea.
 - Concatenación: si todas las partes son WAV PCM con el mismo formato (``MockTTS``) se usa
   solo la stdlib (``wave``); en cualquier otro caso (MP3 de edge-tts, mezclas, distintas
   frecuencias) se usa el ffmpeg de ``imageio-ffmpeg`` con el filtro ``concat`` y ``apad``
@@ -38,8 +48,10 @@ import sys
 import threading
 import time
 import wave
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import TypeVar
 
 from briefer.brand import BRAND_NAME
 from briefer.logging_utils import get_logger
@@ -48,6 +60,7 @@ from briefer.providers.base import TTSProvider
 from briefer.schemas import AudioAsset, AudioSegment, PodcastScript, ScriptLine
 
 log = get_logger("media.podcast")
+T = TypeVar("T")
 
 # Frecuencia y canales de salida cuando se re-codifica con ffmpeg (edge-tts emite 24 kHz mono).
 OUTPUT_SAMPLE_RATE = 24_000
@@ -58,6 +71,23 @@ PODCAST_LOUDNESS_LUFS = -16.0
 TRUE_PEAK_DB = -1.5
 LOUDNESS_RANGE_LU = 11.0
 FFMPEG_TIMEOUT_S = 300
+
+# Pausas variables entre intervenciones (opción «B» de la cata del 05-oct-2026).
+PAUSE_ANSWER_S = 0.15  # la intervención responde a una pregunta
+PAUSE_NORMAL_S = 0.30
+PAUSE_TOPIC_S = 0.45  # cambio de tema
+#: Comienzos de intervención que anuncian un cambio de tema (minúsculas, sin signos iniciales).
+TOPIC_CUES: tuple[str, ...] = (
+    "vamos con", "vamos ahora", "pasamos a", "pasemos a", "y en ", "por otro lado", "cambiamos",
+    "cambiando de", "en cuanto a", "y ahora", "ahora vamos", "otro tema", "mientras tanto",
+    "al otro lado", "para terminar", "para cerrar", "y antes de despedirnos",
+)
+_LEADING_PUNCT = "¿¡«\"'“‘—–-…. "
+
+# Diálogo en una petición (TTS con ``supports_dialogue``): tamaño máximo de cada tramo.
+DIALOGUE_MAX_LINES = 12
+DIALOGUE_MAX_CHARS = 2000  # caracteres hablados (≈ 2 min de audio)
+DIALOGUE_MAX_WORKERS = 3
 
 # Metadatos del audio final (AI Act art. 50: contenido sintético marcado de forma detectable).
 SYNTHETIC_VOICE_NOTICE = "Voces sintéticas generadas por IA. No constituye asesoramiento financiero."
@@ -153,12 +183,14 @@ def audio_duration_s(path: Path) -> float:
 # ── Concatenación ──────────────────────────────────────────────────────────────────
 
 
-def _concat_wav_stdlib(paths: list[Path], out_path: Path, pause_s: float) -> Path:
-    """Concatena WAV PCM con el mismo formato intercalando silencio (solo stdlib)."""
+def _concat_wav_stdlib(paths: list[Path], out_path: Path, gaps: list[float]) -> Path:
+    """Concatena WAV PCM con el mismo formato intercalando silencio (solo stdlib).
+
+    ``gaps[i]`` es el silencio tras la parte ``i`` (``len(gaps) == len(paths) - 1``).
+    """
     with wave.open(str(paths[0]), "rb") as first:
         params = first.getparams()
     frame_bytes = params.nchannels * params.sampwidth
-    silence = b"\x00" * (int(round(pause_s * params.framerate)) * frame_bytes)
     tmp = out_path.with_name(f"{out_path.stem}.{os.getpid()}.{threading.get_ident()}.tmp{out_path.suffix}")
     try:
         with wave.open(str(tmp), "wb") as out:
@@ -168,8 +200,10 @@ def _concat_wav_stdlib(paths: list[Path], out_path: Path, pause_s: float) -> Pat
             for i, p in enumerate(paths):
                 with wave.open(str(p), "rb") as part:
                     out.writeframes(part.readframes(part.getnframes()))
-                if i < len(paths) - 1 and silence:
-                    out.writeframes(silence)
+                if i < len(paths) - 1:
+                    silence = b"\x00" * (int(round(gaps[i] * params.framerate)) * frame_bytes)
+                    if silence:
+                        out.writeframes(silence)
         tmp.replace(out_path)
     finally:
         tmp.unlink(missing_ok=True)
@@ -197,13 +231,13 @@ def loudnorm_filter(lufs: float, true_peak_db: float = TRUE_PEAK_DB, lra: float 
 def _concat_ffmpeg(
     paths: list[Path],
     out_path: Path,
-    pause_s: float,
+    gaps: list[float],
     metadata: dict[str, str] | None = None,
     loudness_lufs: float | None = None,
 ) -> Path:
     """Concatena cualquier mezcla de formatos con ffmpeg re-codificando a ``out_path``.
 
-    Cada entrada se normaliza (mono, ``OUTPUT_SAMPLE_RATE``, s16) y se le añade ``pause_s`` de
+    Cada entrada se normaliza (mono, ``OUTPUT_SAMPLE_RATE``, s16) y se le añade ``gaps[i]`` de
     silencio al final (``apad``) salvo a la última; después, filtro ``concat``. El grafo se pasa
     por fichero para no superar el límite de longitud de la línea de comandos en Windows.
     """
@@ -211,8 +245,8 @@ def _concat_ffmpeg(
     chains = []
     for i in range(n):
         chain = f"[{i}:a]aresample={OUTPUT_SAMPLE_RATE},aformat=sample_fmts=s16:channel_layouts=mono"
-        if i < n - 1 and pause_s > 0:
-            chain += f",apad=pad_dur={pause_s:.3f}"
+        if i < n - 1 and gaps[i] > 0:
+            chain += f",apad=pad_dur={gaps[i]:.3f}"
         chains.append(chain + f"[a{i}]")
     joined = "".join(f"[a{i}]" for i in range(n))
     if loudness_lufs is None:
@@ -253,6 +287,7 @@ def concat_audio(
     out_path: Path,
     pause_s: float = 0.35,
     *,
+    pauses: list[float] | None = None,
     metadata: dict[str, str] | None = None,
     loudness_lufs: float | None = None,
 ) -> Path:
@@ -260,6 +295,8 @@ def concat_audio(
 
     Elige automáticamente la vía: stdlib si todo es WAV PCM homogéneo y la salida es ``.wav``;
     ffmpeg en el resto de casos (MP3, mezclas de formatos o frecuencias distintas).
+    ``pauses`` (v0.3.4) da una pausa distinta tras cada parte (``len(paths) - 1`` valores, p. ej.
+    ``line_pauses``); si es ``None``, todas valen ``pause_s``.
     ``metadata`` (p. ej. ``AI_AUDIO_METADATA``) se escribe como etiquetas del fichero cuando se
     usa ffmpeg (ID3 en MP3); la vía WAV de la stdlib no admite etiquetas.
     ``loudness_lufs`` (p. ej. ``PODCAST_LOUDNESS_LUFS``) normaliza la sonoridad del resultado con
@@ -273,13 +310,63 @@ def concat_audio(
             raise FileNotFoundError(p)
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    pause_s = max(0.0, float(pause_s))
+    if pauses is None:
+        gaps = [max(0.0, float(pause_s))] * (len(paths) - 1)
+    else:
+        if len(pauses) != len(paths) - 1:
+            raise ValueError(f"concat_audio: {len(pauses)} pausas para {len(paths)} audios")
+        gaps = [max(0.0, float(p)) for p in pauses]
 
     if out_path.suffix.lower() == ".wav" and loudness_lufs is None:
         params = [_wav_params(p) for p in paths]
         if all(params) and len(set(params)) == 1 and params[0][3] == "NONE":  # type: ignore[index]
-            return _concat_wav_stdlib(paths, out_path, pause_s)
-    return _concat_ffmpeg(paths, out_path, pause_s, metadata, loudness_lufs)
+            return _concat_wav_stdlib(paths, out_path, gaps)
+    return _concat_ffmpeg(paths, out_path, gaps, metadata, loudness_lufs)
+
+
+# ── Pausas y tramos de diálogo ─────────────────────────────────────────────────────
+
+
+def _starts_with_topic_cue(text: str) -> bool:
+    head = text.strip().lstrip(_LEADING_PUNCT).casefold()
+    return any(head.startswith(cue) for cue in TOPIC_CUES)
+
+
+def pause_between(prev: ScriptLine, nxt: ScriptLine, *, after_opening: bool = False) -> float:
+    """Pausa (s) entre ``prev`` y ``nxt``: respuesta (``PAUSE_ANSWER_S``) si ``prev`` acaba en
+    «?»; cambio de tema (``PAUSE_TOPIC_S``) tras la apertura o si ``nxt`` empieza por una de
+    ``TOPIC_CUES``; si no, ``PAUSE_NORMAL_S``. La pregunta manda sobre el cambio de tema."""
+    if prev.text.rstrip().rstrip("»\"'”’ ").endswith("?"):
+        return PAUSE_ANSWER_S
+    if after_opening or _starts_with_topic_cue(nxt.text):
+        return PAUSE_TOPIC_S
+    return PAUSE_NORMAL_S
+
+
+def line_pauses(lines: list[ScriptLine]) -> list[float]:
+    """Pausas variables tras cada intervención salvo la última (``len(lines) - 1`` valores)."""
+    return [
+        pause_between(lines[i], lines[i + 1], after_opening=i == 0) for i in range(len(lines) - 1)
+    ]
+
+
+def chunk_dialogue(
+    texts: list[str], max_lines: int = DIALOGUE_MAX_LINES, max_chars: int = DIALOGUE_MAX_CHARS
+) -> list[tuple[int, int]]:
+    """Trocea las intervenciones en tramos ``[(inicio, fin)]`` (fin exclusivo) de como mucho
+    ``max_lines`` líneas y ``max_chars`` caracteres; una línea más larga que ``max_chars`` va
+    sola en su tramo. Codicioso y determinista; conserva el orden."""
+    chunks: list[tuple[int, int]] = []
+    start, chars = 0, 0
+    for i, text in enumerate(texts):
+        size = len(text)
+        if i > start and (i - start >= max_lines or chars + size > max_chars):
+            chunks.append((start, i))
+            start, chars = i, 0
+        chars += size
+    if texts:
+        chunks.append((start, len(texts)))
+    return chunks
 
 
 # ── Podcast ────────────────────────────────────────────────────────────────────────
@@ -314,13 +401,80 @@ def _synthesize_with_retry(
     raise AssertionError("inalcanzable")
 
 
+def _synthesize_dialogue_with_retry(
+    tts: TTSProvider, items: list[tuple[str, str]], out_path: Path, retries: int,
+    abort: threading.Event | None = None,
+) -> tuple[Path, float, list[float]]:
+    """Llama a ``tts.synthesize_dialogue`` con reintentos (mismo criterio que ``_synthesize_with_retry``).
+
+    Devuelve ``(ruta, duración medida, duraciones por línea)``; estas se reescalan para que sumen
+    la duración **medida** del tramo (el proveedor las estima).
+    """
+    for attempt in range(retries + 1):
+        if abort is not None and abort.is_set():
+            raise PodcastAborted("síntesis cancelada: otro tramo falló")
+        try:
+            written, durations = tts.synthesize_dialogue(items, out_path)
+            written = Path(written)
+            if not written.exists() or written.stat().st_size == 0:
+                raise RuntimeError(f"El TTS no escribió audio en {written}")
+            if len(durations) != len(items):
+                raise RuntimeError(f"El TTS devolvió {len(durations)} duraciones para {len(items)} líneas")
+            measured = audio_duration_s(written)
+            total = sum(durations)
+            if total > 0:
+                scaled = [d * measured / total for d in durations]
+            else:
+                scaled = [measured / len(items)] * len(items)
+            return written, measured, scaled
+        except Exception as exc:
+            if attempt >= retries:
+                raise
+            log.warning("TTS (diálogo) falló (%s); reintento %d/%d", exc, attempt + 1, retries)
+            time.sleep(0.5 * (attempt + 1))
+    raise AssertionError("inalcanzable")
+
+
+def _run_jobs(n: int, job: Callable[[int, threading.Event], T], workers: int) -> list[T]:
+    """Ejecuta ``job(i, abort)`` para ``i`` en ``0..n-1`` con hasta ``workers`` hilos, en orden.
+
+    Si un trabajo falla sin remedio, activa ``abort`` (los demás dejan de reintentar), no se
+    esperan los pendientes y se propaga la causa real, no la cancelación (``PodcastAborted``).
+    """
+    abort = threading.Event()
+    first_error: dict[str, BaseException] = {}
+
+    def _guarded(i: int) -> T:
+        try:
+            return job(i, abort)
+        except Exception as exc:
+            if not isinstance(exc, PodcastAborted):
+                first_error.setdefault("exc", exc)
+            abort.set()
+            raise
+
+    try:
+        workers = max(1, min(int(workers), n))
+        if workers == 1:
+            return [_guarded(i) for i in range(n)]
+        pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="tts")
+        try:
+            return list(pool.map(_guarded, range(n)))  # map conserva el orden
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
+    except PodcastAborted:
+        if "exc" in first_error:
+            raise first_error["exc"] from None
+        raise
+
+
 def synthesize_podcast(
     script: PodcastScript,
     tts: TTSProvider,
     out_dir: Path,
     voice_a: str,
     voice_b: str,
-    pause_s: float = 0.35,
+    pause_s: float | None = None,
     *,
     max_workers: int = DEFAULT_MAX_WORKERS,
     retries: int = 2,
@@ -333,13 +487,15 @@ def synthesize_podcast(
 
     Args:
         script: guion A/B (las líneas vacías se omiten).
-        tts: proveedor de voz (``MockTTS``, ``EdgeTTS``…); se usa la ruta que devuelve.
+        tts: proveedor de voz (``MockTTS``, ``EdgeTTS``, ``GeminiTTS``…); se usa la ruta que
+            devuelve. Si ``tts.supports_dialogue``, se sintetiza por tramos de diálogo.
         out_dir: carpeta del briefing; el resultado es ``out_dir/podcast<ext>`` con la
-            extensión del proveedor (``.wav`` mock, ``.mp3`` edge-tts).
-        voice_a, voice_b: voces de los locutores A y B.
-        pause_s: silencio entre intervenciones.
-        max_workers: líneas sintetizadas en paralelo (1 = secuencial).
-        retries: reintentos por línea ante errores del TTS.
+            extensión del proveedor (``.wav`` mock, ``.mp3`` edge-tts y Gemini).
+        voice_a, voice_b: voces de los locutores A y B (las de Gemini salen de su configuración).
+        pause_s: silencio entre intervenciones; ``None`` (por defecto, v0.3.4) = pausas variables
+            (``line_pauses``).
+        max_workers: líneas (o tramos de diálogo, hasta ``DIALOGUE_MAX_WORKERS``) en paralelo.
+        retries: reintentos por línea (o tramo) ante errores del TTS.
         keep_parts: conservar ``out_dir/parts`` (útil para depurar); por defecto se borra.
         normalize: pasar cada línea por ``normalize_for_speech`` antes del TTS (los segmentos
             guardan siempre el texto original).
@@ -353,93 +509,125 @@ def synthesize_podcast(
     out_dir = Path(out_dir)
     parts_dir = out_dir / "parts"
     parts_dir.mkdir(parents=True, exist_ok=True)
-    voices = {"A": voice_a, "B": voice_b}
-
-    def _job(i: int) -> tuple[Path, float]:
-        """Sintetiza la línea ``i`` y mide su duración (en el mismo hilo: ffmpeg también va en paralelo)."""
-        line = lines[i]
-        target = parts_dir / f"{i:03d}_{line.speaker}{tts.audio_extension}"
-        text = line.text.strip()
-        if normalize:
-            text = normalize_for_speech(text) or text
-        try:
-            written = _synthesize_with_retry(tts, text, voices[line.speaker], target, retries, abort)
-            return written, audio_duration_s(written)
-        except Exception as exc:
-            if not isinstance(exc, PodcastAborted):
-                first_error.setdefault("exc", exc)
-            abort.set()  # el resto de líneas deja de reintentar: fallo rápido
-            raise
-
-    abort = threading.Event()
-    first_error: dict[str, BaseException] = {}
+    gaps = line_pauses(lines) if pause_s is None else [max(0.0, float(pause_s))] * (len(lines) - 1)
+    texts = [line.text.strip() for line in lines]
+    if normalize:
+        texts = [normalize_for_speech(t) or t for t in texts]
     try:
-        workers = max(1, min(int(max_workers), len(lines)))
-        if workers == 1:
-            results = [_job(i) for i in range(len(lines))]
+        if getattr(tts, "supports_dialogue", False):
+            parts, part_gaps, durations, seg_gaps = _dialogue_parts(
+                lines, texts, gaps, tts, parts_dir, max_workers, retries
+            )
         else:
-            pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="tts")
-            try:
-                results = list(pool.map(_job, range(len(lines))))  # map conserva el orden
-            finally:
-                # Si una línea falla, no se esperan las pendientes (cancel_futures) ni sus reintentos.
-                pool.shutdown(wait=True, cancel_futures=True)
-        return _assemble(script, lines, results, out_dir, tts, pause_s, metadata, loudness_lufs)
-    except PodcastAborted:
-        # Se propaga la causa real (la de la línea que falló), no la cancelación de las demás.
-        if "exc" in first_error:
-            raise first_error["exc"] from None
-        raise
+            parts, durations = _line_parts(lines, texts, tts, parts_dir, voice_a, voice_b, max_workers, retries)
+            part_gaps = seg_gaps = gaps
+        segments = _segments(lines, durations, seg_gaps)
+        return _assemble(script, lines, segments, parts, part_gaps, out_dir, tts, metadata, loudness_lufs)
     finally:
         # También si una línea falla tras sus reintentos: no dejar partes huérfanas en disco.
         if not keep_parts:
             shutil.rmtree(parts_dir, ignore_errors=True)
 
 
-def _assemble(
-    script: PodcastScript,
-    lines: list[ScriptLine],
-    results: list[tuple[Path, float]],
-    out_dir: Path,
-    tts: TTSProvider,
-    pause_s: float,
-    metadata: dict[str, str] | None,
-    loudness_lufs: float | None,
-) -> AudioAsset:
-    """Calcula los segmentos con las duraciones reales y concatena las partes en el episodio."""
-    parts = [path for path, _ in results]
-    durations = [dur for _, dur in results]
+def _line_parts(
+    lines: list[ScriptLine], texts: list[str], tts: TTSProvider, parts_dir: Path,
+    voice_a: str, voice_b: str, max_workers: int, retries: int,
+) -> tuple[list[Path], list[float]]:
+    """Una parte por intervención: ``(partes, duración de cada línea)``."""
+    voices = {"A": voice_a, "B": voice_b}
 
+    def _job(i: int, abort: threading.Event) -> tuple[Path, float]:
+        """Sintetiza la línea ``i`` y mide su duración (en el mismo hilo: ffmpeg también va en paralelo)."""
+        line = lines[i]
+        target = parts_dir / f"{i:03d}_{line.speaker}{tts.audio_extension}"
+        written = _synthesize_with_retry(tts, texts[i], voices[line.speaker], target, retries, abort)
+        return written, audio_duration_s(written)
+
+    results = _run_jobs(len(lines), _job, max_workers)
+    return [p for p, _ in results], [d for _, d in results]
+
+
+def _dialogue_parts(
+    lines: list[ScriptLine], texts: list[str], gaps: list[float], tts: TTSProvider, parts_dir: Path,
+    max_workers: int, retries: int,
+) -> tuple[list[Path], list[float], list[float], list[float]]:
+    """Una parte por tramo de diálogo (``chunk_dialogue``): ``(partes, pausas entre tramos,
+    duración aproximada de cada línea, silencio añadido tras cada línea)``. Las pausas solo se
+    añaden entre tramos (dentro, las pone el modelo)."""
+    chunks = chunk_dialogue(texts, DIALOGUE_MAX_LINES, DIALOGUE_MAX_CHARS)  # leídos al llamar (tests)
+
+    def _job(k: int, abort: threading.Event) -> tuple[Path, float, list[float]]:
+        start, end = chunks[k]
+        items: list[tuple[str, str]] = [(lines[i].speaker, texts[i]) for i in range(start, end)]
+        target = parts_dir / f"tramo_{k:03d}{tts.audio_extension}"
+        return _synthesize_dialogue_with_retry(tts, items, target, retries, abort)
+
+    results = _run_jobs(len(chunks), _job, min(int(max_workers), DIALOGUE_MAX_WORKERS))
+    log.info("Podcast por diálogo: %d líneas en %d tramos", len(lines), len(chunks))
+    durations = [d for _, _, per_line in results for d in per_line]
+    ends = {end - 1 for _, end in chunks[:-1]}
+    part_gaps = [gaps[end - 1] for _, end in chunks[:-1]]
+    seg_gaps = [gaps[i] if i in ends else 0.0 for i in range(len(lines) - 1)]
+    return [p for p, _, _ in results], part_gaps, durations, seg_gaps
+
+
+def _segments(lines: list[ScriptLine], durations: list[float], seg_gaps: list[float]) -> list[AudioSegment]:
+    """Tiempos de cada intervención en el episodio final: cada línea empieza donde acaba la
+    anterior más ``seg_gaps[i]`` (silencio añadido tras la línea ``i``; 0 dentro de un tramo de
+    diálogo, cuya pausa interna ya está en el audio)."""
     segments: list[AudioSegment] = []
     cursor = 0.0
     for i, (line, dur) in enumerate(zip(lines, durations, strict=True)):
         start, end = cursor, cursor + dur
         segments.append(AudioSegment(speaker=line.speaker, text=line.text.strip(), start_s=round(start, 3),
                                      end_s=round(end, 3)))
-        cursor = end + (pause_s if i < len(lines) - 1 else 0.0)
+        cursor = end + (seg_gaps[i] if i < len(lines) - 1 else 0.0)
+    return segments
 
-    ext = parts[0].suffix or tts.audio_extension
+
+def _assemble(
+    script: PodcastScript,
+    lines: list[ScriptLine],
+    segments: list[AudioSegment],
+    parts: list[Path],
+    part_gaps: list[float],
+    out_dir: Path,
+    tts: TTSProvider,
+    metadata: dict[str, str] | None,
+    loudness_lufs: float | None,
+) -> AudioAsset:
+    """Concatena las partes en el episodio (con ``loudnorm`` e ID3 si no es WAV)."""
+    ext = getattr(tts, "podcast_extension", None) or parts[0].suffix or tts.audio_extension
     tags = dict(AI_AUDIO_METADATA if metadata is None else metadata)
     if metadata is None and script.title:
         tags["title"] = script.title
     loud = loudness_lufs if ext.lower() != ".wav" else None  # MockTTS: silencio, nada que normalizar
-    final = concat_audio(parts, out_dir / f"podcast{ext}", pause_s, metadata=tags, loudness_lufs=loud)
+    final = concat_audio(parts, out_dir / f"podcast{ext}", pauses=part_gaps, metadata=tags, loudness_lufs=loud)
     try:
         total = audio_duration_s(final)
     except Exception:  # medir es secundario: usar la suma teórica
-        total = cursor
+        total = segments[-1].end_s
     log.info("Podcast: %d líneas, %.1f s -> %s", len(lines), total, final.name)
     return AudioAsset(path=final, duration_s=round(total, 3), segments=segments)
 
 
 __all__ = [
     "AI_AUDIO_METADATA",
+    "DIALOGUE_MAX_CHARS",
+    "DIALOGUE_MAX_LINES",
+    "PAUSE_ANSWER_S",
+    "PAUSE_NORMAL_S",
+    "PAUSE_TOPIC_S",
     "PODCAST_LOUDNESS_LUFS",
+    "TOPIC_CUES",
     "loudnorm_filter",
     "SYNTHETIC_VOICE_NOTICE",
     "audio_duration_s",
+    "chunk_dialogue",
     "concat_audio",
     "ffmpeg_exe",
+    "line_pauses",
     "normalize_for_speech",
+    "pause_between",
     "synthesize_podcast",
 ]

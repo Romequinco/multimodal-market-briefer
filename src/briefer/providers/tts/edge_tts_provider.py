@@ -1,7 +1,8 @@
 """Texto a voz con ``edge-tts`` (voces neuronales de Microsoft Edge, sin clave).
 
 Carril C. Implementa ``TTSProvider.synthesize(text, voice, out_path) -> Path`` (MP3).
-Voces por defecto: ``BRIEFER_VOICE_A=es-ES-AlvaroNeural`` y ``BRIEFER_VOICE_B=es-ES-ElviraNeural``.
+Voces por defecto (opción «B» de la cata del 05-oct-2026): ``BRIEFER_VOICE_A=es-ES-AlvaroNeural``,
+``BRIEFER_VOICE_B=es-ES-XimenaNeural`` y ``BRIEFER_TTS_RATE=+10%`` (``DEFAULT_RATE``).
 Lo usa ``media.podcast`` (una llamada por línea del guion) y el Q&A hablado.
 
 Decisiones:
@@ -41,6 +42,9 @@ TESTED_EDGE_TTS_VERSION = "7.2.8"
 _LOCAL_FS_ERRORS: tuple[type[BaseException], ...] = (
     PermissionError, FileNotFoundError, IsADirectoryError, NotADirectoryError,
 )
+
+#: Velocidad por defecto (opción «B»): se usa si ni el parámetro ni ``settings`` la fijan.
+DEFAULT_RATE = "+10%"
 
 _RATE_RE = re.compile(r"^[+-]\d{1,3}%$")
 _PITCH_RE = re.compile(r"^[+-]\d{1,3}Hz$")
@@ -109,7 +113,7 @@ class EdgeTTS(TTSProvider):
     Args:
         settings: configuración (las voces llegan por parámetro a ``synthesize``).
         rate: velocidad relativa (``"+0%"``, ``"+8%"``, ``"-5%"``). Si no se pasa, se usa
-            ``settings.briefer_tts_rate`` si existe, y si no ``"+0%"``.
+            ``settings.briefer_tts_rate`` si existe, y si no ``DEFAULT_RATE`` (``"+10%"``).
         pitch: tono relativo (``"+0Hz"``, ``"-2Hz"``). Igual que ``rate``.
         retries: reintentos ante errores de red o del servicio.
         backoff_s: espera base entre reintentos (crece linealmente: 1×, 2×, 3×…).
@@ -132,7 +136,7 @@ class EdgeTTS(TTSProvider):
     ) -> None:
         self.settings = settings
         self.model = "edge-tts"
-        self.rate = _check_rate(rate or getattr(settings, "briefer_tts_rate", None) or "+0%")
+        self.rate = _check_rate(rate or getattr(settings, "briefer_tts_rate", None) or DEFAULT_RATE)
         self.pitch = _check_pitch(pitch or getattr(settings, "briefer_tts_pitch", None) or "+0Hz")
         self.retries = max(0, int(retries))
         self.backoff_s = max(0.0, float(backoff_s))
@@ -213,4 +217,4 @@ class EdgeTTS(TTSProvider):
         ) from last_exc
 
 
-__all__ = ["EdgeTTS", "TESTED_EDGE_TTS_VERSION"]
+__all__ = ["DEFAULT_RATE", "EdgeTTS", "TESTED_EDGE_TTS_VERSION"]

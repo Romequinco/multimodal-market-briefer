@@ -18,8 +18,9 @@ def test_default_speakers_come_from_brand() -> None:
     s = Settings(_env_file=None)
     assert (s.briefer_speaker_a_name, s.briefer_speaker_b_name) == (brand.SPEAKER_A_NAME, brand.SPEAKER_B_NAME)
     assert scriptwriter.DEFAULT_SPEAKERS == ("Toro", "Osa")
-    # Las voces de edge-tts no cambian: A masculina, B femenina.
-    assert (s.briefer_voice_a, s.briefer_voice_b) == ("es-ES-AlvaroNeural", "es-ES-ElviraNeural")
+    # Voces de edge-tts (opción «B» de la cata): A masculina, B femenina, a +10 %.
+    assert (s.briefer_voice_a, s.briefer_voice_b) == ("es-ES-AlvaroNeural", "es-ES-XimenaNeural")
+    assert s.briefer_tts_rate == "+10%"
 
 
 def test_prompt_has_night_edition_and_personas() -> None:

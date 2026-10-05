@@ -30,7 +30,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 LLMProviderName = Literal["anthropic", "gemini", "openai", "mock"]
 VisionProviderName = Literal["claude", "qwen_local", "mock"]
 STTProviderName = Literal["whisper_api", "whisper_local", "mock"]
-TTSProviderName = Literal["edge", "elevenlabs", "mock"]
+TTSProviderName = Literal["edge", "gemini", "elevenlabs", "mock"]
 ImageGenProviderName = Literal["sdxl_turbo", "none", "mock"]
 ImageClassifierName = Literal["clip", "none", "mock"]
 
@@ -95,13 +95,20 @@ class Settings(BaseSettings):
     # ── Idioma y voces ──────────────────────────────────────────────────────────
     briefer_language: str = "es"
     briefer_voice_a: str = "es-ES-AlvaroNeural"
-    briefer_voice_b: str = "es-ES-ElviraNeural"
+    # Voz B: Ximena (cata a ciegas del 05-oct-2026, opción «B»: Álvaro + Ximena a +10 %).
+    briefer_voice_b: str = "es-ES-XimenaNeural"
     # Locutores (marca Briefly): A = Toro (voz masculina), B = Osa (voz femenina).
     briefer_speaker_a_name: str = brand.SPEAKER_A_NAME
     briefer_speaker_b_name: str = brand.SPEAKER_B_NAME
-    # Velocidad y tono de edge-tts (opcionales): "+0%", "+8%", "-5%" / "+0Hz", "-2Hz".
-    briefer_tts_rate: str | None = None
+    # Velocidad y tono de edge-tts: "+0%", "+8%", "-5%" / "+0Hz", "-2Hz". Por defecto +10 %
+    # (opción «B» de la cata); vacío en .env = también +10 % (``EdgeTTS.DEFAULT_RATE``).
+    briefer_tts_rate: str | None = "+10%"
     briefer_tts_pitch: str | None = None
+    # Gemini TTS multi-locutor (opción «D», de pago: demo y pregenerado). Voces precompuestas de
+    # Gemini; el Q&A hablado sigue con edge-tts aunque el podcast use Gemini (latencia).
+    briefer_gemini_tts_model: str = "gemini-3.8-flash-tts"
+    briefer_gemini_voice_a: str = "Puck"
+    briefer_gemini_voice_b: str = "Kore"
     elevenlabs_voice_a: str | None = None
     elevenlabs_voice_b: str | None = None
     elevenlabs_model: str = "eleven_multilingual_v2"

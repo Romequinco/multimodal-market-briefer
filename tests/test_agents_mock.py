@@ -150,7 +150,7 @@ def test_estimate_duration_s() -> None:
     lines = [ScriptLine(speaker="A", text="uno dos tres"), ScriptLine(speaker="B", text="cuatro cinco")]
     assert scriptwriter.estimate_duration_s(lines, wpm=150) == 2.0  # 5 palabras a 150 ppm
     assert scriptwriter.estimate_duration_s(lines, wpm=300) == 1.0
-    # Por defecto, el ritmo medido de edge-tts (143 ppm habladas).
+    # Por defecto, el ritmo medido de edge-tts opción «B» (158 ppm habladas).
     assert scriptwriter.estimate_duration_s(lines) == round(5 / scriptwriter.WORDS_PER_MINUTE * 60, 1)
 
 
@@ -179,7 +179,7 @@ def test_write_script_renders_prompt_placeholders() -> None:
         sample_analysis(), llm, target_minutes=3, speaker_names=("Ana", "Luis"), length_tolerance=None
     )
     system = llm.calls[0]["system"]
-    assert "Ana" in system and "Luis" in system and "375 palabras" in system  # 3 min x 125 ppm escritas
+    assert "Ana" in system and "Luis" in system and "399 palabras" in system  # 3 min x 133 ppm escritas
     assert "{" not in system
     assert len(llm.calls) == 1  # guion válido: sin reintento
 

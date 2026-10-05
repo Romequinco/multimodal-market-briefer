@@ -55,6 +55,7 @@ STT_IMPLS: dict[str, _Spec] = {
 }
 TTS_IMPLS: dict[str, _Spec] = {
     "edge": ("briefer.providers.tts.edge_tts_provider", "EdgeTTS", None),
+    "gemini": ("briefer.providers.tts.gemini_tts", "GeminiTTS", "gemini_api_key"),
     "elevenlabs": ("briefer.providers.tts.elevenlabs_tts", "ElevenLabsTTS", "elevenlabs_api_key"),
 }
 IMAGE_GEN_IMPLS: dict[str, _Spec] = {

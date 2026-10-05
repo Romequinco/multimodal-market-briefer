@@ -42,15 +42,17 @@ from briefer.schemas import Analysis, PodcastScript, ScriptLine
 
 log = get_logger("agents.scriptwriter")
 
-#: Ritmo real de edge-tts (voces es-ES, pausas entre intervenciones incluidas) en palabras
-#: **habladas** por minuto, es decir, contadas tras ``normalize_for_speech`` («0,53 %» son 5
-#: palabras). Medido el 05-oct-2026 con el pregenerado (``data/samples/demo_briefing``): 780
-#: palabras habladas en 326,9 s (5:27) -> 143,1 ppm. Antes era 150 sobre el texto escrito, que
-#: estimaba 4,5 min para un episodio de 5,45 min.
-WORDS_PER_MINUTE = 143
-#: El mismo ritmo en palabras **escritas** del guion (cifras sin desarrollar): 681 palabras en
-#: 326,9 s -> 125 ppm. Solo para decirle al LLM cuántas palabras escribir.
-WRITTEN_WORDS_PER_MINUTE = 125
+#: Ritmo real del TTS por defecto (edge-tts opción «B»: Álvaro + Ximena a +10 %, pausas variables
+#: incluidas) en palabras **habladas** por minuto, es decir, contadas tras ``normalize_for_speech``
+#: («0,53 %» son 5 palabras). Medido el 05-oct-2026 sintetizando el guion del pregenerado
+#: (``data/samples/demo_briefing``) con ``media.podcast.synthesize_podcast``: 543 palabras
+#: habladas en 206,8 s -> 157,6 ppm. (Antes, a +0 % con Elvira y pausa fija de 0,35 s: 143 ppm.)
+#: Gemini TTS (opción «D») habla algo más deprisa: 175 ppm en un tramo de 11 líneas y 163 ppm en
+#: el episodio entero (199,7 s); con este valor sus episodios salen ~3-4 % más cortos de lo estimado.
+WORDS_PER_MINUTE = 158
+#: El mismo ritmo en palabras **escritas** del guion (cifras sin desarrollar): 459 palabras en
+#: 206,8 s -> 133 ppm. Solo para decirle al LLM cuántas palabras escribir.
+WRITTEN_WORDS_PER_MINUTE = 133
 LENGTH_TOLERANCE = 0.4  # desviación relativa de duración que dispara una reescritura
 #: Duración aceptable del episodio (producto: 3-5 min). Si el objetivo está dentro de este
 #: rango, la comprobación de duración usa el rango; si no, la tolerancia relativa.
@@ -90,13 +92,13 @@ def written_word_count(lines: list[ScriptLine]) -> int:
 
 
 def target_written_words(target_minutes: float) -> int:
-    """Palabras escritas que se piden al LLM para ``target_minutes`` (4 min -> 500)."""
+    """Palabras escritas que se piden al LLM para ``target_minutes`` (4 min -> 532)."""
     return int(target_minutes * WRITTEN_WORDS_PER_MINUTE)
 
 
 def estimate_duration_s(lines: list[ScriptLine], wpm: int = WORDS_PER_MINUTE) -> float:
     """Duración estimada del guion en segundos: palabras habladas (tras ``normalize_for_speech``)
-    al ritmo medido de edge-tts (``WORDS_PER_MINUTE`` ≈ 143 ppm)."""
+    al ritmo medido del TTS por defecto (``WORDS_PER_MINUTE`` ≈ 158 ppm)."""
     words = sum(spoken_word_count(line.text) for line in lines)
     return round(words / max(1, wpm) * 60, 1)
 
@@ -462,7 +464,7 @@ def write_script(
     Args:
         analysis: salida del Agente Analista.
         llm: proveedor LLM inyectado.
-        target_minutes: duración objetivo (≈143 palabras habladas por minuto).
+        target_minutes: duración objetivo (≈158 palabras habladas por minuto).
         speaker_names: nombres de los locutores A y B (solo para el texto del guion).
         max_retries: reescrituras como máximo si el guion tiene problemas (por defecto 1).
         length_tolerance: desviación relativa de duración tolerada; ``None`` desactiva esa

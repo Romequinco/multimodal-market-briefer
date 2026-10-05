@@ -8,7 +8,7 @@ Estado de verificación (05-oct-2026):
   salida): tabla de precios de la documentación oficial de la API de Anthropic (consultada el
   05-oct-2026, datos del 25-sep-2026). Los ids ``claude-sonnet-5-5`` y
   ``claude-haiku-4-5-20251001`` responden en la API (``scripts/smoke_real.py``).
-- **Gemini, OpenAI, Whisper, ElevenLabs y tipo de cambio**: *estimación a verificar* en las
+- **Gemini (LLM y TTS), OpenAI, Whisper, ElevenLabs y tipo de cambio**: *estimación a verificar* en las
   páginas oficiales antes de la entrega (anotar la fecha en ``docs/04``).
 
 El coste de una llamada LLM/visión se calcula con ``provider.last_usage``
@@ -63,6 +63,14 @@ TTS_PRICES_USD_PER_1K_CHARS: dict[str, float] = {
     "openai-tts-1": 0.015,
 }
 
+# USD por millón de tokens (texto de entrada, audio de salida) de los TTS que facturan por tokens.
+# Gemini TTS: estimación, verificar en la página oficial de precios de la API de Gemini (se toma
+# la tarifa publicada para los modelos *flash* TTS anteriores: 0,50 $ de texto y 10 $ de audio por
+# millón de tokens; el audio de salida son ≈ 25 tokens por segundo, ≈ 0,013 € por minuto).
+TTS_PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
+    "gemini-3.8-flash-tts": (0.50, 10.00),  # estimación, verificar
+}
+
 # USD por imagen generada (solo modelos locales en el MVP).
 IMAGE_GEN_PRICES_USD_PER_IMAGE: dict[str, float] = {
     "sdxl_turbo": 0.0,  # local
@@ -89,12 +97,15 @@ def llm_price_usd_per_mtok(model: str) -> tuple[float, float] | None:
     """Tarifa ``(entrada, salida)`` en USD por millón de tokens; ``None`` si no se conoce.
 
     Admite ids con sufijo de fecha (``claude-haiku-4-5-20251001`` -> ``claude-haiku-4-5``)
-    buscando el prefijo conocido más largo.
+    buscando el prefijo conocido más largo. Incluye los TTS que facturan por tokens
+    (``TTS_PRICES_USD_PER_MTOK``: ``gemini-3.8-flash-tts`` no cae en la tarifa del LLM
+    ``gemini-3.8-flash`` porque gana el prefijo más largo).
     """
-    if model in LLM_PRICES_USD_PER_MTOK:
-        return LLM_PRICES_USD_PER_MTOK[model]
-    matches = [k for k in LLM_PRICES_USD_PER_MTOK if model.startswith(k)]
-    return LLM_PRICES_USD_PER_MTOK[max(matches, key=len)] if matches else None
+    table = {**LLM_PRICES_USD_PER_MTOK, **TTS_PRICES_USD_PER_MTOK}
+    if model in table:
+        return table[model]
+    matches = [k for k in table if model.startswith(k)]
+    return table[max(matches, key=len)] if matches else None
 
 
 #: Multiplicadores de la tarifa de entrada para la caché de prompt de Anthropic

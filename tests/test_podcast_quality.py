@@ -33,17 +33,18 @@ def _demo() -> dict:
     return json.loads((DEMO / "briefing.json").read_text(encoding="utf-8"))
 
 
-def test_words_per_minute_matches_pregenerated_podcast() -> None:
-    """La estimación de duración del pregenerado cae a menos de un 6 % de su duración real.
+#: Duración medida (05-oct-2026) del guion del pregenerado sintetizado con el TTS por defecto
+#: (edge-tts opción «B»: Álvaro + Ximena a +10 %, pausas variables): 543 palabras habladas.
+MEASURED_OPTION_B_S = 206.8
 
-    ``WORDS_PER_MINUTE`` se calibró con el pregenerado anterior (780 palabras habladas en 326,9 s,
-    error del 3 %); con el actual (3:39) el error es del 4 %.
-    """
-    data = _demo()
-    script = PodcastScript.model_validate(data["script"])
-    real = data["audio"]["duration_s"]
+
+def test_words_per_minute_matches_measured_option_b() -> None:
+    """La estimación del guion del pregenerado cae a menos de un 2 % de su duración medida con
+    la opción «B» (``WORDS_PER_MINUTE`` = 158 sale de esa medida: 157,6 ppm)."""
+    script = PodcastScript.model_validate(_demo()["script"])
     estimate = scriptwriter.estimate_duration_s(script.lines)
-    assert abs(estimate - real) / real < 0.06
+    assert sum(scriptwriter.spoken_word_count(line.text) for line in script.lines) == 543
+    assert abs(estimate - MEASURED_OPTION_B_S) / MEASURED_OPTION_B_S < 0.02
 
 
 def test_duration_gate_accepts_the_pregenerated_podcast() -> None:
@@ -71,8 +72,8 @@ def test_estimate_counts_spoken_words_not_written() -> None:
 
 def test_prompt_asks_for_written_words_at_measured_pace() -> None:
     system = scriptwriter._render_system(4.0, ("Toro", "Osa"))
-    assert scriptwriter.target_written_words(4.0) == 500
-    assert "500 palabras" in system and "125 palabras" in system
+    assert scriptwriter.target_written_words(4.0) == 532
+    assert "532 palabras" in system and "133 palabras" in system
     assert "{" not in system.replace("{}", "")  # sin marcadores sin sustituir
 
 
