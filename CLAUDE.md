@@ -34,7 +34,8 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 | LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A; ADR-006) | Gemini, mock (OpenAI: *stub*); `BRIEFER_SCRIPTWRITER_MODEL` |
 | Visión (gráficos, páginas PDF) | Claude visión | Qwen2.5-VL local, mock |
 | STT | OpenAI API (`gpt-4o-mini-transcribe`; `whisper-1` por config) | mock (Whisper local: *stub*) |
-| TTS 2 voces | `edge-tts` (gratis, voces es-ES) | ElevenLabs, mock |
+| TTS 2 voces | `edge-tts` (gratis, por defecto: Álvaro/Ximena +10 %) · Gemini 3.8 TTS multi-locutor (premium, demo; Q&A siempre edge) | ElevenLabs (*stub*), mock |
+| Tono de noticias (opcional) | Haiku traduce → FinBERT local (`BRIEFER_FINBERT`, PR #1 de Daniel) | desactivado |
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
 | Gráficos / vídeo | matplotlib / ffmpeg vía `imageio-ffmpeg` (vídeo pendiente, D2) | — |
 | Config | `.env` → `src/briefer/config.py` | — |
@@ -47,7 +48,7 @@ src/briefer/schemas.py    CONTRATOS Pydantic entre módulos  ← no cambiar sin 
 src/briefer/pipeline.py   orquestación: run_briefing(), answer_question()
 src/briefer/brand.py      marca visible (Briefly, eslogan, locutores): fuente única, no repetir textos
 src/briefer/providers/    capa IA: base.py (interfaces), registry.py, mock.py, llm/ vision/ stt/ tts/ image/
-src/briefer/ingest/       entradas y procesado (noticias, tickers, precios, PDF, gráfico, cartera, voz)
+src/briefer/ingest/       entradas y procesado (noticias, tickers, precios, PDF, gráfico, cartera, voz, FinBERT)
 src/briefer/agents/       analista, guionista, Q&A (+ prompts/*.md)
 src/briefer/media/        gráficos, podcast, transcripción, vídeo, portada
 src/briefer/delivery/     email, Telegram

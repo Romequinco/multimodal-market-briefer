@@ -37,7 +37,7 @@ y los envíos: **no se repiten a mano** en ningún otro sitio.
 | Momento | **Edición de noche** (al cierre); saludo «Buenas noches» | Edición de mañana (antes de la apertura) como roadmap |
 | Paleta | **Noticiero nocturno** (la actual de la app) | Tokens y contrastes en [Color](#color) |
 | Tipografía | **Source Serif 4** (marca y titulares) · **Inter** (texto) · **JetBrains Mono** (datos y rótulos) | Google Fonts, ya cargadas en la app |
-| Locutores | **Toro** (voz A, el optimista) y **Osa** (voz B, la prudente, cierra con el aviso legal) | Guiño a *bull & bear*. Voces sintéticas (edge-tts) |
+| Locutores | **Toro** (voz A, el optimista) y **Osa** (voz B, la prudente, cierra con el aviso legal) | Guiño a *bull & bear*. Voces sintéticas: edge-tts por defecto, Gemini TTS en la versión premium de la demo |
 | Logo | **LG1-A · velas-ecualizador** | Ver [Logo](#logo) |
 | «Quiénes somos» | Texto de broma corto (misión, valores, equipo) | Página `app/pages/5_Quienes_somos.py`; texto [abajo](#quiénes-somos) |
 | Formatos | Ahora: guía de marca, logo SVG y favicon, marca en la app, banner del README. Después: portada, vídeo 9:16, tarjeta de Telegram y pitch | Ver [Formatos](#formatos) |
@@ -181,15 +181,20 @@ la versión automática de esta tabla.
 
 | | **Toro** | **Osa** |
 | --- | --- | --- |
-| Voz | A (`BRIEFER_VOICE_A`, por defecto `es-ES-AlvaroNeural`) | B (`BRIEFER_VOICE_B`, por defecto `es-ES-ElviraNeural`) |
+| Voz por defecto (edge-tts, gratis) | A (`BRIEFER_VOICE_A`, por defecto `es-ES-AlvaroNeural`) | B (`BRIEFER_VOICE_B`, por defecto `es-ES-XimenaNeural`) |
+| Voz premium (Gemini TTS, de pago; demo y pregenerado) | `Puck` (`BRIEFER_GEMINI_VOICE_A`) | `Kore` (`BRIEFER_GEMINI_VOICE_B`) |
 | Papel | El optimista: **abre** el episodio y se fija primero en lo que sube | La prudente: pone el **contexto y los riesgos** y **cierra con el aviso legal** |
-| En el Q&A | — | Es la voz que responde a las preguntas |
+| En el Q&A | — | Es la voz que responde a las preguntas (siempre con edge-tts, Ximena, también si el podcast suena con Gemini) |
 | Ejemplo | «Buenas noches. Esto es Briefly, y hoy hay verde en la pantalla: Iberdrola ha subido un 1,5 %.» | «Antes de que lo celebres, Toro: el Ibex ha caído en conjunto, así que no todo ha sido verde.» |
 | Ejemplo | «Lo de NVIDIA da para un rato: los resultados han superado lo que esperaba el mercado, según Reuters.» | «Y como siempre: esto es información, no una recomendación. Somos voces sintéticas. Buenas noches.» |
 
 - Guiño a *bull & bear* (toro alcista, oso bajista). **Personalidad, nunca opinión**: los dos se ciñen a los hechos
   del análisis y ninguno recomienda comprar ni vender. El optimismo de Toro es de tono, no de contenido.
-- **Voces sintéticas**, generadas con edge-tts. Se dice en el audio, en la transcripción y en la app.
+- **Voces sintéticas**. Se dice en el audio, en la transcripción y en la app. Elegidas el 05-oct-2026 en una
+  **cata a ciegas** de 6 opciones con el mismo guion: por defecto (gratis) edge-tts **Álvaro + Ximena a +10 %** con
+  pausas variables (más cortas tras una pregunta, más largas al cambiar de tema); para la demo y el pregenerado,
+  la opción más natural, **Gemini TTS multi-locutor** (Puck = Toro, Kore = Osa), que encadena los turnos como una
+  conversación con un estilo de «radio nocturna» por locutor. Si Gemini falla, el episodio sale con edge-tts.
 - Los nombres por defecto salen de `brand.SPEAKER_A_NAME` / `SPEAKER_B_NAME` y se pueden cambiar con
   `BRIEFER_SPEAKER_A_NAME` / `BRIEFER_SPEAKER_B_NAME` (p. ej. para un cliente de marca blanca).
 

@@ -13,15 +13,19 @@ genera un **podcast explicativo a dos voces** (Toro y Osa) con su transcripción
 opcionalmente, un **vídeo corto**. El usuario puede además subir una captura de gráfico o un PDF de resultados para que entren en el
 análisis, y **preguntar por voz** sobre el briefing a un agente que le responde también por voz.
 
-> **Estado (05-oct-2026 · Fases 0 y 1 cerradas, revisadas y reforzadas):** el producto funciona **de punta a punta con datos
+> **Estado (05-oct-2026 · Fases 0 y 1 cerradas, revisadas y reforzadas; FinBERT y voces integrados):** el producto funciona **de punta a punta con datos
 > y modelos reales**: noticias de Google News, Bing News, Yahoo Finance, Expansión y Europa Press (con enlace al
 > medio y extracto breve) + precios de yfinance, con caché → lectura de PDF y gráfico con Claude visión → Agente
 > Analista (Claude Sonnet 5.5, con puerta de *grounding* de cifras) → Agente Guionista (Claude Haiku 4.5, con
-> puertas de calidad deterministas) → podcast a dos voces con edge-tts → transcripción SRT → gráficos →
-> `briefing.json`, más el Agente Q&A **por texto o por voz** (Whisper API → Claude → respuesta hablada).
+> puertas de calidad deterministas) → podcast a dos voces (edge-tts gratis por defecto; **Gemini TTS
+> multi-locutor** de pago para la demo) → transcripción SRT → gráficos → `briefing.json`, con un paso opcional
+> de **«impacto de la noticia»** (Claude Haiku traduce → **FinBERT** clasifica el tono, en paralelo con el
+> Analista), más el Agente Q&A **por texto o por voz** (Whisper API → Claude → respuesta hablada).
 > **Medido:** 0,066 € y 83 s por briefing con PDF + gráfico (sin caché); 0,053 € y 62 s sin subidas, con el
 > podcast **verificado por STT** (WER 1,1 %); pregunta al Q&A ≈ 0,001-0,006 € (caché de prompt) y **≈ 6 s con voz**
-> de punta a punta incluso la primera del proceso. 953 tests sin red, cobertura del 97 % y ruff + mypy en la CI. La app abre con un **briefing real pregenerado** y funciona también **sin
+> de punta a punta incluso la primera del proceso. El pregenerado de la portada (voz Gemini + FinBERT, con PDF y
+> gráfico, noticias de la caché del día) costó ≈ 0,18 € estimados y 110 s, WER 1,4 %. 1019 tests sin red (+ 11 «live») y ruff + mypy en la CI.
+> La app abre con un **briefing real pregenerado** y funciona también **sin
 > claves**. Pendiente: vídeo, portada generada, envíos por email/Telegram, captura de cartera (desactivados en la
 > UI) y probar Docker. Plan en [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md) (*feature freeze* mié 7 a las
 > 22:00 · **jue 8** capturas, demo grabada y pitch, entrega 16:30). Estado vivo en
@@ -75,7 +79,7 @@ Detalle en [docs/01_producto_y_propuesta_valor.md](docs/01_producto_y_propuesta_
 | **Nombre** | **Briefly** (la marca y el programa se llaman igual) |
 | **Eslogan** | «El cierre del día, mientras vuelves a casa» |
 | **Tono** | Radio nocturna: serio y preciso con los datos, cercano en la conversación. Lema: «Te contamos el mercado; tú decides.» |
-| **Locutores** | **Toro** (voz A, el optimista que abre y se fija en lo que sube) y **Osa** (voz B, la prudente que pone el contexto y los riesgos y cierra con el aviso legal). Guiño a *bull & bear*; las dos voces son **sintéticas** (edge-tts) |
+| **Locutores** | **Toro** (voz A, el optimista que abre y se fija en lo que sube) y **Osa** (voz B, la prudente que pone el contexto y los riesgos y cierra con el aviso legal). Guiño a *bull & bear*; las dos voces son **sintéticas** (edge-tts Álvaro / Ximena por defecto; Gemini TTS Puck / Kore en la demo) |
 | **Edición** | De noche, al cierre de la sesión; la de mañana, en el roadmap |
 | **Paleta** | «Noticiero nocturno»: fondo `#12151B`, superficie `#1C2129`, texto `#D6DEE8`, acento `#C0502A` / `#F0997B`, sube `#5DCAA5`, baja `#F09595` (contrastes WCAG AA validados en los tests) |
 | **Tipografía** | Source Serif 4 (marca y titulares) · Inter (texto) · JetBrains Mono (datos y rótulos) |
@@ -109,6 +113,7 @@ flowchart LR
         LI["Lectura de imagen<br/>ingest/chart_reader.py"]
         LP["Lectura de PDF<br/>ingest/pdf_reader.py"]
         VT["Voz a texto<br/>ingest/voice.py"]
+        IM["Impacto de la noticia (opcional)<br/>Haiku → FinBERT · ingest/sentiment.py"]
     end
 
     subgraph AG["3 · Agentes IA"]
@@ -131,6 +136,7 @@ flowchart LR
     end
 
     N --> FT
+    FT -. noticias .-> IM
     G --> LI
     C --> LI
     C -. tickers .-> FT
@@ -153,6 +159,7 @@ flowchart LR
     AU --> W
     VI --> W
     TR --> EM
+    IM -. tono por noticia .-> W
     AU --> TG
 ```
 
@@ -180,10 +187,11 @@ todo mock. Lo que sale «No» tiene el control **desactivado** en la UI («en de
 | 5 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku | Qwen2.5-VL local *(stub)* | **Sí** (real) |
 | 6 | Imagen → etiqueta | Enrutado | ¿La imagen subida es velas, tabla u otra cosa? (zero-shot) | CLIP *(opcional, desactivado)* | `none`, `mock` | **No** (pendiente, D2) |
 | 7 | Audio → texto | Entrada | Pregunta por voz del usuario y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` (`BRIEFER_WHISPER_API_MODEL`) | `whisper-1`, `faster-whisper` local *(stub)*, `mock` | **Sí** (real, con `OPENAI_API_KEY`); en sin claves/offline la transcripción es simulada y lleva `[MOCK]` |
-| 8 | Texto → audio | Salida | Podcast a dos voces (Toro y Osa) y respuesta hablada del Q&A | `edge-tts` (gratis, voces es-ES) + normalización para locución | ElevenLabs *(stub)*, `mock` | **Sí** (real y sin claves); silencio en offline |
+| 8 | Texto → audio | Salida | Podcast a dos voces (Toro y Osa) y respuesta hablada del Q&A | `edge-tts` (gratis, por defecto: Álvaro / Ximena a +10 %, pausas variables) + normalización para locución | **Gemini TTS multi-locutor** (`gemini-3.8-flash-tts`, de pago, premium: diálogo entero por tramos; si falla, cae a edge-tts; el Q&A habla siempre con edge-tts por latencia), ElevenLabs *(stub)*, `mock` | **Sí** (real y sin claves; el pregenerado suena con Gemini); silencio en offline |
+| 8b | Texto → etiqueta | Enriquecimiento | «Impacto de la noticia»: tono de cada noticia (▲ positiva · ▼ negativa · ● neutral) junto a su fuente en «Puntos clave»; tono de la noticia, no recomendación ni agregado por valor | Claude Haiku 4.5 (traduce al inglés, una llamada) → **FinBERT** (`ProsusAI/finbert`, modelo abierto, CPU local) | Opcional: `BRIEFER_FINBERT=true` (por defecto, desactivado) | **Sí** (real, en el pregenerado: 19 noticias). Aportación de Daniel (PR #1) |
 | 9 | Datos → imagen | Salida | Gráficos del día (variación con bloque «Índices de referencia», cotización por ticker, reparto de la cartera solo en la sesión) con fecha y fuente | matplotlib | — | **Sí** (todos los modos; «precios sintéticos (demo)» en la demo) |
-| 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS | — | **Sí** (todos los modos) |
-| 10b | Audio → texto (control de calidad) | Bucle | El STT escucha el podcast generado y mide el WER contra el guion (`media.verify`; peores líneas en la traza) | OpenAI `gpt-4o-mini-transcribe` / `whisper-1` | `BRIEFER_VERIFY_PODCAST=false` | **Sí** (real; medido WER 1,1 %) |
+| 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS (con Gemini, tiempos por línea aproximados dentro de cada tramo) | — | **Sí** (todos los modos) |
+| 10b | Audio → texto (control de calidad) | Bucle | El STT escucha el podcast generado y mide el WER contra el guion (`media.verify`; peores líneas en la traza) | OpenAI `gpt-4o-mini-transcribe` / `whisper-1` | `BRIEFER_VERIFY_PODCAST=false` | **Sí** (real; medido WER 1,1 % con edge-tts y 1,4 % con Gemini en el pregenerado) |
 | 11 | Texto → imagen | Salida | Portada del episodio *(opcional)* | API texto→imagen (Gemini image) prevista | `none`, `mock` | **No** (pendiente, D2; desactivado en la UI) |
 | 12 | Imagen + audio → vídeo | Salida | Vídeo corto con gráficos, audio y subtítulos *(opcional)* | ffmpeg | — | **No** (pendiente, D2; desactivado en la UI) |
 
@@ -209,7 +217,7 @@ flowchart TB
         DLV["delivery/<br/>email, Telegram"]
     end
     PRV["<b>Conexión con modelos IA</b> · src/briefer/providers/<br/>LLM · visión · STT · TTS · imagen · mock (registry por config)"]
-    X["APIs externas / modelos locales<br/>Anthropic · OpenAI · Gemini · edge-tts · ElevenLabs · Whisper · HF"]
+    X["APIs externas / modelos locales<br/>Anthropic · OpenAI · Gemini (LLM y TTS) · edge-tts · ElevenLabs · Whisper · HF (FinBERT)"]
 
     UI --> PL --> BIZ
     ING --> PRV
@@ -246,11 +254,11 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 │   ├── logging_utils.py         # logger, track_step() → StepMetric, step_fell_back(), redact_secrets()
 │   ├── storage.py               # guardar (sin cartera)/cargar/exportar (ZIP) briefings; briefing destacado
 │   ├── providers/               # base.py · registry.py · mock.py · llm/ · vision/ · stt/ · tts/ · image/
-│   ├── ingest/                  # news, article_meta, cache, tickers, prices, pdf_reader, chart_reader, portfolio, voice
+│   ├── ingest/                  # news, article_meta, cache, tickers, prices, pdf_reader, chart_reader, portfolio, voice, sentiment (FinBERT)
 │   ├── agents/                  # analyst, scriptwriter, qa, guardrails + prompts/{analyst,scriptwriter,qa}.md
 │   ├── media/                   # charts, podcast, speech (normalización para TTS), transcript, video, cover
 │   └── delivery/                # email_sender, telegram_sender
-├── tests/                       # 953 tests sin red (mock y fixtures; red bloqueada) + 11 «live» (-m live)
+├── tests/                       # 1019 tests sin red (mock y fixtures; red bloqueada) + 11 «live» (-m live)
 ├── scripts/                     # run.ps1 · run.sh · demo.py · smoke_real.py
 ├── .github/workflows/tests.yml  # CI: pytest en modo mock (Python 3.11 y 3.13) en cada push a main y PR
 ├── .streamlit/config.toml       # tema, subida máxima 50 MB, sin telemetría
@@ -318,8 +326,9 @@ volúmenes (en Linux, si tu UID no es 1000, da permisos de escritura a esas carp
 
 Al abrir la app, la portada presenta la propuesta de valor y muestra el **último briefing real guardado** o, si
 no hay ninguno, un **briefing real pregenerado** que viene en el repo (`data/samples/demo_briefing/`, id
-`20261005-130504-0f8ae2`: generado el 05-oct-2026 con Claude y edge-tts para SAN.MC, ITX.MC, IBE.MC, AAPL y NVDA
-más un PDF y un gráfico de ejemplo; podcast de 5:27, SRT, gráficos y traza «Cómo se hizo»). Un briefing de
+`20261005-213416-87a2a9`: generado el 05-oct-2026 con Claude, la voz premium de Gemini TTS y FinBERT activado
+para SAN.MC, ITX.MC, IBE.MC, AAPL y NVDA más un PDF y un gráfico de ejemplo; podcast de 3:38, SRT, gráficos,
+«impacto de la noticia» de 19 noticias y traza «Cómo se hizo»; 0 sustitutos, ≈ 0,18 € estimados y 110 s). Un briefing de
 ensayo en modo demo (mock, datos de ejemplo o sustitutos) **nunca** tapa al pregenerado real. Se ve y se escucha
 **sin claves ni red**; desde la portada, «Preguntar sobre este briefing» lo lleva al Agente Q&A y «Generar el
 tuyo» abre el formulario.
@@ -328,7 +337,7 @@ tuyo» abre el formulario.
 
 | Modo | Qué hace | Necesita | UI | CLI |
 | --- | --- | --- | --- | --- |
-| **Real** | Noticias y precios reales (caché en `data/cache/`), Claude para análisis, guion, visión y Q&A, Whisper API para la voz, edge-tts | `ANTHROPIC_API_KEY` en `.env` + red (`OPENAI_API_KEY` para preguntar por voz) | Interruptor «Modo real (APIs de .env)» en la barra lateral (bloqueado si faltan claves, con el motivo) | `python scripts/demo.py` |
+| **Real** | Noticias y precios reales (caché en `data/cache/`), Claude para análisis, guion, visión y Q&A, Whisper API para la voz, edge-tts (o Gemini TTS con `BRIEFER_TTS_PROVIDER=gemini`); FinBERT si `BRIEFER_FINBERT=true` | `ANTHROPIC_API_KEY` en `.env` + red (`OPENAI_API_KEY` para preguntar por voz) | Interruptor «Modo real (APIs de .env)» en la barra lateral (bloqueado si faltan claves, con el motivo) | `python scripts/demo.py` |
 | **Demo sin claves (voces reales)** | Noticias de ejemplo, precios sintéticos y modelos simulados, pero el podcast y la respuesta del Q&A **suenan** con edge-tts | Red (edge-tts es gratis y sin clave) | «Tipo de demo» → demo sin claves | `python scripts/demo.py --demo-voices` |
 | **Mock offline** | Todo simulado y determinista; el audio es un WAV mudo | Nada | «Tipo de demo» → demo offline | `python scripts/demo.py --mock` |
 
@@ -344,7 +353,7 @@ python scripts/demo.py --refresh                                  # real, ignora
 python scripts/demo.py --question "¿Qué dice el PDF?" --briefing pregenerado --warmup
 python scripts/demo.py --mock --strict                            # sale con 3 si algún paso usó un sustituto
 python scripts/smoke_real.py                                      # prueba de humo de cada proveedor con clave (< 0,01 €)
-python -m pytest -q                                               # 953 tests sin red (los «live» con -m live)
+python -m pytest -q                                               # 1019 tests sin red (los «live» con -m live)
 python scripts/metrics_report.py --include-demo                   # p50/p95 de latencia y coste de los briefings guardados
 python scripts/measure_qa_voice.py                                # cadena de voz del Q&A (audio → STT → Q&A → voz), en frío y caliente
 ruff check src app scripts tests && mypy                          # estilo y tipos, como la CI (pip install -r requirements-dev.txt)
@@ -392,7 +401,7 @@ queda al copiar la plantilla. La pregunta por voz real necesita `OPENAI_API_KEY`
 | `BRIEFER_LLM_PROVIDER` | `anthropic` · `gemini` · `openai` · `mock` | `mock` | `anthropic` | Agentes analista, guionista y Q&A |
 | `BRIEFER_VISION_PROVIDER` | `claude` · `qwen_local` · `mock` | `mock` | `claude` | Lectura de gráficos y páginas de PDF |
 | `BRIEFER_STT_PROVIDER` | `whisper_api` · `whisper_local` · `mock` | `mock` | `whisper_api` | Pregunta por voz |
-| `BRIEFER_TTS_PROVIDER` | `edge` · `elevenlabs` · `mock` | `mock` | `edge` | Podcast y respuesta hablada |
+| `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` · `elevenlabs` · `mock` | `mock` | `edge` | Podcast y respuesta hablada. `gemini` (de pago, `GEMINI_API_KEY`) solo cambia el podcast: si falla, cae a edge-tts, y el Q&A habla siempre con edge-tts |
 | `BRIEFER_IMAGE_GEN_PROVIDER` | `sdxl_turbo` · `none` · `mock` | `none` | `none` | Portada (opcional) |
 | `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` · `none` · `mock` | `none` | `none` | Clasificar capturas (opcional) |
 | `BRIEFER_FALLBACK_TO_MOCK` | `true` · `false` | `true` | `true` | Si falta clave o librería: mock con aviso (`true`) o `ProviderConfigError` (`false`) |
@@ -421,16 +430,19 @@ Los modelos locales requieren `requirements-local.txt`.
 | Variable | Por defecto (código y `.env.example`) | Para qué |
 | --- | --- | --- |
 | `BRIEFER_LANGUAGE` | `es` | Idioma de STT y contenido |
-| `BRIEFER_VOICE_A` · `BRIEFER_VOICE_B` | `es-ES-AlvaroNeural` · `es-ES-ElviraNeural` | Voces edge-tts de Toro (A) y Osa (B; también responde en el Q&A) |
+| `BRIEFER_VOICE_A` · `BRIEFER_VOICE_B` | `es-ES-AlvaroNeural` · `es-ES-XimenaNeural` | Voces edge-tts de Toro (A) y Osa (B; también responde en el Q&A). Elegidas en una cata a ciegas el 05-oct-2026 |
+| `BRIEFER_GEMINI_TTS_MODEL` | `gemini-3.8-flash-tts` | Modelo de Gemini TTS si `BRIEFER_TTS_PROVIDER=gemini` |
+| `BRIEFER_GEMINI_VOICE_A` · `BRIEFER_GEMINI_VOICE_B` | `Puck` · `Kore` | Voces precompuestas de Gemini para Toro (A) y Osa (B) |
 | `BRIEFER_SPEAKER_A_NAME` · `BRIEFER_SPEAKER_B_NAME` | `Toro` · `Osa` | Nombres de los locutores en guion y transcripción (por defecto, los de la marca en `src/briefer/brand.py`) |
 | `ELEVENLABS_VOICE_A` · `ELEVENLABS_VOICE_B` | vacío | Ids de voz si `BRIEFER_TTS_PROVIDER=elevenlabs` |
 | `ELEVENLABS_MODEL` | `eleven_multilingual_v2` | Modelo de ElevenLabs |
-| `BRIEFER_TTS_RATE` · `BRIEFER_TTS_PITCH` | vacío (`+0%` · `+0Hz`) | Velocidad y tono de edge-tts (p. ej. `+8%`, `-2Hz`) |
+| `BRIEFER_TTS_RATE` · `BRIEFER_TTS_PITCH` | `+10%` · vacío (`+0Hz`) | Velocidad y tono de edge-tts (p. ej. `+8%`, `-2Hz`); vacío en la velocidad = también `+10%` |
 | `BRIEFER_VERIFY_PODCAST` | `true` | En modo real, el STT escucha el podcast y mide el WER contra el guion (≈ 0,01 € con `gpt-4o-mini-transcribe`) |
 | `BRIEFER_DEFAULT_TICKERS` | `SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA` | Tickers por defecto (formato Yahoo, separados por comas) |
 | `BRIEFER_CONTEXT_TICKERS` | `^IBEX,^GSPC` | Índices de referencia: precios y noticias de mercado en todo briefing, sin contar como tickers del usuario |
 | `BRIEFER_NEWS_RSS_FEEDS` | vacío | Feeds RSS generalistas; vacío = Expansión «Mercados» + Europa Press (además, por ticker: Google News es-ES, RSS de Yahoo y yfinance) |
 | `BRIEFER_NEWS_MAX_ITEMS` | `20` | Máximo de noticias por briefing |
+| `BRIEFER_FINBERT` | `false` | «Impacto de la noticia» (Haiku traduce + FinBERT clasifica, en paralelo con el Analista). Necesita `pip install -r requirements-local.txt` (torch + transformers); la primera carga descarga el modelo |
 | `BRIEFER_PODCAST_TARGET_MINUTES` | `4` | Duración objetivo del podcast |
 
 ### Claves y entrega
@@ -439,7 +451,7 @@ Los modelos locales requieren `requirements-local.txt`.
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | vacío | LLM y visión con Claude |
 | `OPENAI_API_KEY` | vacío | Whisper API y LLM OpenAI (opcional) |
-| `GEMINI_API_KEY` | vacío | LLM Gemini (opcional) |
+| `GEMINI_API_KEY` | vacío | LLM Gemini y TTS Gemini multi-locutor (opcional) |
 | `ELEVENLABS_API_KEY` | vacío | Voces ElevenLabs (opcional) |
 | `TELEGRAM_BOT_TOKEN` · `TELEGRAM_CHAT_ID` | vacío | Entrega por Telegram (opcional) |
 | `SMTP_HOST` · `SMTP_USER` · `SMTP_PASSWORD` · `SMTP_FROM` | vacío | Entrega por email (opcional) |

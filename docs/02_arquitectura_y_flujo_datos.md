@@ -99,11 +99,12 @@ Fuente: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | | Lectura de imagen | `ingest/chart_reader.py` | `read_chart(image, source_name, vision, llm, classifier)` | `VisionProvider` (+ `ImageClassifier` opcional) |
 | | Lectura de PDF | `ingest/pdf_reader.py` | `read_pdf(path, llm, vision, max_pages)` | `pypdf` + `LLMProvider` barato + `VisionProvider` |
 | | Voz a texto | `ingest/voice.py` | `transcribe_question(audio_path, stt, language)` (Q&A) · `voice_to_insight(...)` (audio subido al briefing) | `STTProvider` |
+| | Impacto de la noticia *(opcional, `BRIEFER_FINBERT`)* | `ingest/sentiment.py` | `news_impact(news, llm_barato)` → `news_impact.json` (fuera del contrato `Briefing`) | Haiku (traducción) + FinBERT local (`torch` + `transformers`) |
 | 3 · Agentes IA | Agente Analista | `agents/analyst.py` | `analyze(context, llm)` | `LLMProvider` |
 | | Agente Guionista | `agents/scriptwriter.py` | `write_script(analysis, llm, target_minutes, speaker_names)` | `LLMProvider` |
 | | Agente Q&A | `agents/qa.py` | `answer(question, briefing, llm, history)` | `LLMProvider` (modelo barato) |
 | 4 · Salidas | Gráficos del día | `media/charts.py` | `make_charts(prices, out_dir, portfolio)` | matplotlib |
-| | Audio podcast (2 voces) | `media/podcast.py` | `synthesize_podcast(script, tts, out_dir, voice_a, voice_b)` | `TTSProvider` |
+| | Audio podcast (2 voces) | `media/podcast.py` | `synthesize_podcast(script, tts, out_dir, voice_a, voice_b)` (pausas variables; con Gemini, por tramos de diálogo) | `TTSProvider` (edge-tts por defecto; Gemini TTS premium) |
 | | Transcripción | `media/transcript.py` | `build_transcript(script, segments, out_dir, speaker_names)` | — (tiempos del TTS) |
 | | Vídeo corto | `media/video.py` | `make_video(audio, images, out_path, transcript)` | ffmpeg (`imageio-ffmpeg`) |
 | | Portada *(opcional)* | `media/cover.py` | `make_cover(analysis, image_gen, out_dir)` | `ImageGenProvider` |
@@ -142,6 +143,10 @@ sequenceDiagram
     IN->>VIS: describe(imagen, prompt)
     VIS-->>IN: texto
     IN-->>PL: list[DocumentInsight]
+    opt BRIEFER_FINBERT (en paralelo con el Analista)
+        PL->>IN: sentiment.news_impact(noticias, Haiku) → FinBERT
+        IN-->>PL: news_impact.json
+    end
     PL->>AN: analyze(MarketContext, llm)
     AN->>LLM: complete(system, messages, Analysis)
     LLM-->>AN: Analysis
@@ -149,8 +154,14 @@ sequenceDiagram
     SC->>LLM: complete(system, messages, PodcastScript)
     LLM-->>SC: PodcastScript
     PL->>MD: synthesize_podcast(script, tts, out_dir, voice_a, voice_b)
-    loop por cada ScriptLine
-        MD->>TTS: synthesize(text, voz A Toro | voz B Osa)
+    alt TTS de diálogo (Gemini, premium)
+        loop por cada tramo (≤ 12 líneas / ≤ 2.000 caracteres, hasta 3 en paralelo)
+            MD->>TTS: synthesize_dialogue([(A|B, texto)…])
+        end
+    else edge-tts (por defecto)
+        loop por cada ScriptLine
+            MD->>TTS: synthesize(text, voz A Toro | voz B Osa)
+        end
     end
     MD-->>PL: AudioAsset
     PL->>MD: build_transcript · make_charts · (make_cover) · (make_video)
@@ -223,12 +234,13 @@ disclaimer.
 | 1 | Imagen de gráfico | Claude visión (opcional antes: CLIP zero-shot para clasificar) | `DocumentInsight` | 3 |
 | 2 | PDF | `pypdf` + Claude visión en páginas con poco texto + LLM barato (Haiku) para resumir | `DocumentInsight` | 3 |
 | 3 | `MarketContext` | Claude Sonnet (`BRIEFER_LLM_MODEL`, Analista) | `Analysis` | 4 |
-| 4 | `Analysis` | Claude Sonnet (`BRIEFER_LLM_MODEL`, Guionista) | `PodcastScript` | 5 |
-| 5 | `PodcastScript` | edge-tts, 2 voces es-ES (`BRIEFER_VOICE_A` / `BRIEFER_VOICE_B`) | `AudioAsset` | 6, 8 |
-| 6 | `AudioAsset` | — (tiempos del TTS) / Whisper opcional | `Transcript` + SRT | 8 |
+| 4 | `Analysis` | Claude Haiku (`BRIEFER_LLM_MODEL_CHEAP`, Guionista; ADR-006) | `PodcastScript` | 5 |
+| 5 | `PodcastScript` | edge-tts, 2 voces es-ES (`BRIEFER_VOICE_A` / `BRIEFER_VOICE_B`: Álvaro / Ximena, +10 %) · premium: Gemini TTS multi-locutor (Puck / Kore), con caída a edge-tts | `AudioAsset` | 6, 8 |
+| 6 | `AudioAsset` | — (tiempos del TTS; aproximados dentro de cada tramo con Gemini) / Whisper opcional | `Transcript` + SRT | 8 |
+| 3b | `NewsItem[]` (opcional) | Claude Haiku (traduce al inglés) → FinBERT (`ProsusAI/finbert`, local) | `news_impact.json` (tono por noticia) | UI («Puntos clave») |
 | 7 | Precios (+ cartera) | matplotlib | `ChartAsset[]` | 8 |
 | 8 | Audio + gráficos + SRT (+ portada generada) | ffmpeg (`imageio-ffmpeg`) | `VideoAsset` | entrega |
-| Q&A | Audio de pregunta | Whisper → Claude Haiku (`BRIEFER_LLM_MODEL_CHEAP`) → edge-tts | `QAAnswer` | UI |
+| Q&A | Audio de pregunta | Whisper → Claude Haiku (`BRIEFER_LLM_MODEL_CHEAP`) → edge-tts (también si el podcast usa Gemini) | `QAAnswer` | UI |
 
 Son hasta **6 modelos distintos** encadenados (CLIP, visión, LLM analista, LLM guionista, TTS, texto-a-imagen)
 más STT en el Q&A.
@@ -242,7 +254,7 @@ Cada familia de modelo tiene una interfaz abstracta en `providers/base.py` y var
 BRIEFER_LLM_PROVIDER=anthropic | gemini | openai | mock
 BRIEFER_VISION_PROVIDER=claude | qwen_local | mock
 BRIEFER_STT_PROVIDER=whisper_api | whisper_local | mock
-BRIEFER_TTS_PROVIDER=edge | elevenlabs | mock
+BRIEFER_TTS_PROVIDER=edge | gemini | elevenlabs | mock
 BRIEFER_IMAGE_GEN_PROVIDER=sdxl_turbo | none | mock          # none = sin portada
 BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip | none | mock         # none = sin clasificador
 BRIEFER_FALLBACK_TO_MOCK=true | false
@@ -270,7 +282,8 @@ data/
 └── outputs/                      # ignorado (BRIEFER_OUTPUT_DIR)
     ├── <briefing_id>/            # YYYYMMDD-HHMMSS-xxxxxx (new_briefing_id): orden alfabético = cronológico
     │   ├── briefing.json         # Briefing serializado; rutas internas relativas a esta carpeta
-    │   ├── podcast.<ext>         # .mp3 con edge-tts, .wav con MockTTS
+    │   ├── podcast.<ext>         # .mp3 con edge-tts y Gemini TTS, .wav con MockTTS
+    │   ├── news_impact.json      # opcional (FinBERT): tono de cada noticia, fuera del contrato Briefing
     │   ├── parts/                # audio por línea (000_A, 001_B…); se borra al terminar salvo keep_parts
     │   ├── podcast.srt
     │   ├── charts/               # <TICKER>_price.png, overview_change.png (el de cartera NO se guarda aquí)

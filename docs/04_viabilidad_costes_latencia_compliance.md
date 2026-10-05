@@ -18,6 +18,10 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
   descargado de nuevo), que es el **pregenerado** de `data/samples/demo_briefing/` (`20261005-130504-0f8ae2`).
   Q&A sobre ese briefing **en dos tiempos, como la UI** (`speak=False` + `speak_answer`), con y sin
   `pipeline.warmup`. STT con 3 preguntas sintetizadas con edge-tts y WER contra el texto.
+- **Voces y FinBERT (05-oct, noche):** cata a ciegas de 6 opciones de voz sobre el mismo guion y un briefing
+  real con `BRIEFER_TTS_PROVIDER=gemini` y `BRIEFER_FINBERT=true`, `use_cache=True` (noticias y precios de la caché
+  del día), que es el **pregenerado actual** (`20261005-213416-87a2a9`). Cifras de `Briefing.metrics` de ese
+  briefing; las de Gemini TTS son **estimación** (tarifa sin verificar, ver § 1).
 - **Entradas comunes:** 5 tickers (SAN.MC, ITX.MC, IBE.MC, AAPL, NVDA) + índices de contexto ^IBEX y ^GSPC, el PDF
   y la captura de gráfico de ejemplo.
 - **Proveedores:** Claude Sonnet 5.5 (Analista, visión de PDF y gráfico), Claude Haiku 4.5 (Guionista,
@@ -37,7 +41,7 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | --- | --- | --- |
 | Noticias por briefing tras el filtro | ~20 | **Medido:** 20 seleccionadas, 16 relevantes. Final: 30 fuentes consultadas (0 fallidas), 6 casi duplicadas y 11 fichas de cotización descartadas |
 | Noticias con extracto | — | **Medido:** ~45-50 % en frío (el enriquecimiento tiene un presupuesto de 3 s) y ~80 % desde la 2.ª ejecución del día (caché de URL y extractos). Extractos ≤ 200 caracteres |
-| Duración del podcast | 4 min (objetivo, banda 3-5) | **Medido:** 3:58-4:20 min en la Fase 1; **5:27** en el pregenerado final (28 intervenciones; por encima del objetivo, ver riesgos en [06](06_estado_actual.md)) |
+| Duración del podcast | 4 min (objetivo, banda 3-5) | **Medido:** 3:58-4:20 min en la Fase 1; 5:27 en el pregenerado de la revisión (28 intervenciones, edge-tts); **3:38** en el pregenerado actual (18 intervenciones, Gemini TTS). Ritmo recalibrado: edge-tts opción «B» **158 palabras habladas/min** (543 en 206,8 s); Gemini ≈ 163 |
 | Contexto del Q&A | ~6.000 tokens de entrada, ~300 de salida | Briefing del día como contexto (estimación; coste medido abajo) |
 | Pregunta por voz | 5-15 s de audio | Las 3 preguntas de prueba duraban unos segundos; coste por minuto de audio |
 | Claude Sonnet 5.5 | **2 $/M entrada, 10 $/M salida** | **Verificado** en la tarifa oficial el 05-oct-2026 (`costs.py`) |
@@ -46,7 +50,9 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | Gemini 2.5 Flash | ~0,30 $/M entrada, ~2,50 $/M salida | Estimación a verificar |
 | OpenAI STT | `gpt-4o-mini-transcribe` 0,003 $/min · `whisper-1` 0,006 $/min | `costs.STT_PRICES_USD_PER_MIN`; tarifa pública, a verificar con la factura |
 | ElevenLabs | ~0,18-0,30 $ por 1.000 caracteres según plan | Estimación a verificar; muy dependiente del plan |
-| edge-tts | 0 € | Servicio gratuito no oficial, sin SLA (ver riesgos) |
+| edge-tts | 0 € | Servicio gratuito no oficial, sin SLA (ver riesgos). TTS **por defecto** |
+| Gemini TTS (`gemini-3.8-flash-tts`) | ~0,50 $/M tokens de texto, ~10 $/M tokens de audio | **Estimación, verificar** (`costs.TTS_PRICES_USD_PER_MTOK`: se toma la tarifa publicada de los modelos *flash* TTS anteriores). Medido: ≈ 25 tokens de audio por segundo → **≈ 0,013 €/min de audio** (estimado) |
+| FinBERT (`ProsusAI/finbert`) | 0 € | Modelo abierto, local en CPU; solo cuesta la traducción previa con Haiku |
 | Tipo de cambio | 1 $ ≈ 0,86 € | `costs.USD_TO_EUR`, estimación oct-2026 |
 
 ## 2. Coste por briefing
@@ -60,12 +66,16 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | Agente Analista | Sonnet 5.5 (`effort="medium"`, incl. reintento de *grounding* si lo hay) | ~0,05 € | **0,0248 €** | **0,0261 €** |
 | Agente Guionista | Haiku 4.5 (con puertas deterministas, [ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md)) | ~0,01 € | **0,0081 €** | **0,0100 €** |
 | TTS 2 voces | **edge-tts** | 0 € | **0 €** | **0 €** |
-| TTS 2 voces (premium) | ElevenLabs | ~0,55-0,90 € (~3.500 caracteres) | no implementado | no implementado |
+| TTS 2 voces (premium) | **Gemini TTS multi-locutor** (`BRIEFER_TTS_PROVIDER=gemini`) | — | — | **0,0471 €** estimado (pregenerado actual: 856 tokens de texto + 5.436 de audio, 3:38) |
+| TTS 2 voces (premium alternativo) | ElevenLabs | ~0,55-0,90 € (~3.500 caracteres) | no implementado | no implementado |
+| «Impacto de la noticia» (opcional) | Haiku 4.5 (traducción) + FinBERT local | — | — | **0,0082 €** (19 noticias, 19 traducidas) |
+| Verificación del podcast con STT (opcional) | OpenAI STT | — | — | **0,0187 €** con `whisper-1` (pregenerado actual, 3:38); ≈ la mitad con `gpt-4o-mini-transcribe` |
 | Gráficos, transcripción, guardado | matplotlib / local | 0 € | **0 €** | **0 €** |
 | Portada (opcional) | API texto→imagen | ~0,02-0,04 € | no implementado | no implementado |
 | Vídeo (opcional) | ffmpeg | 0 € | no implementado | no implementado |
 | **Total briefing base** (sin subidas, edge-tts) | | ~0,06-0,08 € | **≈ 0,033 €** (derivado) | **≈ 0,036 €** (derivado: Analista + Guionista) · **0,0340 €** medido en 1 briefing sin subidas (`20261005-135612-88b415`, [§ 3](#medido-con-metrics_reportpy-briefings-guardados)) |
 | **Total con PDF + gráfico** | | ~0,12-0,17 € | **≈ 0,065 €** (0,0640-0,0660 €) | **0,0662 €** |
+| **Total pregenerado actual** (PDF + gráfico + Gemini TTS + FinBERT + verificación STT) | | — | — | **≈ 0,1836 €** estimado (Analista 0,0637 € con 1 reintento de *grounding* · podcast 0,0471 € · PDF 0,0204 € · verificación 0,0187 € · gráfico 0,0165 € · Guionista 0,0089 € · FinBERT + Haiku 0,0082 €) |
 | **Total con ElevenLabs** | | ~0,80-1,15 € | no medido | no medido |
 
 Lectura: el coste lo domina **Sonnet** (Analista + dos lecturas de visión ≈ 85 % del total con subidas). El
@@ -74,6 +84,12 @@ Guionista en Haiku cuesta ~2,6 veces menos que el Analista; pasarlo a Sonnet lo 
 *grounding*), un briefing puede subir a 0,10-0,11 € (2 intentos descartados en la tanda final). Gasto estimado
 de la sesión de revisión: **≈ 0,31 €** (3 briefings reales ≈ 0,28 €, Q&A, STT, humo y tests `live`); en la Fase 1,
 ≈ 0,35 €.
+
+**Voz premium (Gemini) frente a gratuita (edge-tts).** El pregenerado actual cuesta ≈ 0,18 € frente a ≈ 0,066 €
+del anterior con edge-tts: la diferencia la explican la voz de Gemini (≈ 0,047 € estimado), un reintento de
+*grounding* del Analista (que ese día costó 0,064 € en vez de ≈ 0,026 €), la verificación con `whisper-1` y
+FinBERT. Por eso Gemini TTS es **premium**, para la demo y el contenido compartido; el valor por defecto sigue
+siendo edge-tts (0 €).
 
 ### Coste por pregunta Q&A
 
@@ -113,13 +129,17 @@ Dos regímenes distintos:
 | TTS (~20-28 intervenciones) | 10-40 s | **12,1-13,2 s** | **20,4 s** (5:27 de audio + `loudnorm`) | Síntesis por línea en paralelo (6 hilos) |
 | Transcripción + SRT + gráficos + guardado | 1-4 s | **1,5-1,8 s** | **1,7 s** | Tiempos del propio TTS, sin modelo extra |
 | Vídeo | 30-90 s | no implementado | no implementado | ffmpeg 720p, imágenes estáticas + audio |
-| **Briefing completo** (con PDF + gráfico) | 1-3 min sin vídeo | **61,1-63,6 s** de pared | **82,9 s** de pared (134,4 s de suma) | Batch nocturno; en vivo con barra de progreso |
+| TTS premium Gemini (por tramos de ≤ 12 líneas / ≤ 2.000 caracteres, hasta 3 en paralelo) | — | — | **24,7 s** (3:38 de audio; pregenerado actual) · 27,4 s para un episodio de 3:20 en la cata | Diálogo entero por tramos; si falla, cae a edge-tts |
+| «Impacto de la noticia» (Haiku + FinBERT, opcional) | — | — | **32,1 s** en paralelo con el Analista (19 noticias) | 1.ª carga del modelo ≈ 28 s con descarga (~840 MB en Windows sin enlaces simbólicos); después ≈ 13 s por proceso con importaciones; clasificar < 0,1 s |
+| **Briefing completo** (con PDF + gráfico) | 1-3 min sin vídeo | **61,1-63,6 s** de pared | **82,9 s** de pared (134,4 s de suma) · **109,8 s** el pregenerado actual (Gemini TTS + FinBERT + verificación STT, noticias de la caché) | Batch nocturno; en vivo con barra de progreso |
 | Briefing sin subidas | — | **≈ 40 s** (derivado) | **≈ 50 s** (derivado: pared − visión) · **≈ 55 s** de pared medida en 1 briefing sin caché (63,0 s de suma; [abajo](#medido-con-metrics_reportpy-briefings-guardados)) | |
 
 La final es más lenta que la F1 por tres motivos medidos: la visión de la API tardó ~31 s (variabilidad; en otra
 ejecución de la F1 el PDF tardó 63 s), hay más fuentes de noticias y un enriquecimiento de extractos, y el guion
 fue más largo (28 intervenciones, 5:27 de audio). **Camino crítico:** visión (~21-32 s, en paralelo con la
-ingesta) → Analista (~11 s) → Guionista (~13-18 s) → TTS (~12-20 s) ≈ 60-80 s.
+ingesta) → Analista (~11 s) → Guionista (~13-18 s) → TTS (~12-20 s) ≈ 60-80 s. FinBERT no alarga el camino
+crítico mientras tarde menos que el Analista (en el pregenerado actual, 32,1 s frente a 25,1 s: alargó la pared
+unos 7 s, porque incluía cargar el modelo en un proceso nuevo).
 
 ### Medido con `metrics_report.py` (briefings guardados)
 
@@ -180,6 +200,11 @@ con valor hay que acumular ≥ 5 briefings reales y volver a ejecutar el script.
 | Ídem, **caliente** (2.ª pregunta del proceso) | p50 **4,0 s** | p50 **6,0 s** (5,9-7,5 s) | ≈ 0,0013 € |
 | Ídem, frío **antes** de precalentar el STT y sin caché de prompt (1.ª medición) | p50 11,5 s | p50 16,4 s (`qa.stt` 7,6-15,1 s: importar `openai`) | ≈ 0,0058 € |
 
+**Voz del Q&A con Gemini en el podcast (05-oct):** la respuesta hablada **sigue saliendo por edge-tts** (Osa con
+la voz Ximena, `pipeline.qa_tts`), así que las latencias de esta tabla no cambian: una petición a un TTS de
+diálogo de pago tarda bastantes segundos más y rompería el objetivo de < 10 s. En la cata de voces se descartó
+OpenAI `gpt-4o-mini-tts` por latencia: expresivo, pero tardó **309 s para 6 líneas** ese día.
+
 Antes de `warmup`, la 1.ª pregunta tardaba 16-17 s en la UI: ~4,7 s eran importar el SDK de Anthropic, ~1,4 s
 importar `edge_tts` y el resto, crear el cliente y el *handshake* TLS. Ahora la página lanza `warmup` en un hilo
 (`st.cache_resource`, una vez por proceso y modo), usa un **cliente Anthropic compartido** y pinta el texto antes
@@ -199,7 +224,7 @@ silencio se corta en local sin llamar a la API.
 | **Batch nocturno** | Latencia percibida 0 para el briefing; se puede usar la API batch del proveedor (más barata) | Fuera del MVP (script manual) |
 | **Modelos baratos donde basta** (Haiku para guion, Q&A y estructurado de documentos; Sonnet para análisis y visión) | Guionista ≈ 0,009 € frente a ≈ 0,025 € con Sonnet | **Hecho** ([ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md); `BRIEFER_SCRIPTWRITER_MODEL` para cambiarlo) |
 | **Caché de prompts** del sistema y del contexto del briefing en el Q&A | Menos coste y latencia en preguntas sucesivas | **Hecho** (05-oct): contexto en el 1.er mensaje `user` con `cache_control`. Medido con Haiku: 1.ª pregunta 0,0065 € (escritura 1,25×, 5.441 tokens), siguientes **0,0011 €** (lectura 0,1×) mientras la caché siga viva (5 min) |
-| **TTS gratuito por defecto** (edge-tts) y premium solo para contenido compartido | Coste de audio 0 € | **Hecho** |
+| **TTS gratuito por defecto** (edge-tts) y premium solo para contenido compartido | Coste de audio 0 € por defecto; Gemini ≈ 0,013 €/min (estimado) solo en la demo y el pregenerado | **Hecho** (05-oct: Gemini TTS premium con caída a edge-tts; el Q&A habla siempre con edge-tts) |
 | **STT barato** (`gpt-4o-mini-transcribe`) y silencio cortado en local | Mitad de coste y de latencia que `whisper-1`; sin llamadas inútiles | **Hecho** |
 | **Modelos locales** (Whisper, Qwen2.5-VL, SDXL-Turbo, CLIP) | 0 € de API a cambio de hardware | *Stubs*; fuera del MVP |
 | **Paralelismo** en ingesta, subidas y TTS | Pared 61-83 s frente a 82-134 s de suma de pasos | **Hecho** (medido) |
@@ -218,6 +243,7 @@ silencio se corta en local sin llamar a la API.
 | Causas afirmadas sin fuente («sube por…») | Q&A: se detectan, se pide **una** reescritura atribuyéndolas a la fuente y, si persisten, se antepone «Según las noticias del briefing, …» (determinista); queda en la traza. Guion: se anotan en su evaluación | `guardrails.unhedged_causal_claims`, `qa.hedge_causal_claims` |
 | Datos simulados presentados como reales | Si un paso cae a mock o a datos de ejemplo, la UI lo avisa y la traza lo pinta en naranja; los gráficos con precios sintéticos lo dicen en el título; la transcripción simulada lleva `[MOCK]`; la portada nunca destaca un briefing simulado | `logging_utils.step_fell_back`, `players.render_run_warnings`, `app/components/trace.py`, `pipeline.SYNTHETIC_PRICES_SOURCE`, `storage.is_simulated_briefing` |
 | Falta de transparencia | `Analysis.disclaimer` obligatorio y no vacío; disclaimer **hablado** al final del podcast; pie fijo en la UI y en los gráficos | `schemas.DISCLAIMER_ES`, `scriptwriter.CLOSING_LINE_ES`, `charts.FOOTER_NOTE` |
+| Tono de las noticias (FinBERT) leído como señal sobre el valor (MAR / recomendación implícita) | Se etiqueta el **tono de cada noticia** («impacto de la noticia: ▲ positiva · FinBERT»), junto a su fuente y con la aclaración «tono de la noticia, no recomendación»; **nunca** se agrega por ticker ni se da una puntuación del valor; opcional y apagado por defecto | `ingest/sentiment.py`, `components/theme.IMPACT_TOOLTIP`, `BRIEFER_FINBERT` |
 | Uso de la cartera | Se usa para **seleccionar** qué noticias explicar y como contexto, no para recomendar cambios en ella | `pipeline._normalize_tickers`, prompt del Analista |
 | Escalado B2B2C | Si un broker lo integra, el contenido se presenta como comunicación informativa; la responsabilidad regulatoria del canal se fija por contrato | — |
 
@@ -264,7 +290,8 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
 - Aviso explícito de que el audio es **generado por IA** y las voces son **sintéticas** (art. 50): en la UI, en
   el cierre hablado del podcast y en los **metadatos ID3 del MP3**
   (`podcast.AI_AUDIO_METADATA`: «Market Briefer (voces sintéticas IA)»).
-- No se clonan voces de personas reales (voces neuronales de catálogo es-ES).
+- No se clonan voces de personas reales: voces neuronales de catálogo (edge-tts es-ES por defecto; voces
+  precompuestas de Gemini TTS en la versión premium).
 - Vídeo y portada generada por IA están **desactivados en la UI** («en desarrollo»); cuando existan, llevarán la
   marca «generado por IA» (también en los metadatos del MP4).
 

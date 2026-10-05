@@ -151,8 +151,14 @@ class STTProvider(_Provider):
     def transcribe(self, audio_path: Path, language: str = "es") -> str: ...
 
 class TTSProvider(_Provider):
-    audio_extension: str = ".mp3"   # MockTTS usa ".wav"
+    audio_extension: str = ".mp3"   # MockTTS usa ".wav"; GeminiTTS ".wav" (PCM 24 kHz envuelto)
+    podcast_extension: str | None = None   # (v0.3.4) extensión del episodio final; None = la de las partes
+    supports_dialogue: bool = False        # (v0.3.4) True si implementa synthesize_dialogue (GeminiTTS)
     def synthesize(self, text: str, voice: str, out_path: Path) -> Path: ...  # devuelve la ruta REAL escrita
+    def synthesize_dialogue(self, lines: list[tuple[str, str]],        # (v0.3.4, opcional) [("A"|"B", texto)]
+                            out_path: Path) -> tuple[Path, list[float]]: ...
+        # un tramo de diálogo en UNA petición: (ruta escrita, duración por línea, posiblemente APROXIMADA);
+        # por defecto NotImplementedError y media.podcast sintetiza línea a línea con synthesize
 
 class ImageGenProvider(_Provider):
     def generate(self, prompt: str, out_path: Path) -> Path: ...
@@ -186,7 +192,7 @@ class ProviderConfigError(RuntimeError): ...  # proveedor desconocido, sin clave
 | `get_llm` | `BRIEFER_LLM_PROVIDER` | `anthropic` · `gemini` · `openai` · `mock` | `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` |
 | `get_vision` | `BRIEFER_VISION_PROVIDER` | `claude` · `qwen_local` · `mock` | `ANTHROPIC_API_KEY` (solo `claude`) |
 | `get_stt` | `BRIEFER_STT_PROVIDER` | `whisper_api` · `whisper_local` · `mock` | `OPENAI_API_KEY` (solo `whisper_api`; modelo `BRIEFER_WHISPER_API_MODEL`, por defecto `gpt-4o-mini-transcribe`) |
-| `get_tts` | `BRIEFER_TTS_PROVIDER` | `edge` · `elevenlabs` · `mock` | `ELEVENLABS_API_KEY` (solo `elevenlabs`) |
+| `get_tts` | `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` (v0.3.4, de pago) · `elevenlabs` · `mock` | `GEMINI_API_KEY` (solo `gemini`; modelo `BRIEFER_GEMINI_TTS_MODEL`, voces `BRIEFER_GEMINI_VOICE_A`/`_B`) · `ELEVENLABS_API_KEY` (solo `elevenlabs`) |
 | `get_image_gen` | `BRIEFER_IMAGE_GEN_PROVIDER` | `sdxl_turbo` · `none` · `mock` | — (`none` → devuelve `None`) |
 | `get_image_classifier` | `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` · `none` · `mock` | — (`none` → devuelve `None`) |
 
@@ -213,13 +219,15 @@ Contrato de comportamiento:
 - **Reintentos (corregido en v0.3):** hay dos niveles. (1) Cada proveedor real reintenta **solo errores
   transitorios** de red o del servicio, con su propio mecanismo: `AnthropicLLM` / `ClaudeVision` con el SDK
   (`max_retries=3`, backoff exponencial ante 408/409/429/5xx/529; timeout 120 s, 10 s de conexión);
-  `GeminiLLM` con `HttpRetryOptions` (4 intentos ante 408/429/5xx); `EdgeTTS` con `retries=2` y espera lineal
+  `GeminiLLM` con `HttpRetryOptions` (4 intentos ante 408/429/5xx); `GeminiTTS` igual (3 intentos, v0.3.4; un
+  audio vacío o demasiado corto para el texto cuenta como error); `EdgeTTS` con `retries=2` y espera lineal
   (`backoff_s`) ante websocket cerrado, `NoAudioReceived`, *timeouts* y 429/503. Los errores de uso (texto
   vacío, voz mal formada, 400) no se reintentan. (2) Con salida estructurada, `_structured.complete_structured`
   hace **un** reintento autocorrectivo si el JSON no valida. Por encima, el **pipeline** decide qué hacer
   cuando el proveedor ya ha agotado sus reintentos: `synthesize_podcast(retries=2)` por línea (v0.3.1:
   `retries=0` con `EdgeTTS`, que ya reintenta dentro, para no anidar 3 × 3 intentos; y si una línea falla sin
-  remedio, las demás se cancelan con `PodcastAborted` y el paso cae antes al sustituto), reintentos de
+  remedio, las demás se cancelan con `PodcastAborted` y el paso cae antes al sustituto; v0.3.4: con Gemini,
+  1 reintento por tramo, `podcast_tts_retries`), reintentos de
   calidad de los agentes y caída a sustituto del paso núcleo (ver «Pasos núcleo y pasos opcionales»).
   Lo que un proveedor no consigue tras sus reintentos se propaga como excepción.
 - **Cliente Anthropic compartido (v0.3.1):** `AnthropicLLM` y `ClaudeVision` usan un único cliente del SDK por
@@ -253,6 +261,7 @@ AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".ogg", ".webm", ".flac"}
 RunMode = Literal["real", "mock", "demo_voices"]               # (v0.3)
 RUN_MODES: tuple[str, ...]                                     # (v0.3) ("real", "mock", "demo_voices")
 PODCAST_TTS_WORKERS = 6                                        # (v0.3) hilos de edge-tts en el podcast
+DIALOGUE_TTS_PROVIDERS = frozenset({"gemini"})                 # (v0.3.4) TTS de diálogo por tramos (de pago)
 UPLOAD_WORKERS = 4                                             # (v0.3) subidas procesadas a la vez
 SYNTHETIC_PRICES_SOURCE = "precios sintéticos (demo)"          # (v0.3.1) fuente rotulada en los gráficos
                                                                #   con precios sintéticos (mock o sustituto)
@@ -273,6 +282,11 @@ class Providers:  # llm, llm_cheap, vision, stt, tts, image_gen | None, classifi
 def resolve_mode(mode: str | None = None, use_mock: bool = False) -> str: ...   # (v0.3)
     # mode manda si se indica; si no, use_mock=True -> "mock", False -> "real"; modo desconocido -> ValueError
 def demo_voice_tts(settings: Settings) -> TTSProvider: ...   # (v0.3) edge-tts real para "demo_voices"
+def qa_tts(settings: Settings, tts: TTSProvider) -> TTSProvider: ...   # (v0.3.4) TTS del Q&A hablado:
+    # si el podcast usa un TTS de diálogo (Gemini), la respuesta va por edge-tts (latencia < 10 s, gratis)
+def podcast_tts_retries(tts: TTSProvider) -> int: ...       # (v0.3.4) 0 con edge, 1 con Gemini, 2 el resto
+def podcast_tts_fallback(settings, tts, podcast_with) -> _Fallback | None: ...   # (v0.3.4)
+    # sustituto de media.podcast: Gemini -> edge-tts opción «B» -> MockTTS (si FALLBACK_TO_MOCK); resto -> MockTTS
 def get_providers(settings: Settings, use_mock: bool = False) -> Providers: ...
 def scriptwriter_llm(settings: Settings, providers: Providers) -> LLMProvider: ...  # (v0.3.1)
     # LLM del Guionista: providers.llm_cheap salvo que BRIEFER_SCRIPTWRITER_MODEL indique otro modelo
@@ -371,9 +385,17 @@ def load_featured_briefing(base_dir: Path | None = None,
     # portada: (último guardado REAL, "guardado") o, si no hay, (pregenerado, "pregenerado").
     # v0.3.1: un ensayo en modo demo (mock, samples, sintéticos, fallback) nunca tapa al pregenerado real
 def export_briefing(briefing: Briefing, dest_dir: Path) -> Path: ...                # (v0.3)
-    # copia audio, SRT, gráficos, portada y vídeo a dest_dir con nombres estables y escribe el JSON
+    # copia audio, SRT, gráficos, portada, vídeo y news_impact.json (v0.3.4, si existe) a dest_dir
+    # con nombres estables y escribe el JSON
     # con rutas relativas (así se creó data/samples/demo_briefing/); quita ficheros inexistentes;
     # v0.3.1: sin cartera ni gráfico de cartera, igual que save_briefing
+NEWS_IMPACT_FILE = "news_impact.json"                                               # (v0.3.4)
+def news_impact_path(briefing_or_dir: Briefing | Path | str,
+                     base_dir: Path | None = None) -> Path | None: ...                # (v0.3.4)
+def load_news_impact(briefing_or_dir: Briefing | Path | str,
+                     base_dir: Path | None = None) -> dict[str, dict]: ...            # (v0.3.4)
+    # {id_noticia: NewsImpact.model_dump()} del «impacto de la noticia» (FinBERT); fichero FUERA del
+    # contrato Briefing, junto a briefing.json. Tolerante: sin fichero o JSON corrupto -> {}
 def export_briefing_zip(briefing: Briefing) -> bytes: ...                            # (v0.3.1)
     # ZIP portable <id>/briefing.json + ficheros (vía export_briefing en un temporal que se borra);
     # se descomprime en data/outputs/ de otra máquina y se abre en el Histórico
@@ -462,6 +484,7 @@ fallback desactivado) o el sustituto también falla, aborta con `PipelineStepErr
 | **Núcleo** | `agents.scriptwriter` | guion de respaldo determinista (`fallback_script`; `provider="local"`, `model="fallback_script"`) si el LLM no devuelve un guion válido; si aun así lanza, `MockLLM` barato |
 | **Núcleo** | `media.podcast` | `MockTTS` |
 | **Núcleo** | `ingest.tickers`, `media.transcript`, `media.charts` | ninguno (locales): `PipelineStepError` |
+| **Opcional** | `ingest.impact` (v0.3.4, solo si `BRIEFER_FINBERT=true` y hay noticias reales; en paralelo con el Analista; si falla o no está instalado, sin `news_impact.json`) |
 | **Opcional** | `ingest.pdf` / `ingest.chart` / `ingest.voice` / `ingest.upload` (uno por subida), `media.cover` (si `make_cover` y hay proveedor de imagen), `media.video` (si `make_video`), `delivery.<canal>` (uno por canal), `storage.save` | Se omite: subida sin insight, `cover_path=None`, `video=None`, `DeliveryResult(ok=False, detail="Error al enviar: …")`, briefing solo en memoria |
 
 **Semántica del fallback (v0.3).** Se registra **un solo** `StepMetric` por paso: `provider`/`model` del
@@ -710,6 +733,20 @@ def save_audio_upload(data: bytes, out_dir: Path, suffix: str = ".wav") -> Path:
     # audio vacío -> ValueError
 def transcribe_question(audio_path: Path, stt: STTProvider, language: str = "es") -> str: ...
 def voice_to_insight(audio_path: Path, stt: STTProvider, language: str = "es") -> DocumentInsight: ...
+
+# sentiment.py  [impl, nuevo en v0.3.4; PR #1 de Daniel] — «impacto de la noticia» (opcional, BRIEFER_FINBERT)
+FINBERT_MODEL = "ProsusAI/finbert"; MAX_TEXT_CHARS = 400; TRANSLATE_BATCH = 25
+class NewsImpact(BaseModel):   # news_id, impact ("positivo"|"negativo"|"neutral"), score, probs, text_en,
+    ...                        # translated, model. NO es parte de schemas.py: va a news_impact.json
+def translate_to_english(items: list[NewsItem], llm: LLMProvider | None) -> dict[str, str]: ...
+    # Haiku traduce titular + extracto en UNA llamada estructurada; las noticias en inglés pasan directas
+def finbert_available() -> bool: ...          # torch + transformers instalados (requirements-local.txt)
+def classify(texts: list[str]) -> list[dict[str, float]]: ...   # FinBERT local (CPU), modelo cargado una vez
+def news_impact(items: list[NewsItem], llm: LLMProvider | None = None, *, enabled: bool = True,
+                stats_out: dict | None = None) -> dict[str, NewsImpact]: ...
+    # nunca lanza: sin FinBERT o con error -> {} y stats_out["status"] lo dice
+def impact_detail(stats: dict) -> str: ...    # resumen para StepMetric.detail («Cómo se hizo»)
+    # MAR: clasifica el TONO DE LA NOTICIA; nunca se agrega por ticker ni se presenta como recomendación
 ```
 
 ### Carril B · `agents/`
@@ -742,11 +779,12 @@ def analyze(context: MarketContext, llm: LLMProvider, max_chars: int = 40_000, *
     # El pipeline pasa check_figures=False con MockLLM.
 
 # scriptwriter.py  [impl]
-WORDS_PER_MINUTE = 143        # (v0.3.2; antes 150) palabras HABLADAS/min de edge-tts, medido con el pregenerado
-WRITTEN_WORDS_PER_MINUTE = 125  # (v0.3.2) el mismo ritmo en palabras escritas del guion (para el prompt)
+WORDS_PER_MINUTE = 158        # (v0.3.4; antes 143 y 150) palabras HABLADAS/min de edge-tts opción «B» (+10 %):
+                              #   medido, 543 palabras habladas en 206,8 s
+WRITTEN_WORDS_PER_MINUTE = 133  # (v0.3.4; antes 125) el mismo ritmo en palabras escritas del guion (prompt)
 def spoken_word_count(text: str) -> int: ...      # (v0.3.2) palabras tras normalize_for_speech
 def written_word_count(lines: list[ScriptLine]) -> int: ...   # (v0.3.2)
-def target_written_words(target_minutes: float) -> int: ...   # (v0.3.2) 4 min -> 500
+def target_written_words(target_minutes: float) -> int: ...   # (v0.3.2) 4 min -> 532 (v0.3.4; antes 500)
 REGIONALISM_FIXES: list[tuple[re.Pattern, str, str]]          # (v0.3.2) «precificado» -> «descontado», «allá» -> «allí»…
 def regionalisms(text: str) -> list[str]: ...     # (v0.3.2) problema del guion (pide reescritura)
 def fix_regionalisms(text: str) -> str: ...       # (v0.3.2) reparación determinista (en _repair)
@@ -897,17 +935,27 @@ def ffmpeg_exe() -> str: ...
 def audio_duration_s(path: Path) -> float: ...
 def loudnorm_filter(lufs: float, true_peak_db: float = TRUE_PEAK_DB,
                     lra: float = LOUDNESS_RANGE_LU) -> str: ...  # (v0.3.1) filtro loudnorm de ffmpeg (una pasada)
+PAUSE_ANSWER_S = 0.15; PAUSE_NORMAL_S = 0.30; PAUSE_TOPIC_S = 0.45   # (v0.3.4) pausas variables
+DIALOGUE_MAX_LINES = 12; DIALOGUE_MAX_CHARS = 2000                  # (v0.3.4) tramos para TTS de diálogo
+def pause_between(prev: ScriptLine, nxt: ScriptLine, *, after_opening: bool = False) -> float: ...  # (v0.3.4)
+def line_pauses(lines: list[ScriptLine]) -> list[float]: ...   # (v0.3.4) 0,15 s tras pregunta; 0,45 s tras la
+    # apertura o al cambiar de tema (TOPIC_CUES); 0,30 s el resto. Determinista
+def chunk_dialogue(texts: list[str], max_lines: int = DIALOGUE_MAX_LINES,
+                   max_chars: int = DIALOGUE_MAX_CHARS) -> list[tuple[int, int]]: ...  # (v0.3.4) tramos [ini, fin)
 def concat_audio(paths: list[Path], out_path: Path, pause_s: float = 0.35, *,
+                 pauses: list[float] | None = None,                # (v0.3.4) una pausa por hueco; None = pause_s
                  metadata: dict[str, str] | None = None,           # metadata (v0.3): ID3 vía ffmpeg
                  loudness_lufs: float | None = None) -> Path: ...  # (v0.3.1) None = sin normalizar
 class PodcastAborted(RuntimeError): ...         # (v0.3.1) otra línea ya falló sin remedio: esta no se sintetiza
 def synthesize_podcast(script: PodcastScript, tts: TTSProvider, out_dir: Path, voice_a: str,
-                       voice_b: str, pause_s: float = 0.35, *,
+                       voice_b: str, pause_s: float | None = None, *,   # (v0.3.4) None = line_pauses; antes 0,35 fijo
                        max_workers: int = DEFAULT_MAX_WORKERS, retries: int = 2,
                        keep_parts: bool = False,
                        normalize: bool = True,                            # (v0.3) normalize_for_speech por línea
                        metadata: dict[str, str] | None = None,            # (v0.3) por defecto AI_AUDIO_METADATA + título
                        loudness_lufs: float | None = PODCAST_LOUDNESS_LUFS) -> AudioAsset: ...  # (v0.3.1)
+    # v0.3.4: si tts.supports_dialogue (Gemini), el guion se trocea con chunk_dialogue, cada tramo va en
+    # una petición (hasta 3 en paralelo) y los tiempos por línea son APROXIMADOS (SRT aproximado).
     # TTS por línea en paralelo (orden conservado), reintentos por línea, out_dir/podcast<ext>; si una
     # línea falla sin remedio, el resto se aborta (falla rápido); loudnorm a −16 LUFS en MP3;
     # out_dir/parts se borra (también si falla) salvo keep_parts=True; guion sin líneas -> ValueError
@@ -971,7 +1019,8 @@ def send_briefing_telegram(briefing: Briefing, chat_id: str | None = None,
 | `ClaudeVision.describe` (+ `detect_media_type`, `prepare_image`) | **[impl]** | Imagen en base64; `prepare_image` reescala si > 5 MB o > 2.000 px; `effort="low"`; `warmup() -> float` (v0.3.1) |
 | `WhisperAPI.transcribe` (+ `validate_audio`, `is_silent_wav`) | **[impl]** (v0.3.1) | SDK `openai`, modelo `BRIEFER_WHISPER_API_MODEL` (por defecto `gpt-4o-mini-transcribe`: WER 0, ≈ 1,3 s, 0,003 $/min; `whisper-1` sigue valiendo). Valida antes de llamar (vacío, > 25 MB `MAX_BYTES`, extensión fuera de `SUPPORTED_EXTS` -> `ValueError`). No envía `prompt` (el modelo lo repite con audio mudo) y un WAV sin voz (`SILENCE_RMS`) devuelve `""` sin llamar a la API. `last_duration_s` para el coste; `TIMEOUT_S = 60` |
 | `GeminiLLM.complete` | **[impl]** (alternativo) | `response_mime_type="application/json"` + `response_json_schema`; misma validación con 1 reintento. Probado con `smoke_real.py` (estructurado); briefing completo con Gemini: no medido |
-| `EdgeTTS.synthesize` | **[impl]** | `edge-tts==7.2.8` (`TESTED_EDGE_TTS_VERSION`). Constructor `EdgeTTS(settings=None, *, rate=None, pitch=None, retries=2, backoff_s=1.0, connect_timeout=10, receive_timeout=60)` (`rate`/`pitch` por defecto de `BRIEFER_TTS_RATE`/`BRIEFER_TTS_PITCH`); `synthesize(text, voice, out_path, *, rate=None, pitch=None)` admite ajustar una llamada. Reintentos propios solo ante errores transitorios; escritura atómica (`.part` → MP3). Raises `ValueError` (texto/voz vacíos, `rate`/`pitch` mal formados), `RuntimeError` (sin audio tras reintentos) |
+| `GeminiTTS.synthesize_dialogue` | **[impl]** (v0.3.4, de pago; premium para la demo y el pregenerado) | `BRIEFER_GEMINI_TTS_MODEL` (`gemini-3.8-flash-tts`), `es-ES`, multi-locutor Puck (Toro) / Kore (Osa) con estilo por locutor («radio nocturna»). Devuelve PCM 24 kHz que se envuelve en WAV (`podcast_extension` MP3 tras `loudnorm`). Sin marcas de tiempo: duración del tramo repartida en proporción a la longitud hablada (`proportional_durations`). `last_usage` en tokens (texto de entrada, audio de salida) para `costs`. Reintentos del SDK ante 408/429/5xx; audio vacío o demasiado corto -> error. Si falla, el pipeline cae a edge-tts (`podcast_tts_fallback`) |
+| `EdgeTTS.synthesize` | **[impl]** | `edge-tts==7.2.8` (`TESTED_EDGE_TTS_VERSION`). Por defecto (v0.3.4, opción «B» de la cata) voces Álvaro / Ximena y `rate="+10%"` (`DEFAULT_RATE`, también si `BRIEFER_TTS_RATE` va vacío). Constructor `EdgeTTS(settings=None, *, rate=None, pitch=None, retries=2, backoff_s=1.0, connect_timeout=10, receive_timeout=60)` (`rate`/`pitch` por defecto de `BRIEFER_TTS_RATE`/`BRIEFER_TTS_PITCH`); `synthesize(text, voice, out_path, *, rate=None, pitch=None)` admite ajustar una llamada. Reintentos propios solo ante errores transitorios; escritura atómica (`.part` → MP3). Raises `ValueError` (texto/voz vacíos, `rate`/`pitch` mal formados), `RuntimeError` (sin audio tras reintentos) |
 | `OpenAILLM.complete` | **[stub] documentado** | Recorte (docs/07, H10): lanza `NotImplementedError`; en el pipeline, el paso núcleo cae a mock marcado |
 | `QwenVLLocal`, `WhisperLocal`, `ElevenLabsTTS`, `SDXLTurbo`, `CLIPClassifier` | **[stub]** | *Won't* o D2; se retiran del registry antes de entregar si no se implementan |
 
@@ -1026,7 +1075,7 @@ flowchart LR
 
 | Carril | Ficheros | Consume | Produce | Mientras no exista lo de otros, usa |
 | --- | --- | --- | --- | --- |
-| **A** · Entradas, visión y Telegram | `ingest/*`, `providers/vision/*`, `providers/stt/*`, `providers/image/clip_classifier.py`, `delivery/telegram_sender.py` (desde v0.2) | Tickers, ficheros subidos (PDF, imagen, audio), CSV de cartera | `NewsItem[]`, `PriceSnapshot[]`, `DocumentInsight[]`, `Portfolio`, texto de la pregunta | `data/samples/*`, `MockVision`, `MockSTT` |
+| **A** · Entradas, visión y Telegram | `ingest/*`, `providers/vision/*`, `providers/stt/*`, `providers/image/clip_classifier.py`, `delivery/telegram_sender.py` (desde v0.2) | Tickers, ficheros subidos (PDF, imagen, audio), CSV de cartera | `NewsItem[]`, `PriceSnapshot[]`, `DocumentInsight[]`, `Portfolio`, texto de la pregunta, `news_impact.json` opcional (v0.3.4, FinBERT) | `data/samples/*`, `MockVision`, `MockSTT` |
 | **B** · Agentes, orquestación y calidad | `agents/*` (incl. `guardrails.py`), `agents/prompts/*`, `pipeline.py`, `costs.py`, `providers/llm/*`, `scripts/demo.py`; dueño del merge de `schemas.py` | `MarketContext` (de A), `Briefing` para el Q&A | `Analysis`, `PodcastScript`, `QAAnswer`, `Briefing` completo con `metrics` y `deliveries` | `MarketContext` construido desde `data/samples/`, `MockLLM`, funciones de A y C en versión mock |
 | **C** · Media, UI y demo | `media/*`, `delivery/email_sender.py`, `providers/tts/*`, `providers/image/*` (texto→imagen), `app/*`, `data/samples/demo_briefing/` | `PodcastScript`, `Analysis`, `PriceSnapshot[]`, `Briefing` | `AudioAsset`, `Transcript`, `ChartAsset[]`, `VideoAsset`, `cover.png`, `DeliveryResult`, UI | `PodcastScript` y `Briefing` de ejemplo generados por `MockLLM`, `MockTTS` |
 | Transversal | `schemas.py`, `providers/base.py`, `providers/registry.py`, `providers/mock.py`, `config.py`, `logging_utils.py`, `storage.py`, `tests/`, docs, Docker | — | Contratos, configuración, métricas, persistencia y modo mock | — |
@@ -1039,14 +1088,15 @@ flowchart LR
    `tests/test_pipeline_mock.py` y en verde.
 2. **A → B real** *(hecho en la Fase 1)*: `MarketContext` construido con `fetch_news` + `get_price_snapshots`
    + insights de `process_upload` (PDF y gráfico con `ClaudeVision`) → `analyze()` con `AnthropicLLM`.
-3. **B → C real** *(hecho en la Fase 1)*: `write_script()` (Haiku) → `synthesize_podcast()` con `EdgeTTS`.
+3. **B → C real** *(hecho en la Fase 1)*: `write_script()` (Haiku) → `synthesize_podcast()` con `EdgeTTS`
+   (v0.3.4: o con `GeminiTTS` por tramos de diálogo, que cae a `EdgeTTS` si falla).
 4. **C → B** *(hecho)*: la UI llama a `pipeline.run_briefing()` / `pipeline.answer_question()` (con `mode` y
    `use_cache`) y a `storage` para el histórico y la portada (`load_featured_briefing`); no instancia
    proveedores.
 5. **Fin a fin** *(hecho)*: `python scripts/demo.py --mock`, `--demo-voices` y `python scripts/demo.py` (con
    claves) producen un `briefing.json` válido en `data/outputs/<id>/`; el briefing real
-   `20261005-130504-0f8ae2` (regenerado en la revisión, sin cartera) se exportó con `storage.export_briefing` a
-   `data/samples/demo_briefing/`.
+   `20261005-213416-87a2a9` (voz Gemini TTS, FinBERT activado, sin cartera) se exportó con
+   `storage.export_briefing` a `data/samples/demo_briefing/` junto a su `news_impact.json`.
 6. **Q&A por voz** *(hecho en la revisión, v0.3.1)*: `answer_question(Path)` → `WhisperAPI` → Q&A → TTS, con
    `warmup` y respuesta en dos tiempos (`speak=False` + `speak_answer`).
 7. **Pendiente (D2):** vídeo, portada, envíos (controles desactivados en la UI).
@@ -1066,3 +1116,5 @@ flowchart LR
 | v0.3.2 · podcast | 05-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios.** **Cambio de semántica:** `scriptwriter.estimate_duration_s` cuenta palabras **habladas** (tras `normalize_for_speech`) y `WORDS_PER_MINUTE` pasa de 150 a **143** (medido: 780 palabras habladas en los 326,9 s del pregenerado); el prompt pide `target_written_words` (125 palabras escritas/min, `{words_per_minute}` nuevo marcador). Nuevos: `scriptwriter.WRITTEN_WORDS_PER_MINUTE`, `spoken_word_count`, `written_word_count`, `target_written_words`, `REGIONALISM_FIXES`, `regionalisms`, `fix_regionalisms` (problema del guion + reparación). `transcript.verify_podcast`, `PodcastVerification`, `LineError`, `wer_tokens`, `align_words`, `word_error_rate`, `WORST_LINES`. Pipeline: paso opcional `media.verify` (`_start_podcast_verification`) y ajuste `BRIEFER_VERIFY_PODCAST` (`Settings.briefer_verify_podcast = True`). `normalize_for_speech`: «Standard & Poor's» → «Standard and Poor's», pronunciación de «Redeia» y «Invezz» | Carril B |
 | v0.3.2 · Q&A, fallback y Gemini | 05-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios.** **Q&A:** el contexto del briefing sale del *system prompt* y va en el primer mensaje `user`, delimitado (`<contexto_briefing>`) y marcado como dato (`qa.context_message`, `CONTEXT_*`); causas sin atribuir -> 1 reintento y, si persisten, matiz determinista (`qa.hedge_causal_claims`, `CAUSAL_RETRY_PROMPT`, `HEDGE_PREFIX`), con el resultado en `StepMetric.detail`. **Mensajes:** clave opcional `"cache": True` (caché de prompt en Anthropic vía `to_api_messages`; medido: 2.ª pregunta 0,0011 € frente a ≈ 0,0055 €). **Pipeline:** `warmup` importa también el SDK del STT (`"stt"` en el resultado). Scripts: `scripts/measure_qa_voice.py`. Tests `live`: `tests/test_fallback_live.py` | Equipo (carril Q&A) |
 | v0.3.3 · marca | 05-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios.** Nuevo módulo `briefer.brand` (fuente única de la marca **Briefly**: `BRAND_NAME`, `TAGLINE`, `VALUE_PROPOSITION`, `GREETING`, locutores por defecto `SPEAKER_A_NAME` = «Toro» / `SPEAKER_B_NAME` = «Osa» con sus papeles, `COMPLIANCE_MOTTO`, `ASSETS_DIR`, `episode_title(day)`). Guion, transcripción, gráficos, metadatos ID3, envíos y app leen de ahí. Paquete, variables `BRIEFER_*` y repo no cambian de nombre. Ver [08](08_identidad_marca.md). Cambios semánticos en locutores y salidas: `BRIEFER_SPEAKER_A_NAME`/`_B_NAME` valen por defecto «Toro»/«Osa» (las voces edge-tts no cambian); `scriptwriter.DEFAULT_SPEAKERS` sustituye a («Álvaro», «Elvira») en `write_script`/`fallback_script`; el prompt del Guionista admite además `{speaker_a_role}`, `{speaker_b_role}`, `{brand}` y `{greeting}` (edición de noche, «Buenas noches… esto es Briefly») y pide que B (Osa) diga el cierre; `_finalize` pone el cierre obligatorio siempre en boca de B (si la última intervención ya es de B, se añade a esa intervención); `CLOSING_LINE_ES` termina en «Buenas noches y ¡hasta mañana!»; título por defecto `brand.episode_title(date)`; `speech.normalize_for_speech` lee «Briefly» como «Brífli» (se mantiene «Market Briefer» para guiones antiguos); metadatos ID3, pie de los gráficos, cabecera del email y caption de Telegram con la marca. |
+| v0.3.4 · voces | 05-oct-2026 | **Aditivo; `schemas.py` sin cambios.** `providers/base.py`: `TTSProvider` gana `podcast_extension: str | None = None` (extensión del episodio final; `None` = la de las partes), `supports_dialogue: bool = False` y el método opcional `synthesize_dialogue(lines: list[tuple[speaker, text]], out_path) -> (Path, duraciones por línea)` (por defecto `NotImplementedError`; `media.podcast` sintetiza entonces línea a línea). Nuevo proveedor `GeminiTTS` (`BRIEFER_TTS_PROVIDER=gemini`, `gemini-3.8-flash-tts`, multi-locutor Puck/Kore, `es-ES`; requiere `GEMINI_API_KEY`; `last_usage` en tokens) con ajustes `BRIEFER_GEMINI_TTS_MODEL`, `BRIEFER_GEMINI_VOICE_A`/`_B`. **Cambios de semántica:** voz B por defecto `es-ES-XimenaNeural` y `BRIEFER_TTS_RATE` por defecto `+10%` (`EdgeTTS.DEFAULT_RATE`, también si va vacío) — opción «B» de la cata; `synthesize_podcast(pause_s=None)` por defecto = **pausas variables** (`line_pauses`: 0,15 s tras pregunta, 0,30 s normal, 0,45 s al cambiar de tema; un `float` las fija como antes); con TTS de diálogo, troceo en tramos (`chunk_dialogue`, `DIALOGUE_MAX_LINES`=12, `DIALOGUE_MAX_CHARS`=2000) y tiempos por línea **aproximados** (reparto proporcional a la longitud hablada); `concat_audio(..., *, pauses=None)`; `WORDS_PER_MINUTE` 143 → **158** y `WRITTEN_WORDS_PER_MINUTE` 125 → **133** (medido con la opción «B»: 543 palabras habladas en 206,8 s). Pipeline: `qa_tts` (el Q&A hablado usa edge-tts si el podcast usa Gemini), `podcast_tts_fallback` (Gemini → edge-tts → mock), `podcast_tts_retries`, `tts_cost_eur`, `DIALOGUE_TTS_PROVIDERS`. Costes: `TTS_PRICES_USD_PER_MTOK` (Gemini TTS, estimación a verificar) | Carril C (voces) |
+| v0.3.4 · FinBERT en la UI | 05-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (el resultado va en un fichero aparte, fuera del contrato `Briefing`). Nuevo módulo `ingest/sentiment.py` (PR #1 de Daniel): `NewsImpact`, `FINBERT_MODEL` (`ProsusAI/finbert`), `translate_to_english` (Haiku, una llamada), `finbert_available`, `classify`, `news_impact` (nunca lanza), `impact_detail`. Ajuste `BRIEFER_FINBERT` (por defecto `false`; requiere `requirements-local.txt`). Pipeline: paso **opcional** `ingest.impact` («3b», en paralelo con el Analista, solo con noticias reales) que escribe `news_impact.json` en la carpeta del briefing. Storage: `NEWS_IMPACT_FILE`, `news_impact_path`, `load_news_impact`; `export_briefing` copia el fichero. UI (sin contrato entre carriles): `components/theme.keypoint_card(..., *, impacts=())` / `keypoint_card_html` pintan junto a cada fuente de «Puntos clave» la etiqueta «impacto de la noticia: ▲ positiva · FinBERT» (▼ negativa / ● neutral) con la aclaración de que es el tono de la noticia y no una recomendación; `players.news_impacts`, `source_impact`; `IMPACT_TEXT`, `IMPACT_TOOLTIP`. **Compliance (MAR):** se etiqueta la noticia, nunca el valor ni un agregado por ticker. El cuaderno `notebooks/A_01_ingesta_noticias_finbert.ipynb` (Daniel) pasa a ser solo de lectura: ya no reescribe ficheros del código | Carril A (Daniel) + C (UI) |

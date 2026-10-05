@@ -30,6 +30,17 @@ cada uno marca la que coge escribiendo su nombre al lado. Contratos y firmas rea
 > estados de error, fallback y Gemini verificados en real, `metrics_report.py`, ruff + mypy en la CI y cobertura del
 > 97 % (953 tests sin red). Quedan sin marcar las tareas que no se han cerrado del todo.
 
+> **Actualización lun 5-oct-2026 (noche · FinBERT y voces).** (1) Integrada la PR #1 de Daniel: paso opcional
+> **«impacto de la noticia»** (`BRIEFER_FINBERT`, apagado por defecto): Claude Haiku traduce y **FinBERT**
+> (`ProsusAI/finbert`, local) clasifica el tono de cada noticia en paralelo con el Analista; la UI lo muestra junto
+> a cada fuente de «Puntos clave» como tono de la noticia, no como recomendación (camino 3 cerrado). (2) **Voces**
+> decididas tras una cata a ciegas de 6 opciones: por defecto, gratis, edge-tts **Álvaro + Ximena a +10 %** con
+> pausas variables; premium, de pago, **Gemini 3.8 TTS multi-locutor** (Puck / Kore) para la demo y el
+> pregenerado, con caída a edge-tts; el Q&A habla siempre con edge-tts. (3) Pregenerado regenerado
+> (`20261005-213416-87a2a9`: Gemini + FinBERT, 3:38, WER 1,4 %, ≈ 0,18 € estimados). **1019 tests sin red**
+> (+ 11 `live`), ruff + mypy limpios. Siguen pendientes: vídeo, portada, Telegram/email, captura de cartera,
+> Docker probado y los entregables del jueves.
+
 Formato: `- [ ] Tarea — ficheros / funciones — **Hecho cuando:** criterio verificable`. Solo se marca `[x]` lo
 que se ha ejecutado y visto funcionar; la nota en cursiva dice **cómo** se verificó. Etiqueta de prioridad entre
 corchetes: **[M]** Must · **[S]** Should · **[C]** Could (ver [MoSCoW](#moscow)). Una tarea marcada «(nueva)»
@@ -196,7 +207,7 @@ mode="real")` el 05-oct entre las 10:56 y las 11:15 (una sin caché y dos con ca
 - [ ] **[S]** Anti-recomendación con reintento — `agents/guardrails.contains_advice` en el bucle del Analista/Guionista — **Hecho cuando:** una salida con recomendación provoca un reintento antes de recortar la frase *(Guionista: hecho, `script_problems` pide reescribir; Analista: solo se recorta)*
 - [x] **[S]** Whisper sobre el podcast generado — `media/transcript.verify_podcast` (nueva; STT + WER contra el guion) — **Hecho cuando:** el briefing muestra el WER y las líneas con WER alto se re-sintetizan una vez *(05-oct, tanda de refuerzo: paso opcional `media.verify` con el WER y las peores líneas en la traza; real: WER 1,2 % en el pregenerado y 1,1 % en un briefing nuevo. La re-síntesis de líneas no se hace: con WER ≈ 1 % no compensa)*
 - [x] **[M]** Contenido de documentos como datos — `pdf_reader.read_pdf`, `chart_reader.read_chart` (delimitadores en el prompt) — **Hecho cuando:** un PDF con «ignora las instrucciones» no altera el análisis *(`<documento>` / `<descripcion>` declarados dato; `analyst.suspicious_sources` + `INJECTION_NOTE`; red-team sin red y en real. El contexto del Q&A va ya en un mensaje `user` delimitado `<contexto_briefing>` y marcado como dato)*
-- [ ] **[M]** `docs/04` reforzado — costes fijos (datos, noticias licenciadas, TTS oficial Azure, hosting), punto de equilibrio B2C vs B2B2C, MAR (sentimiento = «impacto de la noticia»), AI Act art. 50, transferencias RGPD, tabla riesgo → control en código — **Hecho cuando:** cada control apunta a un fichero del repo *(revisión: tabla riesgo → control con ficheros, AI Act art. 50, RGPD de cartera, subidas, audio y secretos, derechos de autor con `robots.txt`. Faltan costes fijos, punto de equilibrio, MAR y transferencias)*
+- [ ] **[M]** `docs/04` reforzado — costes fijos (datos, noticias licenciadas, TTS oficial Azure, hosting), punto de equilibrio B2C vs B2B2C, MAR (sentimiento = «impacto de la noticia»), AI Act art. 50, transferencias RGPD, tabla riesgo → control en código — **Hecho cuando:** cada control apunta a un fichero del repo *(revisión: tabla riesgo → control con ficheros, AI Act art. 50, RGPD de cartera, subidas, audio y secretos, derechos de autor con `robots.txt`. 05-oct: fila MAR del «impacto de la noticia» (FinBERT) y coste de la voz premium. Faltan costes fijos, punto de equilibrio y transferencias)*
 - [ ] **[M]** Medición p50/p95 — `StepMetric` de 5 briefings y 5 Q&A (hoy 4 y 7) — **Hecho cuando:** columna «Medido» de `docs/04` con p50/p95 (cierre en D3) *(primera medición hecha: ver 04. `scripts/metrics_report.py` calcula p50/p95 desde los briefings guardados y `scripts/measure_qa_voice.py` la cadena de voz; falta llegar a N ≥ 5)*
 - [x] **[C]** Un LLM alternativo — `providers/llm/gemini_llm.py` (`GeminiLLM.complete`, implementado) — **Hecho cuando:** `BRIEFER_LLM_PROVIDER=gemini` genera un briefing completo sin tocar código *(05-oct: briefing completo con `gemini-2.5-flash` sin tocar código, 0,021 €, 67,7 s, JSON válido a la primera, sin sustitutos)*
 
@@ -276,7 +287,12 @@ Reglas comunes:
 > casi duplicados y fichas de cotización descartadas, estadísticas en `StepMetric.detail` de `ingest.news`.
 > Medido: ~45-50 % de noticias con extracto en frío y ~80 % desde la 2.ª ejecución del día. *Después (carril A,
 > 05-oct):* enriquecimiento adelantado mientras termina yfinance → **90 % en frío** (18/20; 13/20 antes en la misma
-> medida) y relevancia + motivos de cada noticia en `StepMetric.detail` de `ingest.news`. **Queda:** FinBERT (Could).
+> medida) y relevancia + motivos de cada noticia en `StepMetric.detail` de `ingest.news`. **FinBERT hecho (05-oct,
+> noche; PR #1 de Daniel):** `ingest/sentiment.py` detrás de `BRIEFER_FINBERT` (dependencias en
+> `requirements-local.txt`), Haiku traduce y FinBERT clasifica cada noticia en paralelo con el Analista;
+> `news_impact.json` aparte del contrato y etiqueta «impacto de la noticia: ▲ positiva · FinBERT» junto a cada
+> fuente, nunca agregada por ticker (MAR). Medido en el pregenerado: 19 noticias (▲ 7 · ▼ 9 · ● 3), 32,1 s en
+> paralelo, 0,0082 €. El cuaderno `notebooks/A_01_ingesta_noticias_finbert.ipynb` queda solo de lectura.
 
 - [ ] **Qué:** extracto útil (`og:description` de la página cuando el feed no trae resumen; hoy 15 de 16 noticias
   del pregenerado llegan sin resumen), URL real del artículo en lugar del enlace de redirección de Google News,
@@ -316,7 +332,12 @@ Reglas comunes:
 > Guionista (`odd_words`, `grammar_issues`, `fix_spoken_text`) y banda de duración 3-5 min.
 > **Hecho (05-oct, tarde):** `WORDS_PER_MINUTE` calibrado a 143 con el pregenerado (un briefing nuevo dura 4:10),
 > `REGIONALISM_FIXES` («precificado», «allá», «ahorita»…), lecturas corregidas («Standard & Poor's», «Redeia»,
-> «Invezz») y verificación con STT. **Queda:** regenerar el pregenerado (D3) y escucha crítica.
+> «Invezz») y verificación con STT. **Hecho (05-oct, noche · voces):** cata a ciegas de 6 opciones (edge-tts
+> como estaba, edge-tts ajustado, edge-tts multilingüe, Gemini 3.8 TTS, OpenAI `gpt-4o-mini-tts` —expresivo pero
+> 309 s para 6 líneas, inviable— y Gemini 2.5 TTS). Decisión: **por defecto** edge-tts opción «B» (Álvaro +
+> Ximena, `BRIEFER_TTS_RATE=+10%`, pausas variables 0,15 / 0,30 / 0,45 s; `WORDS_PER_MINUTE` 143 → 158 medido) y
+> **premium** Gemini TTS multi-locutor para la demo (SRT aproximado). Pregenerado regenerado con Gemini.
+> **Queda:** escucha crítica con la plantilla (abajo).
 
 - [ ] **Qué:** escucha crítica de 3 podcasts reales (el pregenerado + 2 nuevos) con una plantilla: cifras mal
   leídas, tickers, siglas, ritmo, pausas, monotonía, duración. Corregir `normalize_for_speech` con cada caso
@@ -385,7 +406,7 @@ Horas estimadas en [07](07_revision_critica.md#3-mejoras-priorizadas-moscow).
 | **Must** | README con capturas + demo grabada + pitch PDF + clon limpio | D3 |
 | **Must** | `docs/04` con costes y latencias medidos *(primera medición hecha)* y costes fijos/licencias | D2 / D3 |
 | **Should** | Router CLIP/SigLIP · puertas de calidad (grounding *(hecho en Analista y Guionista)* + anti-recomendación con reintento *(hecho en el Guionista)*) · WER del podcast · pestaña «Cómo se hizo» *(hecho)* · portada texto→imagen API · captura de cartera → `Portfolio` · Telegram · paralelismo *(hecho)* · portada de la app y métricas visuales *(hecho)* | D1 / D2 |
-| **Could** | Embeddings (histórico y dedupe semántico) · FinBERT como segunda opinión (camino 3) · Q&A con herramientas · email · Gemini como LLM alternativo *(implementado; briefing completo sin probar)* · despliegue en la nube | D2 si sobra tiempo |
+| **Could** | Embeddings (histórico y dedupe semántico) · FinBERT como segunda opinión (camino 3) *(hecho, PR #1 de Daniel; opcional)* · TTS premium Gemini *(hecho)* · Q&A con herramientas · email · Gemini como LLM alternativo *(implementado; briefing completo sin probar)* · despliegue en la nube | D2 si sobra tiempo |
 | **Won't** | Stable Video Diffusion, SDXL local, Qwen-VL local, ElevenLabs, Bark, Whisper local, *fine-tuning*, autenticación, base de datos, LLM OpenAI (*stub* documentado) | — |
 
 ---
@@ -397,7 +418,7 @@ Orden en que se cae algo (lo primero de la lista es lo primero que se recorta). 
 
 | Orden | Funcionalidad | Qué queda en su lugar |
 | --- | --- | --- |
-| 1 | Could: FinBERT, embeddings, Q&A con herramientas, despliegue en la nube | — |
+| 1 | Could: embeddings, Q&A con herramientas, despliegue en la nube (FinBERT ya está, apagado por defecto) | — |
 | 2 | Email | Telegram + web |
 | 3 | Caminos de revisión 2, 3 y 6 | Camino 1 (evaluación) como evidencia mínima |
 | 4 | Captura de cartera → `Portfolio` | Cartera por CSV o formulario |
