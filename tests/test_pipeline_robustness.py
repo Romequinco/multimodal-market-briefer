@@ -177,6 +177,20 @@ def test_warmup_in_mock_is_noop_and_never_raises(settings: Settings, monkeypatch
     assert "total" in pipeline.warmup(settings, mode="real")
 
 
+def test_warmup_imports_stt_and_tts_sdks(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
+    """El STT real (whisper_api -> ``openai``) también se precalienta: la 1.ª pregunta por voz
+    pagaba el import del SDK en ``qa.stt`` (7-15 s en frío, medido con measure_qa_voice.py)."""
+    providers = pipeline.get_providers(settings, use_mock=True)
+    providers.stt.provider_name = "openai"  # instancia: no toca la clase MockSTT
+    providers.tts.provider_name = "edge"
+    monkeypatch.setattr(pipeline, "_providers_for_mode", lambda *_a: providers)
+    imported: list[str] = []
+    monkeypatch.setattr(pipeline.importlib, "import_module", lambda name: imported.append(name))
+    timings = pipeline.warmup(settings, mode="real")
+    assert imported == ["openai", "edge_tts"]
+    assert {"stt", "tts", "total"} <= set(timings)
+
+
 @pytest.fixture
 def anthropic_settings(tmp_path: Path) -> Settings:
     return Settings(

@@ -176,6 +176,9 @@ con valor hay que acumular ≥ 5 briefings reales y volver a ejecutar el script.
 | Final: 2.ª pregunta (caliente) | **1,8 s** | **4,4 s** (cumple) | 0,0052 € |
 | STT de la pregunta (`gpt-4o-mini-transcribe`, 3 preguntas) | 1,3 s de media, WER 0 | — | ≈ 0,0003 € |
 | **Q&A por voz completo** (derivado: STT + Q&A con `warmup`) | ≈ 4,3 s | **≈ 6,5 s** (cumple) | ≈ 0,0055 € |
+| **Cadena de voz medida de punta a punta** (`scripts/measure_qa_voice.py`, 3 procesos nuevos; audio edge-tts → STT → Q&A → TTS, como la UI), **frío** con `warmup` (incluye STT) y caché de prompt | p50 **3,9 s** | p50 **6,4 s** (5,7-14,4 s) | ≈ 0,0014 € |
+| Ídem, **caliente** (2.ª pregunta del proceso) | p50 **4,0 s** | p50 **6,0 s** (5,9-7,5 s) | ≈ 0,0013 € |
+| Ídem, frío **antes** de precalentar el STT y sin caché de prompt (1.ª medición) | p50 11,5 s | p50 16,4 s (`qa.stt` 7,6-15,1 s: importar `openai`) | ≈ 0,0058 € |
 
 Antes de `warmup`, la 1.ª pregunta tardaba 16-17 s en la UI: ~4,7 s eran importar el SDK de Anthropic, ~1,4 s
 importar `edge_tts` y el resto, crear el cliente y el *handshake* TLS. Ahora la página lanza `warmup` en un hilo
@@ -195,7 +198,7 @@ silencio se corta en local sin llamar a la API.
 | **Caché diaria de entradas** (noticias y precios por fuente y ticker) + caché de 7 días de URL finales, extractos y `robots.txt` | Ingesta de ~6-12 s → ~0,3 s en la 2.ª ejecución del día; extractos del ~45-50 % al ~80 %; menos *rate limit* | **Hecho** (`ingest/cache.py`, `ingest/article_meta.py`; purga automática a 7 días) |
 | **Batch nocturno** | Latencia percibida 0 para el briefing; se puede usar la API batch del proveedor (más barata) | Fuera del MVP (script manual) |
 | **Modelos baratos donde basta** (Haiku para guion, Q&A y estructurado de documentos; Sonnet para análisis y visión) | Guionista ≈ 0,009 € frente a ≈ 0,025 € con Sonnet | **Hecho** ([ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md); `BRIEFER_SCRIPTWRITER_MODEL` para cambiarlo) |
-| **Caché de prompts** del sistema y del contexto del briefing en el Q&A | Menos coste y latencia en preguntas sucesivas | Costes preparados (0,1× / 1,25×); marcar `cache_control` en el Q&A: pendiente |
+| **Caché de prompts** del sistema y del contexto del briefing en el Q&A | Menos coste y latencia en preguntas sucesivas | **Hecho** (05-oct): contexto en el 1.er mensaje `user` con `cache_control`. Medido con Haiku: 1.ª pregunta 0,0065 € (escritura 1,25×, 5.441 tokens), siguientes **0,0011 €** (lectura 0,1×) mientras la caché siga viva (5 min) |
 | **TTS gratuito por defecto** (edge-tts) y premium solo para contenido compartido | Coste de audio 0 € | **Hecho** |
 | **STT barato** (`gpt-4o-mini-transcribe`) y silencio cortado en local | Mitad de coste y de latencia que `whisper-1`; sin llamadas inútiles | **Hecho** |
 | **Modelos locales** (Whisper, Qwen2.5-VL, SDXL-Turbo, CLIP) | 0 € de API a cambio de hardware | *Stubs*; fuera del MVP |
@@ -212,7 +215,7 @@ silencio se corta en local sin llamar a la API.
 | Recomendaciones de compra/venta | Prohibidas en los prompts de los tres agentes; segunda barrera determinista que elimina frases con recomendación (y en el Guionista, además, pide reescritura); el Q&A reconduce «¿vendo?» con un recordatorio | `agents/guardrails.py` (`contains_advice`, `strip_advice`, `asks_for_advice`), `scriptwriter.script_problems` |
 | Cifras inventadas (*hallucination*) | Puerta de *grounding* en el Analista (contra el contexto) y en el Guionista (contra el análisis): cifras no trazables → un reintento y, si persisten, se eliminan esas frases; resultado visible en la traza | `guardrails.untraceable_figures`, `analyst.analyze`, `scriptwriter.write_script`, `StepMetric.detail` |
 | *Prompt injection* en noticias, PDF o gráfico | El contenido de terceros va delimitado y declarado **dato** (`<documento>`, `<descripcion>`); las fuentes con forma de orden se marcan con un aviso al Analista; la pregunta con forma de orden se anota | `pdf_reader.PDF_SYSTEM`, `chart_reader.STRUCTURE_SYSTEM`, `guardrails.looks_like_injection`, `analyst.suspicious_sources` / `INJECTION_NOTE`; red-team en `tests/test_agents_redteam.py` |
-| Causas afirmadas sin fuente («sube por…») | Se detectan y se anotan en la traza del Q&A y en la evaluación del guion; aún no se reescriben (riesgo abierto, ver [06](06_estado_actual.md)) | `guardrails.unhedged_causal_claims` |
+| Causas afirmadas sin fuente («sube por…») | Q&A: se detectan, se pide **una** reescritura atribuyéndolas a la fuente y, si persisten, se antepone «Según las noticias del briefing, …» (determinista); queda en la traza. Guion: se anotan en su evaluación | `guardrails.unhedged_causal_claims`, `qa.hedge_causal_claims` |
 | Datos simulados presentados como reales | Si un paso cae a mock o a datos de ejemplo, la UI lo avisa y la traza lo pinta en naranja; los gráficos con precios sintéticos lo dicen en el título; la transcripción simulada lleva `[MOCK]`; la portada nunca destaca un briefing simulado | `logging_utils.step_fell_back`, `players.render_run_warnings`, `app/components/trace.py`, `pipeline.SYNTHETIC_PRICES_SOURCE`, `storage.is_simulated_briefing` |
 | Falta de transparencia | `Analysis.disclaimer` obligatorio y no vacío; disclaimer **hablado** al final del podcast; pie fijo en la UI y en los gráficos | `schemas.DISCLAIMER_ES`, `scriptwriter.CLOSING_LINE_ES`, `charts.FOOTER_NOTE` |
 | Uso de la cartera | Se usa para **seleccionar** qué noticias explicar y como contexto, no para recomendar cambios en ella | `pipeline._normalize_tickers`, prompt del Analista |

@@ -191,6 +191,18 @@ def test_api_errors_propagate_after_sdk_retries(anthropic_settings: Settings) ->
         llm.complete("s", [{"role": "user", "content": "x"}], response_model=Analysis)
 
 
+def test_to_api_messages_marks_cache_control() -> None:
+    out = common.to_api_messages([
+        {"role": "user", "content": "contexto", "cache": True},
+        {"role": "assistant", "content": "ok"},
+        {"role": "user", "content": "pregunta"},
+    ])
+    assert out[0] == {"role": "user", "content": [
+        {"type": "text", "text": "contexto", "cache_control": {"type": "ephemeral"}}
+    ]}
+    assert out[2] == {"role": "user", "content": "pregunta"} and "cache" not in out[1]
+
+
 def test_to_api_messages_validates_history() -> None:
     assert common.to_api_messages([{"role": "system", "content": "x"}, {"role": "user", "content": "y"}]) == [
         {"role": "user", "content": "y"}

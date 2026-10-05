@@ -1020,13 +1020,16 @@ def warmup(settings: Settings | None = None, *, mode: RunMode | None = None) -> 
       SDK, crea el cliente **compartido** del proceso y hace una llamada gratuita
       ``models.retrieve``; no consume tokens).
     - TTS: importa el módulo del proveedor (``edge_tts``) para que la síntesis no pague el import.
+    - STT: importa el SDK del proveedor (``openai`` para ``whisper_api``). Medido el 05-oct-2026
+      con ``scripts/measure_qa_voice.py``: sin esto, el ``qa.stt`` de la 1.ª pregunta por voz
+      tardaba 7-15 s en frío frente a ~1 s en caliente (casi todo, importar ``openai``).
 
     Pensada para que la UI la llame al cargar la página Preguntar (p. ej. en un hilo o con
     ``st.cache_resource``) mientras el usuario escribe o graba. **Nunca lanza**: un fallo se
     registra y la pregunta funcionará igual (solo que en frío). En modo mock no hace nada.
 
     Returns:
-        ``{"llm": s, "vision": s, "tts": s, "total": s}`` (solo las piezas calentadas).
+        ``{"llm": s, "vision": s, "stt": s, "tts": s, "total": s}`` (solo las piezas calentadas).
     """
     start = time.perf_counter()
     timings: dict[str, float] = {}
@@ -1046,14 +1049,18 @@ def warmup(settings: Settings | None = None, *, mode: RunMode | None = None) -> 
             timings[name] = round(time.perf_counter() - t, 3)
         except Exception as exc:
             log.warning("warmup de %s (%s) fallido: %s", name, provider.provider_name, exc)
-    tts_module = _TTS_MODULES.get(providers.tts.provider_name)
-    if tts_module:
+    for name, module in (
+        ("stt", _STT_MODULES.get(providers.stt.provider_name)),
+        ("tts", _TTS_MODULES.get(providers.tts.provider_name)),
+    ):
+        if not module:
+            continue
         try:
             t = time.perf_counter()
-            importlib.import_module(tts_module)
-            timings["tts"] = round(time.perf_counter() - t, 3)
+            importlib.import_module(module)
+            timings[name] = round(time.perf_counter() - t, 3)
         except Exception as exc:
-            log.warning("warmup del TTS (%s) fallido: %s", tts_module, exc)
+            log.warning("warmup de %s (%s) fallido: %s", name, module, exc)
     timings["total"] = round(time.perf_counter() - start, 3)
     log.info("warmup: %s", timings)
     return timings
@@ -1061,6 +1068,8 @@ def warmup(settings: Settings | None = None, *, mode: RunMode | None = None) -> 
 
 #: Módulo del SDK de cada TTS real que ``warmup`` importa por adelantado.
 _TTS_MODULES = {"edge": "edge_tts", "elevenlabs": "elevenlabs"}
+#: Módulo del SDK de cada STT real que ``warmup`` importa por adelantado (``whisper_api``).
+_STT_MODULES = {"openai": "openai"}
 
 
 def answer_question(
