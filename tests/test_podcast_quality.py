@@ -39,12 +39,12 @@ MEASURED_OPTION_B_S = 206.8
 
 
 def test_words_per_minute_matches_measured_option_b() -> None:
-    """La estimación del guion del pregenerado cae a menos de un 2 % de su duración medida con
-    la opción «B» (``WORDS_PER_MINUTE`` = 158 sale de esa medida: 157,6 ppm)."""
-    script = PodcastScript.model_validate(_demo()["script"])
-    estimate = scriptwriter.estimate_duration_s(script.lines)
-    assert sum(scriptwriter.spoken_word_count(line.text) for line in script.lines) == 543
-    assert abs(estimate - MEASURED_OPTION_B_S) / MEASURED_OPTION_B_S < 0.02
+    """``WORDS_PER_MINUTE`` sale de la medida con la opción «B» (edge-tts, +10 %, pausas variables):
+    543 palabras habladas en 206,8 s = 157,6 ppm. El guion medido era el del pregenerado de entonces."""
+    measured_words = 543
+    assert abs(measured_words / MEASURED_OPTION_B_S * 60 - scriptwriter.WORDS_PER_MINUTE) < 1.0
+    lines = [ScriptLine(speaker="A", text=" ".join(["palabra"] * measured_words))]
+    assert abs(scriptwriter.estimate_duration_s(lines) - MEASURED_OPTION_B_S) / MEASURED_OPTION_B_S < 0.02
 
 
 def test_duration_gate_accepts_the_pregenerated_podcast() -> None:
