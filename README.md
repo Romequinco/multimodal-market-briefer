@@ -1,13 +1,16 @@
-# Market Briefer
+![Briefly · El cierre del día, mientras vuelves a casa: logo de cuatro velas japonesas como barras de ecualizador junto al nombre «briefly»](docs/assets/marca/briefly_banner.png)
+
+# Briefly
 
 [![tests](https://github.com/Romequinco/multimodal-market-briefer/actions/workflows/tests.yml/badge.svg)](https://github.com/Romequinco/multimodal-market-briefer/actions/workflows/tests.yml)
 
-**Tu podcast diario de mercados, hecho a medida de tu cartera.**
+**El cierre del día, mientras vuelves a casa.** Lo que ha movido tu cartera hoy, contado a dos voces en unos
+cuatro minutos.
 
-Market Briefer es el MVP de una startup FinTech de IA multimodal (práctica MIAX, taller B5-T4). Cada día
-recoge las noticias de mercado relevantes para los tickers que sigue el usuario, las interpreta y genera un
-**podcast explicativo a dos voces** con su transcripción, los gráficos del día y, opcionalmente, un **vídeo
-corto**. El usuario puede además subir una captura de gráfico o un PDF de resultados para que entren en el
+Briefly es el MVP de una startup FinTech de IA multimodal (práctica MIAX, taller B5-T4). Cada tarde, al cierre
+de la sesión, recoge las noticias de mercado relevantes para los tickers que sigue el usuario, las interpreta y
+genera un **podcast explicativo a dos voces** (Toro y Osa) con su transcripción, los gráficos del día y,
+opcionalmente, un **vídeo corto**. El usuario puede además subir una captura de gráfico o un PDF de resultados para que entren en el
 análisis, y **preguntar por voz** sobre el briefing a un agente que le responde también por voz.
 
 > **Estado (05-oct-2026 · Fases 0 y 1 cerradas, revisadas y reforzadas):** el producto funciona **de punta a punta con datos
@@ -24,7 +27,11 @@ análisis, y **preguntar por voz** sobre el briefing a un agente que le responde
 > 22:00 · **jue 8** capturas, demo grabada y pitch, entrega 16:30). Estado vivo en
 > [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
-> **Aviso legal.** Market Briefer genera **información financiera genérica con fines educativos**. No es
+> **Nombres internos.** La marca visible es **Briefly**; el código conserva su nombre técnico: paquete
+> `briefer`, repositorio `multimodal-market-briefer`, variables `BRIEFER_*` y servicio de Docker. Los comandos
+> y rutas de este README no cambian.
+
+> **Aviso legal.** Briefly genera **información financiera genérica con fines educativos**. No es
 > asesoramiento en materia de inversión en el sentido de MiFID II, no tiene en cuenta la situación personal
 > del usuario y **no emite recomendaciones de compra o venta**. Las voces del podcast son **sintéticas**,
 > generadas por IA. Ver [viabilidad y compliance](docs/04_viabilidad_costes_latencia_compliance.md).
@@ -34,16 +41,17 @@ análisis, y **preguntar por voz** sobre el briefing a un agente que le responde
 ## Índice
 
 1. [Problema y propuesta de valor](#problema-y-propuesta-de-valor)
-2. [Flujo de datos multimodal](#flujo-de-datos-multimodal)
-3. [Modalidades y modelos](#modalidades-y-modelos)
-4. [Arquitectura por capas](#arquitectura-por-capas)
-5. [Estructura del repositorio](#estructura-del-repositorio)
-6. [Arranque rápido](#arranque-rápido)
-7. [Configuración](#configuración)
-8. [Capturas](#capturas)
-9. [Demo](#demo)
-10. [Documentación](#documentación)
-11. [Equipo](#equipo)
+2. [Identidad](#identidad)
+3. [Flujo de datos multimodal](#flujo-de-datos-multimodal)
+4. [Modalidades y modelos](#modalidades-y-modelos)
+5. [Arquitectura por capas](#arquitectura-por-capas)
+6. [Estructura del repositorio](#estructura-del-repositorio)
+7. [Arranque rápido](#arranque-rápido)
+8. [Configuración](#configuración)
+9. [Capturas](#capturas)
+10. [Demo](#demo)
+11. [Documentación](#documentación)
+12. [Equipo](#equipo)
 
 ---
 
@@ -52,11 +60,31 @@ análisis, y **preguntar por voz** sobre el briefing a un agente que le responde
 | | |
 | --- | --- |
 | **Problema** | El inversor minorista recibe la información de mercado dispersa y en formatos heterogéneos: titulares, notas de prensa, PDFs de resultados de 40 páginas, gráficos de velas. Leerlo todo cada día no es realista, y los resúmenes genéricos no hablan de *su* cartera. |
-| **Público** | **B2C:** inversor minorista hispanohablante con cartera propia (acciones y ETFs). **B2B2C (canal):** brokers, neobancos y newsletters financieras que quieren ofrecer el briefing con su marca. |
-| **Propuesta** | Un briefing diario **personalizado por cartera** que se **escucha** (camino al trabajo, en el gimnasio), se **lee** (transcripción), se **ve** (gráficos y vídeo corto) y se **interroga por voz**. |
+| **Público** | **B2C (cara visible):** inversor minorista hispanohablante con cartera propia (acciones y ETFs) que escucha el resumen en el trayecto de vuelta. **B2B2C (negocio):** neobancos, brokers y newsletters financieras que quieren ofrecer el briefing con su marca (marca blanca). |
+| **Propuesta** | Un briefing diario **personalizado por cartera**, en **edición de noche** (al cierre), que se **escucha** (de vuelta a casa), se **lee** (transcripción), se **ve** (gráficos y vídeo corto) y se **interroga por voz**. La edición de mañana, antes de la apertura, queda en el roadmap. |
 | **Por qué multimodal** | Las fuentes ya son multimodales (texto, PDF, imagen de gráfico, voz del usuario) y el consumo también (audio, vídeo, texto, gráficos). Un solo modelo de chat no cubre ese ciclo; una cadena de modelos especializados sí. |
 
 Detalle en [docs/01_producto_y_propuesta_valor.md](docs/01_producto_y_propuesta_valor.md).
+
+---
+
+## Identidad
+
+| | |
+| --- | --- |
+| **Nombre** | **Briefly** (la marca y el programa se llaman igual) |
+| **Eslogan** | «El cierre del día, mientras vuelves a casa» |
+| **Tono** | Radio nocturna: serio y preciso con los datos, cercano en la conversación. Lema: «Te contamos el mercado; tú decides.» |
+| **Locutores** | **Toro** (voz A, el optimista que abre y se fija en lo que sube) y **Osa** (voz B, la prudente que pone el contexto y los riesgos y cierra con el aviso legal). Guiño a *bull & bear*; las dos voces son **sintéticas** (edge-tts) |
+| **Edición** | De noche, al cierre de la sesión; la de mañana, en el roadmap |
+| **Paleta** | «Noticiero nocturno»: fondo `#12151B`, superficie `#1C2129`, texto `#D6DEE8`, acento `#C0502A` / `#F0997B`, sube `#5DCAA5`, baja `#F09595` (contrastes WCAG AA validados en los tests) |
+| **Tipografía** | Source Serif 4 (marca y titulares) · Inter (texto) · JetBrains Mono (datos y rótulos) |
+| **Logo** | Cuatro velas japonesas que hacen de barras de ecualizador + «briefly» en minúscula. Variantes en [`docs/assets/marca/`](docs/assets/marca/) |
+
+Los textos de marca (nombre, eslogan, locutores, edición) viven en un único sitio, `src/briefer/brand.py`, y de
+ahí los leen la app, el guion, la transcripción, los gráficos y los metadatos del audio. La app tiene además una
+página «Quiénes somos» con la (falsa) historia de la startup. Guía completa: logo, colores, tipografía, tono y
+locutores en [docs/08_identidad_marca.md](docs/08_identidad_marca.md).
 
 ---
 
@@ -85,7 +113,7 @@ flowchart LR
 
     subgraph AG["3 · Agentes IA"]
         AN["Agente Analista<br/>resume e interpreta"]
-        GU["Agente Guionista<br/>crea el diálogo A/B"]
+        GU["Agente Guionista<br/>crea el diálogo Toro/Osa"]
         QA["Agente Q&A<br/>responde preguntas"]
     end
 
@@ -152,7 +180,7 @@ todo mock. Lo que sale «No» tiene el control **desactivado** en la UI («en de
 | 5 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku | Qwen2.5-VL local *(stub)* | **Sí** (real) |
 | 6 | Imagen → etiqueta | Enrutado | ¿La imagen subida es velas, tabla u otra cosa? (zero-shot) | CLIP *(opcional, desactivado)* | `none`, `mock` | **No** (pendiente, D2) |
 | 7 | Audio → texto | Entrada | Pregunta por voz del usuario y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` (`BRIEFER_WHISPER_API_MODEL`) | `whisper-1`, `faster-whisper` local *(stub)*, `mock` | **Sí** (real, con `OPENAI_API_KEY`); en sin claves/offline la transcripción es simulada y lleva `[MOCK]` |
-| 8 | Texto → audio | Salida | Podcast a dos voces y respuesta hablada del Q&A | `edge-tts` (gratis, voces es-ES) + normalización para locución | ElevenLabs *(stub)*, `mock` | **Sí** (real y sin claves); silencio en offline |
+| 8 | Texto → audio | Salida | Podcast a dos voces (Toro y Osa) y respuesta hablada del Q&A | `edge-tts` (gratis, voces es-ES) + normalización para locución | ElevenLabs *(stub)*, `mock` | **Sí** (real y sin claves); silencio en offline |
 | 9 | Datos → imagen | Salida | Gráficos del día (variación con bloque «Índices de referencia», cotización por ticker, reparto de la cartera solo en la sesión) con fecha y fuente | matplotlib | — | **Sí** (todos los modos; «precios sintéticos (demo)» en la demo) |
 | 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS | — | **Sí** (todos los modos) |
 | 10b | Audio → texto (control de calidad) | Bucle | El STT escucha el podcast generado y mide el WER contra el guion (`media.verify`; peores líneas en la traza) | OpenAI `gpt-4o-mini-transcribe` / `whisper-1` | `BRIEFER_VERIFY_PODCAST=false` | **Sí** (real; medido WER 1,1 %) |
@@ -172,7 +200,7 @@ análisis → guion → audio → vídeo, con contratos tipados entre cada paso.
 
 ```mermaid
 flowchart TB
-    UI["<b>UI</b> · app/ (Streamlit multipágina)<br/>Briefing · Preguntar · Mi cartera · Histórico"]
+    UI["<b>UI</b> · app/ (Streamlit multipágina)<br/>Briefing · Preguntar · Mi cartera · Histórico · Quiénes somos"]
     PL["<b>Orquestación</b> · src/briefer/pipeline.py<br/>run_briefing() · answer_question() · métricas por paso"]
     subgraph BIZ["<b>Lógica de negocio</b> · src/briefer/"]
         ING["ingest/<br/>noticias, precios, PDF,<br/>gráfico, cartera, voz"]
@@ -207,9 +235,10 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 .
 ├── app/                         # UI Streamlit (solo presentación; llama a briefer.pipeline / storage)
 │   ├── main.py                  # portada (propuesta de valor + briefing destacado) y navegación
-│   ├── pages/                   # 1_Briefing.py · 2_Preguntar.py · 3_Mi_cartera.py · 4_Historico.py
-│   └── components/              # __init__.py (añade src/ al path) · players.py (modos, insignias, reproductores) · trace.py («Cómo se hizo»)
-├── src/briefer/
+│   ├── pages/                   # 1_Briefing.py · 2_Preguntar.py · 3_Mi_cartera.py · 4_Historico.py · 5_Quienes_somos.py
+│   └── components/              # __init__.py (añade src/ al path) · theme.py (tema «Noticiero nocturno») · players.py (modos, insignias, reproductores) · trace.py («Cómo se hizo»)
+├── src/briefer/                 # paquete con el nombre técnico interno (la marca visible es Briefly)
+│   ├── brand.py                 # identidad: nombre, eslogan, edición, locutores Toro y Osa (fuente única)
 │   ├── config.py                # Settings desde .env (pydantic-settings)
 │   ├── schemas.py               # contratos de datos (Pydantic v2, v0.3) + DISCLAIMER_ES
 │   ├── pipeline.py              # run_briefing() y answer_question() (modos real / mock / demo_voices)
@@ -229,7 +258,7 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 ├── data/cache/ data/outputs/    # generados en ejecución (ignorados por git)
 ├── notebooks/                   # pruebas exploratorias de modelos (README con ideas)
 ├── pitch/                       # pitch deck técnico (README con el contenido previsto)
-├── docs/                        # documentación del proyecto (ver índice)
+├── docs/                        # documentación del proyecto (ver índice); activos de marca en docs/assets/marca/
 ├── Dockerfile  docker-compose.yml  .dockerignore
 ├── requirements.txt             # dependencias del MVP
 ├── requirements-local.txt       # opcional: modelos locales (torch, transformers, faster-whisper…)
@@ -392,8 +421,8 @@ Los modelos locales requieren `requirements-local.txt`.
 | Variable | Por defecto (código y `.env.example`) | Para qué |
 | --- | --- | --- |
 | `BRIEFER_LANGUAGE` | `es` | Idioma de STT y contenido |
-| `BRIEFER_VOICE_A` · `BRIEFER_VOICE_B` | `es-ES-AlvaroNeural` · `es-ES-ElviraNeural` | Voces edge-tts (B también responde en el Q&A) |
-| `BRIEFER_SPEAKER_A_NAME` · `BRIEFER_SPEAKER_B_NAME` | `Álvaro` · `Elvira` | Nombres de los presentadores en guion y transcripción |
+| `BRIEFER_VOICE_A` · `BRIEFER_VOICE_B` | `es-ES-AlvaroNeural` · `es-ES-ElviraNeural` | Voces edge-tts de Toro (A) y Osa (B; también responde en el Q&A) |
+| `BRIEFER_SPEAKER_A_NAME` · `BRIEFER_SPEAKER_B_NAME` | `Toro` · `Osa` | Nombres de los locutores en guion y transcripción (por defecto, los de la marca en `src/briefer/brand.py`) |
 | `ELEVENLABS_VOICE_A` · `ELEVENLABS_VOICE_B` | vacío | Ids de voz si `BRIEFER_TTS_PROVIDER=elevenlabs` |
 | `ELEVENLABS_MODEL` | `eleven_multilingual_v2` | Modelo de ElevenLabs |
 | `BRIEFER_TTS_RATE` · `BRIEFER_TTS_PITCH` | vacío (`+0%` · `+0Hz`) | Velocidad y tono de edge-tts (p. ej. `+8%`, `-2Hz`) |
@@ -439,6 +468,7 @@ reservado (*stub* documentado; el paso cae a mock marcado).
 | Pantalla | Captura |
 | --- | --- |
 | Portada / selección de tickers | TODO `docs/assets/capturas/01_portada.png` |
+| Quiénes somos | TODO `docs/assets/capturas/08_quienes_somos.png` |
 | Briefing del día (podcast + transcripción + gráficos) | TODO `docs/assets/capturas/02_briefing.png` |
 | Vídeo corto generado | TODO `docs/assets/capturas/03_video.png` |
 | Preguntar por voz (Q&A) | TODO `docs/assets/capturas/04_preguntar.png` |
@@ -479,6 +509,7 @@ Guion previsto de la demo:
 | [05 · Roadmap](docs/05_roadmap_TODO.md) | TODO hasta la entrega |
 | [06 · Estado actual](docs/06_estado_actual.md) | Qué funciona y qué no |
 | [07 · Revisión crítica](docs/07_revision_critica.md) | Revisión del plan: hallazgos, prioridades MoSCoW, plan por fases |
+| [08 · Identidad de marca](docs/08_identidad_marca.md) | Guía de marca de Briefly: logo, colores, tipografía, tono, locutores |
 | [Decisiones (ADR)](docs/decisiones/README.md) | Decisiones de arquitectura |
 | [Material de clase](docs/clase/00_indice.md) | Resumen del material del taller |
 | [Pitch deck](pitch/README.md) | Pitch técnico |
@@ -487,7 +518,8 @@ Guion previsto de la demo:
 
 ## Aviso legal
 
-Market Briefer es un proyecto académico. El contenido generado:
+Briefly es un proyecto académico y una startup ficticia; el nombre no está registrado como marca. El contenido
+generado:
 
 - es **información genérica**, no asesoramiento de inversión personalizado (MiFID II);
 - **no** contiene recomendaciones de compra, venta o mantenimiento de ningún instrumento;

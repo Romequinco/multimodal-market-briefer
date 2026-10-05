@@ -9,11 +9,14 @@
 Práctica MIAX **Taller B5-T4**: MVP de una startup FinTech con IA multimodal. Grupo de 3.
 **Entrega: jueves 8-oct-2026, 18:00** (repo GitHub con MVP funcional + demo).
 
-**Market Briefer**: cada día recoge noticias de mercado filtradas por los tickers/cartera del usuario, las
-interpreta (Agente Analista), escribe un diálogo (Agente Guionista) y genera un **podcast a 2 voces** con
-transcripción, gráficos del día y, si da tiempo, **vídeo corto**. Además lee capturas de gráficos y PDFs de
-resultados, y responde preguntas por voz (Agente Q&A). Entrega por web, email y Telegram.
-Diagrama de la idea: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
+**Briefly** (antes «Market Briefer»; eslogan «El cierre del día, mientras vuelves a casa»): cada día, al cierre,
+recoge noticias de mercado filtradas por los tickers/cartera del usuario, las interpreta (Agente Analista),
+escribe un diálogo (Agente Guionista) y genera un **podcast a 2 voces** (locutores **Toro** y **Osa**, voces
+sintéticas) con transcripción, gráficos del día y, si da tiempo, **vídeo corto**. Además lee capturas de gráficos
+y PDFs de resultados, y responde preguntas por voz (Agente Q&A). Entrega por web, email y Telegram.
+Diagrama de la idea: `docs/assets/arquitectura_mvp_podcast_financiero.png`. Marca: `docs/08_identidad_marca.md`;
+los textos visibles salen de `src/briefer/brand.py`. **Los nombres internos no cambian**: paquete `briefer`,
+repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 
 ## Qué puntúa (no perderlo de vista)
 
@@ -42,6 +45,7 @@ Diagrama de la idea: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 app/                      UI Streamlit (solo presentación; llama a briefer.pipeline)
 src/briefer/schemas.py    CONTRATOS Pydantic entre módulos  ← no cambiar sin acordarlo entre los 3
 src/briefer/pipeline.py   orquestación: run_briefing(), answer_question()
+src/briefer/brand.py      marca visible (Briefly, eslogan, locutores): fuente única, no repetir textos
 src/briefer/providers/    capa IA: base.py (interfaces), registry.py, mock.py, llm/ vision/ stt/ tts/ image/
 src/briefer/ingest/       entradas y procesado (noticias, tickers, precios, PDF, gráfico, cartera, voz)
 src/briefer/agents/       analista, guionista, Q&A (+ prompts/*.md)

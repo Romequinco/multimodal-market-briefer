@@ -8,7 +8,7 @@
 | Orquestación | `briefer/pipeline.py` | ingest, agents, media, delivery, storage, costs, `providers.registry` | Resuelve los proveedores (`get_providers`), los inyecta, encadena y mide; sin prompts ni formato |
 | Negocio | `briefer/ingest`, `agents`, `media`, `delivery` | `providers.base`, `schemas` | Recibe el proveedor por parámetro y lo usa solo vía las interfaces de `providers/base.py` |
 | Proveedores | `briefer/providers/` | SDKs externos | Única capa que importa `anthropic`, `openai`, `edge_tts`, etc. |
-| Transversal | `config.py`, `schemas.py`, `costs.py`, `logging_utils.py`, `storage.py` | — | Sin dependencias de capas superiores |
+| Transversal | `config.py`, `schemas.py`, `costs.py`, `logging_utils.py`, `storage.py`, `brand.py` | — | Sin dependencias de capas superiores. `brand.py` es la fuente única de la identidad visible (**Briefly**: nombre, eslogan, edición, locutores Toro y Osa); el paquete sigue llamándose `briefer` |
 
 ## Diagrama de componentes
 
@@ -150,7 +150,7 @@ sequenceDiagram
     LLM-->>SC: PodcastScript
     PL->>MD: synthesize_podcast(script, tts, out_dir, voice_a, voice_b)
     loop por cada ScriptLine
-        MD->>TTS: synthesize(text, voz A|B)
+        MD->>TTS: synthesize(text, voz A Toro | voz B Osa)
     end
     MD-->>PL: AudioAsset
     PL->>MD: build_transcript · make_charts · (make_cover) · (make_video)

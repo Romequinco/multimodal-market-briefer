@@ -1,5 +1,22 @@
 # 01 · Producto y propuesta de valor
 
+## Briefly en una frase
+
+**Briefly** · *«El cierre del día, mientras vuelves a casa»*. Lo que ha movido tu cartera hoy, contado a dos
+voces en unos cuatro minutos.
+
+| | |
+| --- | --- |
+| **Qué es** | Un podcast diario y personalizado por cartera, con transcripción, gráficos y preguntas por voz |
+| **Cuándo** | **Edición de noche**, al cierre de la sesión, para escucharla en el trayecto de vuelta. La **edición de mañana** (antes de la apertura) queda en el roadmap |
+| **Quién habla** | **Toro** (voz A, el optimista: abre el episodio y se fija primero en lo que sube) y **Osa** (voz B, la prudente: pone el contexto y los riesgos y cierra con el aviso legal). Guiño a *bull & bear*. Las dos voces son **sintéticas** y los dos se ciñen a los hechos: personalidad, nunca opinión de inversión |
+| **Para quién** | **B2C como cara visible** (inversor minorista) y **B2B2C como negocio** (neobancos y *brokers* que lo ofrecen con su marca) |
+| **Lema** | «Te contamos el mercado; tú decides.» |
+
+La marca visible es Briefly; los nombres técnicos internos (paquete `briefer`, repositorio
+`multimodal-market-briefer`, variables `BRIEFER_*`) no cambian. Identidad completa en
+[08 · Identidad de marca](08_identidad_marca.md).
+
 ## Esquema del producto
 
 ```mermaid
@@ -11,10 +28,10 @@ flowchart LR
         D4["Barrera del inglés<br/>y de la jerga"]
     end
 
-    subgraph PROD["Market Briefer"]
+    subgraph PROD["Briefly"]
         P1["Filtra por mi cartera"]
         P2["Interpreta noticias,<br/>PDFs y gráficos"]
-        P3["Lo explica en un podcast<br/>a dos voces en español"]
+        P3["Lo explica en un podcast<br/>a dos voces (Toro y Osa)"]
         P4["Responde mis dudas<br/>por voz"]
     end
 
@@ -49,12 +66,15 @@ acceso a la información:
 
 | Segmento | Tipo | Descripción | Papel en el MVP |
 | --- | --- | --- | --- |
-| Inversor minorista hispanohablante | **B2C (principal)** | 25-55 años, cartera propia en broker online (acciones y ETFs, 5-20 posiciones), sin tiempo para seguir el mercado a diario | Usuario de la app web |
-| Brokers y neobancos | B2B2C (canal) | Quieren aumentar el engagement diario de sus clientes con contenido propio | Cliente *white-label*: el briefing con su marca dentro de su app |
+| Inversor minorista hispanohablante | **B2C (cara visible)** | 25-55 años, cartera propia en broker online (acciones y ETFs, 5-20 posiciones), sin tiempo para seguir el mercado a diario; escucha el resumen de vuelta a casa | Usuario de la app web |
+| Neobancos y *brokers* | **B2B2C (negocio)** | Quieren aumentar el engagement diario de sus clientes con contenido propio | Cliente de marca blanca: el briefing con su marca dentro de su app |
 | Newsletters y medios financieros | B2B2C (canal) | Quieren convertir su contenido escrito en audio/vídeo sin estudio de grabación | Cliente de la API de generación |
 
-El MVP se diseña para el **B2C**; el B2B2C es el canal de escalado que justifica la arquitectura por
-proveedores y la generación compartida por ticker (ver [04](04_viabilidad_costes_latencia_compliance.md)).
+**Posicionamiento:** la marca Briefly se presenta al público como producto B2C (es lo que se ve en la demo y en
+la app), pero el negocio con más recorrido es el B2B2C: un neobanco o *broker* que ofrece «su» edición de noche a
+sus clientes, con su marca y su lista de valores. El MVP se diseña para el **B2C**; el B2B2C es el canal de
+escalado que justifica la arquitectura por proveedores, la marca centralizada en un único módulo y la generación
+compartida por ticker (ver [04](04_viabilidad_costes_latencia_compliance.md)).
 
 ## Propuesta de valor diferencial
 
@@ -70,13 +90,13 @@ La multimodalidad no es decorativa: cada modalidad resuelve una fricción concre
 | «Quiero leerlo después» | Transcripción + SRT | Accesibilidad y consulta rápida |
 
 **Diferencial frente a un chat financiero:** el usuario no tiene que saber qué preguntar. El producto es
-*push* (llega solo cada mañana), personalizado por cartera, y el chat por voz es un complemento, no el núcleo.
+*push* (llega solo cada tarde, al cierre; la edición de mañana está en el roadmap), personalizado por cartera, y el chat por voz es un complemento, no el núcleo.
 
 ## Casos de uso
 
 | ID | Caso | Modalidades | Flujo |
 | --- | --- | --- | --- |
-| CU1 | Briefing diario de mi cartera | texto → texto → audio, datos → imagen | Cartera → noticias filtradas → análisis → guion → podcast + gráficos |
+| CU1 | Edición de noche de mi cartera | texto → texto → audio, datos → imagen | Cartera → noticias filtradas → análisis → guion → podcast + gráficos |
 | CU2 | Briefing enriquecido con un PDF de resultados | documento → texto | Sube el PDF de la empresa → cifras clave entran en el análisis |
 | CU3 | «Explícame este gráfico» | imagen → texto | Sube captura de velas → descripción entra en el análisis |
 | CU4 | Pregunta por voz sobre el briefing | audio → texto → texto → audio | «¿Por qué ha caído Inditex hoy?» → respuesta hablada con fuentes |
@@ -86,7 +106,7 @@ La multimodalidad no es decorativa: cada modalidad resuelve una fricción concre
 
 ## Competencia y alternativas
 
-| Alternativa | Qué hace bien | Qué le falta frente a Market Briefer |
+| Alternativa | Qué hace bien | Qué le falta frente a Briefly |
 | --- | --- | --- |
 | Podcasts de mercado generalistas | Calidad editorial, voz humana | No conocen tu cartera; horario fijo; no puedes preguntar |
 | Newsletters financieras | Curación, análisis | Texto; genéricas; en inglés muchas de las buenas |
@@ -103,7 +123,7 @@ compliance desde el diseño.
 | --- | --- | --- |
 | Freemium | 0 € | Briefing diario de hasta 3 tickers, voces gratuitas, sin Q&A por voz o con cupo bajo |
 | Suscripción Pro | 4,99-7,99 €/mes *(a validar)* | Cartera completa, Q&A por voz, PDFs y gráficos propios, vídeo, email/Telegram, voces premium |
-| White-label B2B2C | Licencia + por usuario activo *(a negociar)* | Briefing con la marca del broker/neobanco, integración vía API |
+| Marca blanca B2B2C | Licencia + por usuario activo *(a negociar)* | Briefing con la marca del broker/neobanco (logo, nombre y locutores propios), integración vía API |
 
 Números y supuestos detallados en [04](04_viabilidad_costes_latencia_compliance.md#monetización).
 

@@ -1,6 +1,8 @@
-# Documentación de Market Briefer
+# Documentación de Briefly
 
-Índice operativo del proyecto. El enunciado y la rúbrica están en [00_enunciado.md](00_enunciado.md); los
+Índice operativo del proyecto. **Briefly** es la marca visible (eslogan: «El cierre del día, mientras vuelves a
+casa»); el código y el repositorio conservan los nombres técnicos `briefer` / `multimodal-market-briefer`. La guía
+de marca está en [08_identidad_marca.md](08_identidad_marca.md). El enunciado y la rúbrica están en [00_enunciado.md](00_enunciado.md); los
 contratos que permiten trabajar en paralelo, en [03_contratos_modulos.md](03_contratos_modulos.md); el estado
 vivo, en [06_estado_actual.md](06_estado_actual.md).
 
@@ -26,6 +28,7 @@ Entrega: **8-oct-2026, 18:00** (objetivo interno 16:30).
 | Plug-and-play (scripts, Docker) | `scripts/`, `Dockerfile`, `.streamlit/config.toml`, `.github/workflows/tests.yml` | `run.ps1` probado y endurecido, CI en verde (3.11 y 3.13), `pip-audit` limpio; Docker endurecido pero **sin probar**; `run.sh` sin probar |
 | Viabilidad y compliance | [04](04_viabilidad_costes_latencia_compliance.md) | Costes y latencias **medidos** (4 briefings, 7 preguntas, STT); cartera no persistida ([ADR-005](decisiones/ADR-005-privacidad-cartera-no-persistida.md)); costes fijos y p50/p95 pendientes |
 | Revisión y mejora en paralelo | [05 · caminos](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) | Caminos 3, 4 y 5 cubiertos en gran parte; se recomiendan **1, 2 y 6** |
+| Identidad de marca | [08](08_identidad_marca.md), `src/briefer/brand.py`, `assets/marca/` | Decisiones cerradas (Briefly, Toro y Osa, edición de noche, logo de velas-ecualizador); guía de marca completa |
 | README con capturas, demo, pitch | `README.md`, `pitch/` | README al día (estado, modos, mediciones, privacidad); capturas, demo y pitch pendientes (D3) |
 
 Convenciones:
@@ -45,6 +48,8 @@ Convenciones:
 4. [03 · Contratos](03_contratos_modulos.md): qué consume y produce tu carril.
 5. [05 · Roadmap](05_roadmap_TODO.md) y [06 · Estado](06_estado_actual.md): qué toca hacer hoy.
 6. [07 · Revisión crítica](07_revision_critica.md): por qué el plan es el que es (hallazgos, MoSCoW, horarios).
+7. [08 · Identidad de marca](08_identidad_marca.md): nombre, tono, locutores, logo, colores y tipografía (antes de
+   tocar textos visibles, el pitch o las capturas).
 
 ### Para un asistente de código
 
@@ -56,6 +61,8 @@ Leer en este orden antes de tocar nada:
 4. [05 · Roadmap](05_roadmap_TODO.md): la tarea concreta, su fichero y su criterio de hecho.
 5. [Decisiones](decisiones/README.md): por qué el stack es el que es ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md): pasos núcleo/opcionales; [ADR-005](decisiones/ADR-005-privacidad-cartera-no-persistida.md): la cartera no se persiste).
 6. [07 · Revisión crítica](07_revision_critica.md), solo si la tarea toca prioridades o alcance (MoSCoW y orden de recortes ya están en 05).
+7. [08 · Identidad de marca](08_identidad_marca.md), si la tarea toca textos visibles: nombre, eslogan y locutores
+   se leen de `src/briefer/brand.py`, nunca se repiten a mano.
 
 Reglas: no ejecutar git, no versionar `.env`, no copiar material de clase literal, todo debe funcionar en modo
 `mock` sin claves, la cartera no se escribe en disco y ningún error, métrica o log lleva claves sin redactar.
@@ -72,6 +79,7 @@ Reglas: no ejecutar git, no versionar `.env`, no copiar material de clase litera
 | [05_roadmap_TODO.md](05_roadmap_TODO.md) | Tareas por fase y carril hasta la entrega |
 | [06_estado_actual.md](06_estado_actual.md) | Estado vivo |
 | [07_revision_critica.md](07_revision_critica.md) | Revisión crítica del plan (05-oct): hallazgos, MoSCoW, plan por fases, checklist de rúbrica |
+| [08_identidad_marca.md](08_identidad_marca.md) | Guía de marca: decisiones, logo y variantes, colores con contrastes, tipografía, tono, locutores, formatos |
 | [decisiones/](decisiones/README.md) | ADRs |
 | [clase/00_indice.md](clase/00_indice.md) | Resumen del material del taller |
-| [assets/](assets/) | Diagramas y capturas |
+| [assets/](assets/) | Diagramas y capturas; [assets/marca/](assets/marca/) con logo, icono, banner y fuentes |
