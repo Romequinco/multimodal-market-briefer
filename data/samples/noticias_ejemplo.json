@@ -1,0 +1,52 @@
+[
+  {
+    "id": "ejemplo-001",
+    "title": "[EJEMPLO FICTICIO] La banca española sube tras unos resultados trimestrales mejores de lo esperado",
+    "summary": "Noticia inventada para pruebas: los grandes bancos cotizados avanzan en bolsa después de presentar márgenes de intereses superiores a las previsiones de los analistas.",
+    "source": "Ejemplo (ficticio)",
+    "url": "https://example.com/noticias/ejemplo-001",
+    "published_at": "2026-10-05T08:30:00+02:00",
+    "tickers": ["SAN.MC", "BBVA.MC"],
+    "language": "es"
+  },
+  {
+    "id": "ejemplo-002",
+    "title": "[EJEMPLO FICTICIO] Las grandes tecnológicas de EE. UU. corrigen tras varias sesiones al alza",
+    "summary": "Noticia inventada para pruebas: recogida de beneficios en el sector tecnológico estadounidense, con caídas moderadas en fabricantes de chips y software.",
+    "source": "Ejemplo (ficticio)",
+    "url": "https://example.com/noticias/ejemplo-002",
+    "published_at": "2026-10-04T22:15:00+02:00",
+    "tickers": ["NVDA", "MSFT", "AAPL"],
+    "language": "es"
+  },
+  {
+    "id": "ejemplo-003",
+    "title": "[EJEMPLO FICTICIO] Una textil gallega anuncia la apertura de un nuevo centro logístico",
+    "summary": "Noticia inventada para pruebas: la compañía comunica una inversión plurianual en logística para acelerar las entregas del canal online.",
+    "source": "Ejemplo (ficticio)",
+    "url": "https://example.com/noticias/ejemplo-003",
+    "published_at": "2026-10-05T07:45:00+02:00",
+    "tickers": ["ITX.MC"],
+    "language": "es"
+  },
+  {
+    "id": "ejemplo-004",
+    "title": "[EJEMPLO FICTICIO] Las eléctricas, estables a la espera de la decisión regulatoria",
+    "summary": "Noticia inventada para pruebas: el sector eléctrico cotiza plano mientras el mercado aguarda la publicación de una nueva propuesta de retribución.",
+    "source": "Ejemplo (ficticio)",
+    "url": "https://example.com/noticias/ejemplo-004",
+    "published_at": "2026-10-05T09:10:00+02:00",
+    "tickers": ["IBE.MC"],
+    "language": "es"
+  },
+  {
+    "id": "ejemplo-005",
+    "title": "[EJEMPLO FICTICIO] El IBEX 35 abre con ligeras subidas a la espera de datos de inflación",
+    "summary": "Noticia inventada para pruebas: el selectivo español arranca la sesión en positivo, apoyado en la banca, antes de conocerse el dato de precios de la eurozona.",
+    "source": "Ejemplo (ficticio)",
+    "url": "https://example.com/noticias/ejemplo-005",
+    "published_at": "2026-10-05T09:05:00+02:00",
+    "tickers": ["^IBEX"],
+    "language": "es"
+  }
+]

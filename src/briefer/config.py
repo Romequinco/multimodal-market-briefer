@@ -1,0 +1,165 @@
+"""Configuración centralizada (pydantic-settings): lee variables de entorno y ``.env``.
+
+Transversal. Todas las variables están documentadas en ``.env.example``. Prioridad:
+argumentos explícitos > variables de entorno > ``.env`` en la raíz del repo > valores por defecto.
+
+Los valores por defecto del código son "seguros" (proveedores ``mock``) para que tests y
+desarrollo funcionen sin red ni claves; ``.env.example`` propone la configuración real
+del MVP (Claude + edge-tts + Whisper API).
+
+Uso::
+
+    from briefer.config import get_settings
+    s = get_settings()
+    s.briefer_llm_provider, s.default_tickers, s.output_path
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+from typing import Literal
+
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+
+LLMProviderName = Literal["anthropic", "gemini", "openai", "mock"]
+VisionProviderName = Literal["claude", "qwen_local", "mock"]
+STTProviderName = Literal["whisper_api", "whisper_local", "mock"]
+TTSProviderName = Literal["edge", "elevenlabs", "mock"]
+ImageGenProviderName = Literal["sdxl_turbo", "none", "mock"]
+ImageClassifierName = Literal["clip", "none", "mock"]
+
+
+def _split_csv(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+class Settings(BaseSettings):
+    """Variables de configuración. Los nombres coinciden (sin distinguir mayúsculas) con ``.env``."""
+
+    model_config = SettingsConfigDict(
+        env_file=ROOT_DIR / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    # ── Claves de API (nunca se versionan) ──────────────────────────────────────
+    anthropic_api_key: SecretStr | None = None
+    openai_api_key: SecretStr | None = None
+    gemini_api_key: SecretStr | None = None
+    elevenlabs_api_key: SecretStr | None = None
+
+    # ── Entrega ─────────────────────────────────────────────────────────────────
+    telegram_bot_token: SecretStr | None = None
+    telegram_chat_id: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_from: str | None = None
+    smtp_to: str = ""  # lista separada por comas
+    smtp_use_tls: bool = True
+
+    # ── Selección de proveedores ────────────────────────────────────────────────
+    briefer_llm_provider: LLMProviderName = "mock"
+    briefer_vision_provider: VisionProviderName = "mock"
+    briefer_stt_provider: STTProviderName = "mock"
+    briefer_tts_provider: TTSProviderName = "mock"
+    briefer_image_gen_provider: ImageGenProviderName = "none"
+    briefer_image_classifier_provider: ImageClassifierName = "none"
+    # Si falta una clave o una librería, usar el mock (con aviso en log) en vez de fallar.
+    briefer_fallback_to_mock: bool = True
+
+    # ── Modelos ─────────────────────────────────────────────────────────────────
+    briefer_llm_model: str = "claude-sonnet-5-5"
+    briefer_llm_model_cheap: str = "claude-haiku-4-5-20251001"
+    briefer_gemini_model: str = "gemini-2.5-flash"
+    briefer_openai_model: str = "gpt-4o-mini"
+    briefer_vision_model: str = "claude-sonnet-5-5"
+    briefer_qwen_vl_model: str = "Qwen/Qwen2.5-VL-3B-Instruct"
+    briefer_whisper_api_model: str = "whisper-1"
+    briefer_whisper_local_model: str = "base"
+    briefer_sdxl_model: str = "stabilityai/sdxl-turbo"
+    briefer_clip_model: str = "openai/clip-vit-base-patch32"
+    briefer_local_device: Literal["auto", "cpu", "cuda", "mps"] = "auto"
+
+    # ── Idioma y voces ──────────────────────────────────────────────────────────
+    briefer_language: str = "es"
+    briefer_voice_a: str = "es-ES-AlvaroNeural"
+    briefer_voice_b: str = "es-ES-ElviraNeural"
+    briefer_speaker_a_name: str = "Álvaro"
+    briefer_speaker_b_name: str = "Elvira"
+    elevenlabs_voice_a: str | None = None
+    elevenlabs_voice_b: str | None = None
+    elevenlabs_model: str = "eleven_multilingual_v2"
+
+    # ── Contenido ───────────────────────────────────────────────────────────────
+    briefer_default_tickers: str = "SAN.MC,ITX.MC,IBE.MC,AAPL,MSFT,NVDA"
+    briefer_news_rss_feeds: str = ""
+    briefer_news_max_items: int = 20
+    briefer_podcast_target_minutes: float = 4.0
+
+    # ── Rutas (relativas a la raíz del repo si no son absolutas) ────────────────
+    briefer_data_dir: Path = Path("data")
+    briefer_cache_dir: Path = Path("data/cache")
+    briefer_output_dir: Path = Path("data/outputs")
+    briefer_samples_dir: Path = Path("data/samples")
+
+    briefer_log_level: str = "INFO"
+
+    # ── Helpers ─────────────────────────────────────────────────────────────────
+    def has_secret(self, field_name: str) -> bool:
+        """True si el campo existe y tiene un valor no vacío (SecretStr o str)."""
+        value = getattr(self, field_name, None)
+        if value is None:
+            return False
+        if isinstance(value, SecretStr):
+            value = value.get_secret_value()
+        return bool(str(value).strip())
+
+    @staticmethod
+    def _resolve(path: Path) -> Path:
+        return path if path.is_absolute() else ROOT_DIR / path
+
+    @property
+    def default_tickers(self) -> list[str]:
+        return [t.upper() for t in _split_csv(self.briefer_default_tickers)]
+
+    @property
+    def rss_feeds(self) -> list[str]:
+        return _split_csv(self.briefer_news_rss_feeds)
+
+    @property
+    def smtp_recipients(self) -> list[str]:
+        return _split_csv(self.smtp_to)
+
+    @property
+    def data_path(self) -> Path:
+        return self._resolve(self.briefer_data_dir)
+
+    @property
+    def cache_path(self) -> Path:
+        return self._resolve(self.briefer_cache_dir)
+
+    @property
+    def output_path(self) -> Path:
+        return self._resolve(self.briefer_output_dir)
+
+    @property
+    def samples_path(self) -> Path:
+        return self._resolve(self.briefer_samples_dir)
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Settings cacheados (una lectura de ``.env`` por proceso)."""
+    return Settings()
+
+
+def reset_settings_cache() -> None:
+    """Fuerza a releer la configuración (útil en tests o tras editar ``.env``)."""
+    get_settings.cache_clear()

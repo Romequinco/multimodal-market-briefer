@@ -1,0 +1,16 @@
+services:
+  briefer:
+    build: .
+    image: multimodal-market-briefer:latest
+    ports:
+      - "8501:8501"
+    # Copia .env.example a .env y rellena las claves antes de arrancar.
+    # Si no existe .env, arranca igualmente en modo mock (requiere Docker Compose >= 2.24).
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # Briefings generados y caché persistentes fuera del contenedor.
+      - ./data/outputs:/app/data/outputs
+      - ./data/cache:/app/data/cache
+    restart: unless-stopped

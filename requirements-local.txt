@@ -1,0 +1,11 @@
+# OPCIONAL: modelos locales (Qwen2.5-VL, Whisper local, SDXL-Turbo, CLIP). Pesado (varios GB).
+# Instalar solo si se usan BRIEFER_*_PROVIDER=qwen_local|whisper_local|sdxl_turbo|clip.
+# Para GPU NVIDIA, instalar antes torch con el índice CUDA adecuado (ver pytorch.org).
+# Uso: pip install -r requirements.txt -r requirements-local.txt   (o: pip install -e .[local])
+# (Sin "-r" aquí: pyproject.toml lee este fichero como lista plana de dependencias.)
+torch>=2.3
+transformers>=4.49
+accelerate>=0.30
+diffusers>=0.30
+faster-whisper>=1.0
+qwen-vl-utils>=0.0.8

@@ -1,0 +1,28 @@
+# Dependencias del MVP (Python 3.11+). Modelos locales pesados: requirements-local.txt
+# UI
+streamlit>=1.40
+# Núcleo
+pydantic>=2.7
+pydantic-settings>=2.3
+python-dotenv>=1.0
+requests>=2.31
+pandas>=2.1
+# Proveedores de IA (API)
+anthropic>=0.40
+openai>=1.50
+google-genai>=1.0
+# Datos de mercado
+yfinance>=0.2.50
+feedparser>=6.0
+# Documentos e imágenes
+pypdf>=5.0
+Pillow>=10.0
+# Gráficos
+matplotlib>=3.8
+plotly>=5.20
+# Audio y vídeo
+edge-tts>=6.1
+moviepy>=2.0
+imageio-ffmpeg>=0.5
+# Tests
+pytest>=8.0

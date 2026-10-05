@@ -1,0 +1,8 @@
+ticker,name,weight,quantity
+SAN.MC,Banco Santander,0.20,400
+ITX.MC,Inditex,0.15,30
+IBE.MC,Iberdrola,0.15,100
+BBVA.MC,BBVA,0.10,90
+AAPL,Apple,0.15,8
+MSFT,Microsoft,0.15,4
+NVDA,NVIDIA,0.10,9

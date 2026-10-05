@@ -218,3 +218,17 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── Proyecto multimodal-market-briefer ─────────────────────────────
+# Material de clase (no redistribuible): solo en local
+docs/raw/
+# Artefactos generados y caché
+data/cache/
+data/outputs/
+*.mp3
+*.wav
+*.mp4
+!data/samples/**
+# Entorno local
+.env.local
+.streamlit/secrets.toml
