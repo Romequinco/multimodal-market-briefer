@@ -1,298 +1,194 @@
 1
-00:00:00,000 --> 00:00:05,692
-Álvaro: Hola y bienvenidos a Market
-Briefer. Os contamos qué ha pasado en los
+00:00:00,000 --> 00:00:05,959
+Toro: Buenas noches, soy Toro. Esto es
+Briefly, la edición de noche con el cierre
 
 2
-00:00:05,692 --> 00:00:08,280
-mercados hoy, 5 de octubre de 2026.
+00:00:05,959 --> 00:00:12,065
+del día. Estamos a 5 de octubre de 2026, y
+el titular de hoy es que el IBEX 35 sube
 
 3
-00:00:08,630 --> 00:00:16,789
-Elvira: Buenas. Ha sido una sesión alcista
-tanto para el IBEX 35 como para el S&P
+00:00:12,065 --> 00:00:17,730
+con el impulso de Santander y todos los
+valores del usuario cierran en verde.
 
 4
-00:00:16,789 --> 00:00:24,645
-500. El IBEX ha subido un 0,53 % y el S&P
-500 un 0,73 %. Expansión atribuye el
+00:00:18,080 --> 00:00:23,765
+Osa: Buenas noches, soy Osa. Os contamos
+qué ha pasado en los mercados mientras
 
 5
-00:00:24,645 --> 00:00:28,070
-impulso del Ibex al efecto Brasil.
+00:00:23,765 --> 00:00:25,780
+vosotros regresabais a casa.
 
 6
-00:00:28,420 --> 00:00:33,710
-Álvaro: ¿El efecto Brasil? Eso suena
-interesante. Pero vamos con lo que más ha
+00:00:26,130 --> 00:00:31,380
+Toro: Banco Santander ha sido el motor del
+día. ¿Cuánto ha avanzado?
 
 7
-00:00:33,710 --> 00:00:39,000
-llamado la atención hoy: Banco Santander
-ha sido de los grandes protagonistas.
+00:00:31,730 --> 00:00:37,679
+Osa: Santander sube un 2,96 % hasta 12,16
+EUR, el mayor avance de vuestros valores.
 
 8
-00:00:39,350 --> 00:00:46,819
-Elvira: Exacto. Banco Santander ha subido
-un 2,37 % hasta 12,09 euros. Eso sí, hay
+00:00:37,679 --> 00:00:43,628
+Según la prensa, está relacionado con las
+elecciones en Brasil: los medios vinculan
 
 9
-00:00:46,819 --> 00:00:54,470
-que mirar con perspectiva: sigue un 6,19 %
-por debajo del nivel del 7 de septiembre.
+00:00:43,628 --> 00:00:48,430
+el repunte del IBEX a las empresas con
+mayor exposición a ese país.
 
 10
-00:00:54,820 --> 00:00:57,980
-Álvaro: ¿Qué explica entonces este rebote
-de hoy?
+00:00:48,780 --> 00:00:51,370
+Toro: ¿Pero dónde estaba hace un mes?
 
 11
-00:00:58,330 --> 00:01:03,557
-Elvira: Según El Español, la sobreventa y
-el soporte de los 11,60 euros podrían
+00:00:51,720 --> 00:00:57,761
+Osa: Sigue un 5,65 % por debajo de dónde
+estaba hace un mes, así que el movimiento
 
 12
-00:01:03,557 --> 00:01:09,049
-estar permitiendo este avance. Estrategias
-de Inversión considera que el movimiento
+00:00:57,761 --> 00:01:03,360
+de hoy no compensa aún el retroceso
+anterior. JP Morgan retoma cobertura con
 
 13
-00:01:09,049 --> 00:01:14,210
-de hoy es necesario pero insuficiente. Son
-opiniones de analistas, claro está.
+00:01:03,360 --> 00:01:06,380
+neutral y precio objetivo de 12,60 euros.
 
 14
-00:01:14,560 --> 00:01:20,856
-Álvaro: Entendido. Cambiando de tercio,
-Iberdrola también ha tenido movimiento.
+00:01:06,730 --> 00:01:12,920
+Toro: Vamos con Inditex. Ha cerrado en
+verde, pero ¿cómo está el cuadro general?
 
 15
-00:01:20,856 --> 00:01:22,450
-¿Qué ha pasado allá?
+00:01:13,270 --> 00:01:19,959
+Osa: Inditex avanza un 0,34 % hasta 53,42
+EUR, movimiento modesto. Lo positivo es
 
 16
-00:01:22,800 --> 00:01:28,762
-Elvira: Iberdrola ha subido un 0,43 %
-hasta 20,91 euros y acumula un 5,45 % de
+00:01:19,959 --> 00:01:26,812
+que Jefferies anticipa gran crecimiento en
+el tercer trimestre, destacando el éxito
 
 17
-00:01:28,762 --> 00:01:34,648
-ganancia desde el 7 de septiembre. La
-compañía, junto al PNV y al PP, impulsa
+00:01:26,812 --> 00:01:32,510
+de Zara con Galliano. Pero acumula caída
+del 7,19 % en el último mes.
 
 18
-00:01:34,648 --> 00:01:40,075
-reabrir en el Congreso el debate sobre
-quitar a Redeia el monopolio del
+00:01:32,860 --> 00:01:36,770
+Toro: Pasamos a Iberdrola, que también
+cierra al alza.
 
 19
-00:01:40,075 --> 00:01:41,680
-transporte eléctrico.
+00:01:37,120 --> 00:01:42,919
+Osa: Sube un 0,48 % hasta 20,92 EUR y gana
+5,50 % en el último mes. Las noticias
 
 20
-00:01:42,030 --> 00:01:44,690
-Álvaro: ¿Y eso ha movido el precio de hoy?
+00:01:42,919 --> 00:01:48,936
+hablan de que impulsa de nuevo un debate
+sobre retirar a Red Eléctrica el monopolio
 
 21
-00:01:45,040 --> 00:01:50,661
-Elvira: No. Las noticias sobre este asunto
-no se relacionan con el movimiento de
+00:01:48,936 --> 00:01:54,300
+del transporte eléctrico, aunque esto no
+se vincula con el movimiento hoy.
 
 22
-00:01:50,661 --> 00:01:55,790
-precio de hoy. Es más bien contexto
-político y sectorial que os contamos.
+00:01:54,650 --> 00:01:58,934
+Toro: Fuera de vuestros valores
+principales, NVIDIA ha tenido un día
 
 23
-00:01:56,140 --> 00:02:01,894
-Álvaro: Vamos ahora con Inditex. Esa
-empresa cotiza sin variación en el día,
+00:01:58,934 --> 00:01:59,690
+interesante.
 
 24
-00:02:01,894 --> 00:02:02,500
-¿verdad?
+00:02:00,040 --> 00:02:06,093
+Osa: NVIDIA sube un 1,34 % hasta 233,95
+USD. Ha autorizado una recompra de
 
 25
-00:02:02,850 --> 00:02:09,001
-Elvira: Correcto. Inditex cotiza a 53,24
-euros, sin cambios en la sesión. Sí que
+00:02:06,093 --> 00:02:12,555
+acciones por 235.000 millones de dólares,
+unas 2,4 veces su flujo de caja libre
 
 26
-00:02:09,001 --> 00:02:14,998
-cae un 7,51 % desde el 7 de septiembre.
-Pero hoy ha habido noticias positivas:
+00:02:12,555 --> 00:02:18,854
+anual. Además, Amazon explora venta y
+arrendamiento de chips de NVIDIA, y hay
 
 27
-00:02:14,998 --> 00:02:21,379
-según economiadigital.es, sería seis veces
-más rentable que Shein, y Estrategias de
+00:02:18,854 --> 00:02:23,680
+comentarios sobre cómo la demanda de ambas
+presiona a TSMC.
 
 28
-00:02:21,379 --> 00:02:26,530
-Inversión destaca el éxito de la
-colaboración de Zara con Galliano.
+00:02:24,030 --> 00:02:29,400
+Toro: El usuario ha aportado unos
+documentos de ejemplo. ¿Qué muestran?
 
 29
-00:02:26,880 --> 00:02:30,310
-Álvaro: ¿Por qué no se refleja eso en el
-precio entonces?
+00:02:29,750 --> 00:02:38,046
+Osa: Son datos ficticios, según indica el
+documento. Para el tercer trimestre de
 
 30
-00:02:30,660 --> 00:02:35,521
-Elvira: Eso pasa a veces. Las noticias
-positivas no siempre se traducen en
+00:02:38,046 --> 00:02:46,653
+2026, ingresos de 1.245 millones EUR, un
+8,4 % arriba; EBITDA de 312 millones, sube
 
 31
-00:02:35,521 --> 00:02:40,185
-movimiento inmediato. El mercado ya pudo
-haber precificado parte de esa
+00:02:46,653 --> 00:02:54,534
+11,2 %; beneficio neto de 158 millones,
+crece 6,9 %. Deuda neta en 1,6 veces
 
 32
-00:02:40,185 --> 00:02:44,980
-información, o simplemente el día de hoy
-otras cosas han tenido más peso.
+00:02:54,534 --> 00:03:00,030
+EBITDA. El gráfico marca rango entre 21,5
+y 24,5 EUR.
 
 33
-00:02:45,330 --> 00:02:54,307
-Álvaro: Perfecto. Vamos a Estados Unidos.
-NVIDIA ha avanzado un 1,34 % hasta 233,95
+00:03:00,380 --> 00:03:03,260
+Toro: ¿Cuál es el tono general del
+mercado?
 
 34
-00:02:54,307 --> 00:02:57,660
-dólares. ¿Qué ha ocurrido allá?
+00:03:03,610 --> 00:03:10,980
+Osa: Sesión positiva: el IBEX 35 sube 0,90
+% y el S&P 500 0,73 %, con la banca
 
 35
-00:02:58,010 --> 00:03:03,415
-Elvira: NVIDIA ha autorizado una recompra
-de acciones de 235.000 millones de
+00:03:10,980 --> 00:03:17,310
+destacando. Persisten los temores en
+Europa por el euro y la deuda.
 
 36
-00:03:03,415 --> 00:03:09,318
-dólares, según tikr.com. Además, Bloomberg
-Línea recoge que DBS cree que el repunte
+00:03:17,660 --> 00:03:22,620
+Toro: Hasta aquí el resumen del día. Os
+esperamos mañana.
 
 37
-00:03:09,318 --> 00:03:13,870
-de la IA no es una burbuja, lo que da
-cierto respaldo al sector.
+00:03:22,970 --> 00:03:28,211
+Osa: Buenas noches. Recordad que este
+episodio está generado con inteligencia
 
 38
-00:03:14,220 --> 00:03:18,370
-Álvaro: Pero imagino que no todo el mundo
-está tan tranquilo con NVIDIA.
+00:03:28,211 --> 00:03:33,521
+artificial y usa voces sintéticas. Es
+información, no asesoramiento financiero
 
 39
-00:03:18,720 --> 00:03:23,937
-Elvira: No. Invezz advierte de que la
-demanda de NVIDIA y Apple podría ser un
+00:03:33,521 --> 00:03:37,809
+ni recomendación de inversión:
+contrastadlo siempre con fuentes
 
 40
-00:03:23,937 --> 00:03:28,884
-problema tras el récord de TSMC. Son
-puntos de vista distintos sobre cómo
-
-41
-00:03:28,884 --> 00:03:31,120
-evolucionará la demanda de chips.
-
-42
-00:03:31,470 --> 00:03:34,150
-Álvaro: ¿Y Apple qué tal se ha comportado?
-
-43
-00:03:34,500 --> 00:03:41,316
-Elvira: Apple ha subido un 1,02 % hasta
-333,69 dólares. Acumula un 1,67 % desde el
-
-44
-00:03:41,316 --> 00:03:47,883
-3 de septiembre. Las noticias del día
-hablan de watchOS 27 y de diferencias del
-
-45
-00:03:47,883 --> 00:03:54,616
-iPhone 18 entre España y EE.UU., pero no
-hay una causa clara del movimiento en el
-
-46
-00:03:54,616 --> 00:03:55,780
-precio de hoy.
-
-47
-00:03:56,130 --> 00:04:02,130
-Álvaro: Hay un tema más. Habéis incluido
-unos documentos de ejemplo en el análisis.
-
-48
-00:04:02,480 --> 00:04:09,978
-Elvira: Sí. Son ficticios, con datos
-inventados, de una empresa llamada Ejemplo
-
-49
-00:04:09,978 --> 00:04:16,907
-Industrial para el tercer trimestre de
-2026. Los ingresos fueron de 1.245
-
-50
-00:04:16,907 --> 00:04:24,879
-millones de euros, un 8,4 % más. El EBITDA
-subió a 312 millones, un 11,2 % más. Y la
-
-51
-00:04:24,879 --> 00:04:29,720
-deuda neta cayó a 890 millones, bajada de
-un 5,3 %.
-
-52
-00:04:30,070 --> 00:04:31,940
-Álvaro: ¿Y el gráfico?
-
-53
-00:04:32,290 --> 00:04:39,637
-Elvira: También ficticio. Muestra la
-cotización a 22,44 euros con sesgo técnico
-
-54
-00:04:39,637 --> 00:04:47,450
-neutral-bajista. Tiene soportes en 21,5 y
-22,0 euros, y resistencias en 24,0 y 24,5.
-
-55
-00:04:47,800 --> 00:04:52,160
-Álvaro: Resumiendo, sesión positiva en
-ambos lados del Atlántico.
-
-56
-00:04:52,510 --> 00:04:59,413
-Elvira: Así es. IBEX 35 en verde, S&P 500
-en verde. Movimientos contenidos pero
-
-57
-00:04:59,413 --> 00:05:03,520
-coherentes con el sentimiento positivo del
-día.
-
-58
-00:05:03,870 --> 00:05:08,960
-Álvaro: Acordaos de que este episodio está
-generado con inteligencia artificial y las
-
-59
-00:05:08,960 --> 00:05:12,674
-voces que estáis escuchando son
-sintéticas. Es información, no
-
-60
-00:05:12,674 --> 00:05:16,387
-asesoramiento financiero ni una
-recomendación de inversión. Os
-
-61
-00:05:16,387 --> 00:05:19,920
-recomendamos que contrastéis siempre con
-fuentes oficiales.
-
-62
-00:05:20,270 --> 00:05:26,820
-Elvira: Exacto. Esto es Market Briefer.
-Gracias por escucharnos.
+00:03:37,809 --> 00:03:38,490
+oficiales.

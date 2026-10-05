@@ -1,6 +1,6 @@
 {
-  "id": "20261005-130504-0f8ae2",
-  "created_at": "2026-10-05T13:06:27.109713",
+  "id": "20261005-175326-1e7df9",
+  "created_at": "2026-10-05T17:54:45.434129",
   "context": {
     "date": "2026-10-05",
     "tickers": [
@@ -11,6 +11,31 @@
       "NVDA"
     ],
     "news": [
+      {
+        "id": "n-daa5d5ec4c51475c",
+        "title": "Kalshi obtiene luz verde para llevar los perpetuos del S&P 500 a su plataforma",
+        "summary": "La CFTC aprobó a Kalshi para ofrecer futuros perpetuos vinculados al S&P 500, un paso que amplía su negocio más allá de las criptomonedas y la acerca a la competencia con CME y Cboe.",
+        "source": "DiarioBitcoin",
+        "url": "https://www.diariobitcoin.com/regulacion/kalshi-obtiene-luz-verde-para-llevar-los-perpetuos-del-sp-500-a-su-plataforma/",
+        "published_at": "2026-10-05T11:26:15Z",
+        "tickers": [
+          "^GSPC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-79ae475ba35328b1",
+        "title": "Amazon Wants to Sell Its Nvidia Chips and Rent Them Back. Here’s Why",
+        "summary": "Amazon is reportedly exploring an $8 billion Nvidia chip leaseback after free cash flow fell to negative $26.99 billion in the first half of 2026.",
+        "source": "tikr.com",
+        "url": "https://www.tikr.com/es/blog/amazon-wants-to-sell-its-nvidia-chips-and-rent-them-back-heres-why",
+        "published_at": "2026-10-05T11:24:16Z",
+        "tickers": [
+          "NVDA",
+          "AMZN"
+        ],
+        "language": "es"
+      },
       {
         "id": "n-b965364207e1c893",
         "title": "Los valores del Ibex más alcistas por el 'efecto Brasil'",
@@ -24,11 +49,23 @@
         "language": "es"
       },
       {
+        "id": "n-d8ea3ca89d4ca810",
+        "title": "El Ibex, condicionado por el euro, la deuda y la política",
+        "summary": "La semana comienza con varios frentes abiertos en los mercados. El euro cae a mínimos de 17 meses en medio de los temores que generan deudas como la de Francia. El Cac francés destaca en las caídas…",
+        "source": "Mercados // expansion",
+        "url": "https://www.expansion.com/mercados/cronica-bolsa/2026/10/05/6ac33c2f468aeb7e468b4590.html",
+        "published_at": "2026-10-05T10:48:17Z",
+        "tickers": [
+          "^IBEX"
+        ],
+        "language": "es"
+      },
+      {
         "id": "n-eec6bcd879aff09e",
         "title": "Nvidia Just Authorized a $235 Billion Buyback, Backed by Free Cash Flow That Grew From $27.02 Billion",
-        "summary": "",
+        "summary": "Nvidia’s $150B buyback lifts capacity to $235B, about 2.4x fiscal 2026 free cash flow of $96.68B. Cash growth must keep pace through fiscal 2028.",
         "source": "tikr.com",
-        "url": "https://news.google.com/rss/articles/CBMixwFBVV95cUxPOEw5Y3lWZFVMRzFlZ2FDb3RGbnkxQmRoQXQ0WXV3RlRYamVSd0h3azVfcHMtcFFOSzkyZTRyQWg3MWhST1E2dHZnZk45T05XNjhxaVJFVWo1dFpoaEJRbkFWaGJZWEFxNjdzU1ZTYVNURzl0R09ocFBnZWMxSUFCWnJvM0N6bHNVNmRLMXE0UFA5OEN1eUNVOXNlUWNnN2c3MEtUUzBXbXBnOVk2Z2FnTmVGamZIYVVnVkJlQ1pqbC1UclJKRHNn?oc=5",
+        "url": "https://www.tikr.com/es/blog/nvidia-just-authorized-a-235-billion-buyback-backed-by-free-cash-flow-that-grew-from-27-02-billion",
         "published_at": "2026-10-05T09:41:47Z",
         "tickers": [
           "NVDA"
@@ -40,7 +77,7 @@
         "title": "TSMC marca otro récord; la demanda de Nvidia y Apple podría ser un problema",
         "summary": "",
         "source": "Invezz",
-        "url": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxPM3RvUkV0ZUo5dFkwMzUxeGwzNm5oV3NYVXJ4Y0pfaTZyTjFCOFFodzRYR3ZBQ2pNT1J2N0laX2hZZ1BKam5GNTljWGMxQTdfUG9MdFJnZGg2R3dFVjRMRVA5T3RRaEQyX3R0cU9fcGNVZGM1NTRPZDNvQVdQRk1EQzBBanBfdDlqaC1tLWtkRVNkdHlyeUxyMWx5OEd3SVd2WjI1MDVCcUYtOF93U1ZqcE56MHlFWFZa?oc=5",
+        "url": "https://invezz.com/es/noticias/2026/10/05/tsmc-marca-otro-record-la-demanda-de-nvidia-y-apple-podria-ser-un-problema/",
         "published_at": "2026-10-05T09:40:03Z",
         "tickers": [
           "AAPL",
@@ -49,23 +86,11 @@
         "language": "es"
       },
       {
-        "id": "n-f5d03b00a0fbf3c5",
-        "title": "US Stock Futures Edge Lower as Investors Assess Rates, Middle East Developments and Oil Prices: Dow Jones, S&P, Nasdaq, Wall Street",
-        "summary": "US stock futures moved slightly lower on Monday as investors assessed the outlook for Federal Reserve interest rates, developments in the Middle East and a decline in oil prices. At 02:58 ET (06:58…",
-        "source": "Yahoo Finance",
-        "url": "https://investorshub.advfn.com/market-news/article/37404/us-stock-futures-edge-lower-as-investors-assess-rates-middle-east-developments-and-oil-prices-dow-jones-sp-nasdaq-wall-street?.tsrc=rss",
-        "published_at": "2026-10-05T09:23:27Z",
-        "tickers": [
-          "^GSPC"
-        ],
-        "language": "en"
-      },
-      {
         "id": "n-05bd7e8ecf44dc2c",
         "title": "Récord de optimismo empresarial: 72 compañías del S&P 500 anticipan beneficios superiores al consenso",
-        "summary": "",
+        "summary": "Puntos clave Un récord de 72 compañías del S&P 500 ha publicado previsiones de beneficio trimestral superiores al consenso. De las 116 empresas que ofrecieron previsiones, aproximadamente el 62%…",
         "source": "Bolsamania",
-        "url": "https://news.google.com/rss/articles/CBMihwJBVV95cUxPeDFGLUJ4UHVwQ3NWSjJOMEstamMwTWRWMTJueUdQLUpDb1hnRnlWVkRYdGliTjUwalNlTnBEZnhiSWJ2Qmc0RGpHSGdMZy1kT0dXMW1xR2xkbmUtNjhuRnV1Z2F2T2F3ZGdEMy0tbEVoTGg0WE90M2tVcWZ6RW5IV0hwSGpvMVF6a0ZrcUkyN0p4eXZTa2xpYVZDb0xGeGFJcjE3NW9RamhPQjJhQS1pWnR6WndDd1AyT3hfRE0yaWdfd0g0Ui1VaXdfdTlpU0Zjc0Q4bnBBRnBoYmVqeXFhSnRfUXgtSHhsbkpNb0laR0xqYkN3ek02aVNZSGJUTUlYVWQ0em9UVdIBhwJBVV95cUxPeDFGLUJ4UHVwQ3NWSjJOMEstamMwTWRWMTJueUdQLUpDb1hnRnlWVkRYdGliTjUwalNlTnBEZnhiSWJ2Qmc0RGpHSGdMZy1kT0dXMW1xR2xkbmUtNjhuRnV1Z2F2T2F3ZGdEMy0tbEVoTGg0WE90M2tVcWZ6RW5IV0hwSGpvMVF6a0ZrcUkyN0p4eXZTa2xpYVZDb0xGeGFJcjE3NW9RamhPQjJhQS1pWnR6WndDd1AyT3hfRE0yaWdfd0g0Ui1VaXdfdTlpU0Zjc0Q4bnBBRnBoYmVqeXFhSnRfUXgtSHhsbkpNb0laR0xqYkN3ek02aVNZSGJUTUlYVWQ0em9UVQ?oc=5",
+        "url": "https://www.bolsamania.com/capitalbolsa/noticias/empresas/record-de-optimismo-empresarial-72-companias-del-sp-500-anticipan-beneficios-superiores-al-consenso--23752992.html",
         "published_at": "2026-10-05T09:19:03Z",
         "tickers": [
           "^GSPC"
@@ -73,68 +98,14 @@
         "language": "es"
       },
       {
-        "id": "n-9bf0fd0f713a2298",
-        "title": "Análisis de Banco Santander: Necesario pero no suficiente",
-        "summary": "Los fuertes avances de hoy permiten reforzar las señales de agotamiento bajistas acaecidas en la sesión del viernes, sin embargo es un movimiento que debemos clasificar como insuficiente, de…",
-        "source": "Estrategias de Inversión",
-        "url": "https://www.estrategiasdeinversion.com/analisis/trading/analisis-de-banco-santander-necesario-pero-no-n-957091",
-        "published_at": "2026-10-05T09:10:00Z",
-        "tickers": [
-          "SAN.MC"
-        ],
-        "language": "es"
-      },
-      {
-        "id": "n-7a21ba2967796bcd",
-        "title": "Nvidia demuestra que el repunte de las acciones de IA no es una burbuja, según DBS",
-        "summary": "",
-        "source": "Bloomberg Línea",
-        "url": "https://news.google.com/rss/articles/CBMi0wFBVV95cUxObl9sODh5T1cyZ2V2OC1LdWlDMmRMUGwzS05JQW9nTUw4Sy0xNWZHNE1tUTc2aFJGN3c1cGRpX1VXNHoxRUFDdnVUSkJrVzJ4VTA4cjM1cS01SjlCRmR4TVcybDVYUVg2UVc4UzRQNm14dDZJbGZxY0l4d3ZpMmdQZ0pkYlZYNVVGaU9LOEt2V2lEUDNIVmpRZWFDUzBzc0hBSThKUXNlOFB6NVdRVGJRYWVmazZhRTJFMmZXZnBZOEVvLWdaMEpuNDJHWU5FZ2FKNEd30gHTAUFVX3lxTE5uX2w4OHlPVzJnZXY4LUt1aUMyZExQbDNLTklBb2dNTDhLLTE1Zkc0TW1RNzZoUkY3dzVwZGlfVVc0ejFFQUN2dVRKQmtXMnhVMDhyMzVxLTVKOUJGZHhNVzJsNVhRWDZRVzhTNFA2bXh0NklsZnFjSXh3dmkyZ1BnSmRiVlg1VUZpT0s4S3ZXaURQM0hWalFlYUNTMHNzSEFJOEpRc2U4UHo1V1FUYlFhZWZrNmFFMkUyZldmcFk4RW8tZ1owSm40MkdZTkVnYUo0R3c?oc=5",
-        "published_at": "2026-10-05T08:33:24Z",
-        "tickers": [
-          "NVDA"
-        ],
-        "language": "es"
-      },
-      {
         "id": "n-4ccf050f72ae7a04",
         "title": "El éxito de la colaboración de Zara y Galliano da alas a Inditex: potencial del 26% en Bolsa",
-        "summary": "",
+        "summary": "Jefferies da una recomendación de ‘comprar’ para Inditex y un potencial alcista del 26% tras destacar el éxito del lanzamiento de su marca con Galliano.",
         "source": "Estrategias de Inversión",
-        "url": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPQV9ObkkzTElQM1o0R3ZRTlk0M3RsdmNMdUpUTVFjRzRKVEVfLV9nQ3M1RFQxVDZPUFQxSDhuWTU3V3NpYlVEMm51T0JHdXRtT2dNMXFsRkVhZnlxS1lqXzJnSGd2YUY4XzZnQUV0emc2aGdoVWtTalBjdWxFYnd0N1JJWnRVOUt2OEp5YS1HbWx4SkZaRE1PMDRNNUlMMkHSAZ8BQVVfeXFMT0FfTm5JM0xJUDNaNEd2UU5ZNDN0bHZjTHVKVE1RY0c0SlRFXy1fZ0NzNURUMVQ2T1BUMUg4blk1N1dzaWJVRDJudU9CR3V0bU9nTTFxbEZFYWZ5cUtZal8yZ0hndmFGOF82Z0FFdHpnNmhnaFVrU2pQY3VsRWJ3dDdSSVp0VTlLdjhKeWEtR21seEpGWkRNTzA0TTVJTDJB?oc=5",
+        "url": "https://www.estrategiasdeinversion.com/actualidad/noticias/bolsa-espana/el-exito-de-la-colaboracion-de-zara-y-galliano-n-957017",
         "published_at": "2026-10-05T08:20:00Z",
         "tickers": [
           "ITX.MC"
-        ],
-        "language": "es"
-      },
-      {
-        "id": "n-cdc98c95c2b9c7e4",
-        "title": "Banco Santander: la elevada sobreventa y el soporte de los 11,60 euros permiten rehacerse a los alcistas",
-        "summary": "La confirmación de la figura de giro alcista situaría los primeros objetivos de recuperación en los 12,40 y 12,60 euros por acción. Más información: El Ibex 35 busca comenzar la semana con ligeras…",
-        "source": "El Español",
-        "url": "https://www.elespanol.com/invertia/mercados/20261005/banco-santander-elevada-sobreventa-soporte-euros-permiten-rehacerse-alcistas/1003744408380_0.html",
-        "published_at": "2026-10-05T08:02:53Z",
-        "tickers": [
-          "SAN.MC",
-          "^IBEX"
-        ],
-        "language": "es"
-      },
-      {
-        "id": "n-c17e0a830c930354",
-        "title": "Análisis de BBVA, CaixaBank, Iberdrola, Inditex, Banco Santander e IBEX 35",
-        "summary": "",
-        "source": "Investing.com España",
-        "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQOE5pX3lZWGJBVGo1U0lRY2VhWW5UMG5WeVUzbnlwX1VzLTFMc1hpN1RzRkVtWTlubUR2R1ZBREpBVVNwSjZjLXFmUXpoNXBiYldlNEo0b0NqaVRVczMycHBMWkczc2ZDSVpaOXBxSk14aHpzNGZJQTBLTVIwVXJ5MUhoVFRkd2NrdTA4U09NeF84Ymh6RmtJTUFBdFpmc0hkMk54dXNkMXpxMDh1TEhfa3V2ay0?oc=5",
-        "published_at": "2026-10-05T06:16:00Z",
-        "tickers": [
-          "SAN.MC",
-          "ITX.MC",
-          "IBE.MC",
-          "^IBEX",
-          "BBVA.MC",
-          "CABK.MC"
         ],
         "language": "es"
       },
@@ -143,10 +114,60 @@
         "title": "El índice S&P 500 apenas registró variaciones tras el cierre de la Bolsa de Estocolmo",
         "summary": "",
         "source": "MarketScreener España",
-        "url": "https://news.google.com/rss/articles/CBMi1gFBVV95cUxOMFlnT0FsbURlZDNBc2Y0cTBmMDdHQ2RnMThvTUU4SndwNmlMdXZLbDd1OXVRRHVTakRQMXdiX3ZYbFYyV1hnQUZRZWZGTUNHaV9rNU9tWVdFWHNfLXE4elhNMVljbzVQbFRXdFVGbGFocW1md2gxT2RRa1dyNlNUazV6MG9wRW1LR1BjbUU4cUV4YnBSM1MteE5rNVJxd3hiQmdjdHcyRDdSdm9lWjZ6YW92TGk5aGwxeFM0QmdvRWY5M0d5TDg2NnYzTmJ2ekk4dHpXcDRB?oc=5",
+        "url": "https://es.marketscreener.com/noticias/el-ndice-s-p-500-apenas-registr-variaciones-tras-el-cierre-de-la-bolsa-de-estocolmo-ce785ddbdf8cf62c",
         "published_at": "2026-10-05T04:26:27Z",
         "tickers": [
           "^GSPC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-d99d1f2ced151477",
+        "title": "El IBEX 35 se da la vuelta al alza de la mano de Santander y Telefónica tras las elecciones en Brasil",
+        "summary": "El IBEX 35 abre con caídas suaves en una jornada donde se ha conocido la convocatoria de elecciones y con los inversores pendientes del euro y los bonos ...",
+        "source": "finanzas.com",
+        "url": "https://www.finanzas.com/ibex-35/ibex-35-rebota-pese-tensiones-bonos-castigo-euro.html",
+        "published_at": "2026-10-05T04:13:00Z",
+        "tickers": [
+          "^IBEX",
+          "SAN.MC",
+          "TEF.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-7bafe0100e862fa9",
+        "title": "Análisis de Banco Santander: Necesario pero no suficiente",
+        "summary": "Los fuertes avances de hoy permiten reforzar las señales de agotamiento bajistas acaecidas en la sesión del viernes, sin embargo es un movimiento que debemos clasificar como insuficiente, de…",
+        "source": "Estrategias de Inversión",
+        "url": "https://www.estrategiasdeinversion.com/analisis/trading/analisis-de-banco-santander-necesario-pero-no-n-957091",
+        "published_at": "2026-10-05T04:10:00Z",
+        "tickers": [
+          "SAN.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-0c3a7ba827a04926",
+        "title": "Jefferies apuesta por Inditex y anticipa un \"impresionante crecimiento\" en el tercer trimestre",
+        "summary": "Jefferies mantiene su visión positiva sobre Inditex y considera que el grupo todavía tiene recorrido al alza, apoyado en unas sólidas perspectivas de crecimiento y en la capacidad de Zara para…",
+        "source": "Bolsamania",
+        "url": "https://www.bolsamania.com/noticias/empresas/jefferies-apuesta-inditex-anticipa-impresionante-crecimiento-tercer-trimestre--23752766.html",
+        "published_at": "2026-10-05T03:25:00Z",
+        "tickers": [
+          "ITX.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-1d689152d6d9f06e",
+        "title": "JP Morgan es prudente sobre Banco Santander, aunque sí ve un potencial moderado",
+        "summary": "JP Morgan retoma la cobertura de Banco Santander con un consejo de ‘neutral’ y un precio objetivo de 12,60 euros que supone un potencial alcista del 6,68%.",
+        "source": "Estrategias de Inversión",
+        "url": "https://www.estrategiasdeinversion.com/analisis/los-brokers-recomiendan/recomendaciones-espana/jp-morgan-es-prudente-sobre-banco-santander-aunque-n-956991",
+        "published_at": "2026-10-05T02:41:00Z",
+        "tickers": [
+          "SAN.MC"
         ],
         "language": "es"
       },
@@ -187,26 +208,38 @@
         "language": "es"
       },
       {
-        "id": "n-bf46c9ef6073ff1f",
-        "title": "Por qué el iPhone 18 que compras en España no es el mismo que vende Apple en Estados Unidos",
-        "summary": "Apple ha puesto a la venta los nuevos iPhone 18 Pro y iPhone 18 Pro Max como sus dos joyas mundiales. Comparten diseño, pantalla OLED, sistema de cámaras, procesador y gran parte de su conectividad…",
-        "source": "El Debate",
-        "url": "https://www.msn.com/es-es/noticias/otras/por-qu%C3%A9-el-iphone-18-que-compras-en-espa%C3%B1a-no-es-el-mismo-que-vende-apple-en-estados-unidos/ar-AA2dA6fC",
-        "published_at": "2026-10-04T19:25:00Z",
+        "id": "n-f15d1aa3c58809e2",
+        "title": "Iberdrola lanza los Premios FP para atraer a los mejores estudiantes de electricidad y redes de España",
+        "summary": "El sector eléctrico español necesita manos expertas para sostener la transición energética, y la mayor eléctrica de Europa ha decidido ir a buscarlas directamente a las aulas. Iberdrola lanza los…",
+        "source": "Okdiario",
+        "url": "https://okdiario.com/okgreen/iberdrola-lanza-premios-fp-atraer-mejores-estudiantes-electricidad-redes-espana-20486974",
+        "published_at": "2026-10-04T15:41:00Z",
         "tickers": [
-          "AAPL"
+          "IBE.MC"
         ],
         "language": "es"
       },
       {
         "id": "n-ebf02b4a669cd6fa",
         "title": "Inditex mira por el retrovisor a Shein y ya es seis veces más rentable",
-        "summary": "",
-        "source": "economiadigital.es",
-        "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPUHZiQUxmbzBWcFAzMlRGU2poaHFmcEZ0VjdHalFqOExGNzNqc2ZNcVdBdXpkYnZrRkllMHpidkpoOUg2dDNoS2tTX2VqWHZhOHh3bEp1MURuX0hqTk5maWt4Yl9DVVZZMncyd0dsckV6S2pkX1J4UVg4OHh1ZmJqNHFRYURIc0RfY3lYMnVZbk9QUkFjMXpBaExiTEE5VS1wLWdYc9IBqgFBVV95cUxNOUlOYXJudmFNbkNkajNPTFNJR3BvcTYzaDNnelE5ZVZUbjF5REJQSVBGcE5HcDN1S0ZUVzRzc3F2U3lWRWVxeTB0OWdONnFtTlhUZkdxQVlHb1pKOXpqd0FadUxheGRqWHJIV0d6a3p1MXJUNGFYYXpveERuTUF3dnd6RTZJbEU1MHp1UUtwYi1LZF9JT1BBSU5JZzBFcVIzZjdFMlpVNllMUQ?oc=5",
+        "summary": "La amenaza que supuso la compañía 'low cost' para los de Arteixo tras la pandemia se disipa ahora, impactada por los aranceles y el alza del combustible ...",
+        "source": "Economía Digital",
+        "url": "https://www.economiadigital.es/galicia/empresas/inditex-mira-retrovisor-shein-seis-veces-rentable.html",
         "published_at": "2026-10-04T02:55:00Z",
         "tickers": [
           "ITX.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-729cd61f7fbbb558",
+        "title": "Apple Watch Serie 12 vs Serie 11: ¿merece la pena saltar a la nueva generación?",
+        "summary": "Mostramos las diferencias entre los dos relojes de la firma de Cupertino para que tengas claras las mejoras que se incluyen en el nuevo modelo.",
+        "source": "Cinco Días",
+        "url": "https://cincodias.elpais.com/smartlife/gadgets/2026-10-04/apple-watch-serie-12-vs-apple-watch-serie-11.html",
+        "published_at": "2026-10-04T01:31:00Z",
+        "tickers": [
+          "AAPL"
         ],
         "language": "es"
       }
@@ -214,8 +247,8 @@
     "prices": [
       {
         "ticker": "SAN.MC",
-        "last": 12.088,
-        "change_pct": 2.37,
+        "last": 12.158,
+        "change_pct": 2.96,
         "currency": "EUR",
         "history": [
           [
@@ -300,14 +333,14 @@
           ],
           [
             "2026-10-05",
-            12.088
+            12.158
           ]
         ]
       },
       {
         "ticker": "ITX.MC",
-        "last": 53.24,
-        "change_pct": 0.0,
+        "last": 53.42,
+        "change_pct": 0.34,
         "currency": "EUR",
         "history": [
           [
@@ -392,14 +425,14 @@
           ],
           [
             "2026-10-05",
-            53.24
+            53.42
           ]
         ]
       },
       {
         "ticker": "IBE.MC",
-        "last": 20.91,
-        "change_pct": 0.43,
+        "last": 20.92,
+        "change_pct": 0.48,
         "currency": "EUR",
         "history": [
           [
@@ -484,7 +517,7 @@
           ],
           [
             "2026-10-05",
-            20.91
+            20.92
           ]
         ]
       },
@@ -674,8 +707,8 @@
       },
       {
         "ticker": "^IBEX",
-        "last": 19186.3008,
-        "change_pct": 0.53,
+        "last": 19256.4004,
+        "change_pct": 0.9,
         "currency": "EUR",
         "history": [
           [
@@ -760,7 +793,7 @@
           ],
           [
             "2026-10-05",
-            19186.3008
+            19256.4004
           ]
         ]
       },
@@ -861,63 +894,89 @@
       {
         "source_type": "pdf",
         "source_name": "resultados_ejemplo.pdf",
-        "extracted_text": "[Página 1]\nEJEMPLO FICTICIO · datos inventados, no reales\nResultados del tercer trimestre de 2026\nEjemplo Industrial S.A. (ticker ficticio EJMP)\nResumen ejecutivo (datos inventados):\n- Ingresos de 1.245 millones de euros, un 8,4 % más que en el 3T 2025.\n- EBITDA de 312 millones de euros (+11,2 %), con un margen del 25,1 %.\n- Beneficio neto atribuido de 158 millones de euros (+6,9 %).\n- Deuda financiera neta de 890 millones de euros, 1,6 veces EBITDA.\nLa compañía ficticia atribuye el crecimiento a la división de servicios digitales,\nque aporta ya el 34 % de los ingresos, y a la mejora de precios en Europa.\nLos costes energéticos se moderan respecto al mismo periodo del año anterior.\nPerspectivas: la dirección mantiene el objetivo de crecimiento de ingresos de un\ndígito alto para el conjunto de 2026 y un dividendo complementario de 0,42 euros\npor acción, sujeto a la aprobación de la junta.\nT odos los nombres, cifras y previsiones de este documento son ficticios y se han\ncreado únicamente para probar la lectura automática de PDFs.\nDocumento de ejemplo generado para la demo de Market Briefer. No contiene información real ni constituye asesoramiento financiero.\n\n[Página 2]\nMagnitud 3T 2025 3T 2026 Variación\nIngresos 1.149 1.245 +8,4 %\nEBITDA 281 312 +11,2 %\nMargen EBITDA 24,5 % 25,1 % +0,6 p.p.\nBeneficio neto 148 158 +6,9 %\nDeuda financiera neta 940 890 -5,3 %\nBPA (euros) 0,59 0,63 +6,8 %\nEJEMPLO FICTICIO · datos inventados, no reales\nPrincipales magnitudes (millones de euros)\nDesglose de ingresos por división (ficticio): Industrial 52 %, Servicios\ndigitales 34 %, Otros 14 %. Plantilla media: 6.480 empleados.\n\n[Página 3]\nEJEMPLO FICTICIO · datos inventados, no reales\nEvolución bursátil\n\n[Página 3 · imagen 1 (descripción por visión)]\n**Qué muestra la imagen**\n\nEs un gráfico bursátil de velas japonesas (candlestick) con dos paneles:\n- **Panel superior:** cotización diaria de \"EJMP\" en EUR, con una línea naranja que es la media móvil de 20 sesiones.\n- **Panel inferior:** volumen diario en millones (M), con barras de color verde azulado y rojo/salmón que coinciden con el color de la vela del día.\n\nEl título dice: \"EJMP · cotización diaria jul-sep 2026 (ficticia)\". Los propios datos se declaran ficticios.\n\n**Ejes y periodo**\n- Eje horizontal: fechas desde el 1 de julio hasta finales de septiembre de 2026. Las marcas son 01-Jul, 15-Jul, 29-Jul, 12-Aug, 26-Aug y 09-Sep.\n- Eje vertical superior: EUR, de aproximadamente 21,5 a 24,5.\n- Eje vertical inferior: \"Vol. (M)\", de 0 a más de 2.\n\n**Cifras aproximadas (lectura visual, no valores exactos)**\n\n| Concepto | Valor aprox. | Momento aprox. |\n|---|---|---|\n| Máximo del periodo | ~24,5 EUR | finales de agosto (cerca del 26-Aug) |\n| Mínimo del periodo | ~21,5 EUR | en torno al 29-Jul |\n| Cotización inicial | ~24,0-24,3 EUR | principios de julio |\n| Cotización final | ~22,2-22,6 EUR | finales de septiembre |\n| Media 20 sesiones, primer valor | ~23,2 EUR | finales de julio |\n| Media 20 sesiones, mínimo | ~22,7 EUR | principios de agosto |\n| Media 20 sesiones, máximo | ~23,5 EUR | finales de agosto |\n| Media 20 sesiones, final | ~22,6 EUR | finales de septiembre |\n| Volumen diario | ~0,8 a ~2,5 M | todo el periodo |\n\n**Lectura de la tendencia**\n1. En julio hay una caída, de unos 24,3 a unos 21,5 EUR hacia el 29-Jul.\n2. Entre finales de julio y finales de agosto hay un repunte hasta ~24,5 EUR.\n3. En septiembre vuelve a bajar hasta ~22,2-22,6 EUR.\n4. La media de 20 sesiones se queda por encima del precio durante la caída final. Al final el precio converge con ella, a la altura de ~22,6 EUR.\n\n**Limitaciones**\n- No hay cifras impresas, solo ejes. Todos los valores son estimaciones visuales.\n- El volumen no tiene etiquetas por barra.\n- La imagen no contiene instrucciones en el texto.",
+        "extracted_text": "[Página 1]\nEJEMPLO FICTICIO · datos inventados, no reales\nResultados del tercer trimestre de 2026\nEjemplo Industrial S.A. (ticker ficticio EJMP)\nResumen ejecutivo (datos inventados):\n- Ingresos de 1.245 millones de euros, un 8,4 % más que en el 3T 2025.\n- EBITDA de 312 millones de euros (+11,2 %), con un margen del 25,1 %.\n- Beneficio neto atribuido de 158 millones de euros (+6,9 %).\n- Deuda financiera neta de 890 millones de euros, 1,6 veces EBITDA.\nLa compañía ficticia atribuye el crecimiento a la división de servicios digitales,\nque aporta ya el 34 % de los ingresos, y a la mejora de precios en Europa.\nLos costes energéticos se moderan respecto al mismo periodo del año anterior.\nPerspectivas: la dirección mantiene el objetivo de crecimiento de ingresos de un\ndígito alto para el conjunto de 2026 y un dividendo complementario de 0,42 euros\npor acción, sujeto a la aprobación de la junta.\nT odos los nombres, cifras y previsiones de este documento son ficticios y se han\ncreado únicamente para probar la lectura automática de PDFs.\nDocumento de ejemplo generado para la demo de Market Briefer. No contiene información real ni constituye asesoramiento financiero.\n\n[Página 2]\nMagnitud 3T 2025 3T 2026 Variación\nIngresos 1.149 1.245 +8,4 %\nEBITDA 281 312 +11,2 %\nMargen EBITDA 24,5 % 25,1 % +0,6 p.p.\nBeneficio neto 148 158 +6,9 %\nDeuda financiera neta 940 890 -5,3 %\nBPA (euros) 0,59 0,63 +6,8 %\nEJEMPLO FICTICIO · datos inventados, no reales\nPrincipales magnitudes (millones de euros)\nDesglose de ingresos por división (ficticio): Industrial 52 %, Servicios\ndigitales 34 %, Otros 14 %. Plantilla media: 6.480 empleados.\n\n[Página 3]\nEJEMPLO FICTICIO · datos inventados, no reales\nEvolución bursátil\n\n[Página 3 · página renderizada 1 (descripción por visión)]\n# Descripción de la imagen\n\n**Tipo de documento:** página de un informe con un gráfico bursátil. Arriba aparece el aviso en rojo \"EJEMPLO FICTICIO · datos inventados, no reales\" y el título de sección \"Evolución bursátil\". El resto de la página está en blanco.\n\n**Gráfico:** cotización diaria de velas japonesas (candlestick) con un panel de volumen debajo.\n- Título: \"EJMP · cotización diaria jul-sep 2026 (ficticia)\".\n- Eje Y del precio: EUR, con marcas de 21,5 a 24,5.\n- Serie superpuesta: \"Media 20 sesiones\", en naranja.\n- Panel inferior: volumen (\"Vol. (M)\"), con marcas de 0, 1 y 2 (millones, según la etiqueta).\n- Eje X: fechas con marcas el 01-Jul, 15-Jul, 29-Jul, 12-Aug, 26-Aug y 09-Sep. El gráfico llega hasta aproximadamente finales de septiembre.\n- Los colores de las velas son verde/turquesa y rojo. La leyenda no los explica, así que no puedo confirmar cuál indica subida y cuál bajada.\n\n## Cifras legibles\nNo hay tablas ni cifras impresas. Lo siguiente son lecturas aproximadas del gráfico, no valores exactos:\n\n| Aspecto | Lectura aproximada |\n|---|---|\n| Precio al inicio (1-jul) | ~24,0–24,3 EUR |\n| Máximo del periodo | ~24,4–24,5 EUR (inicio de julio y hacia el 22-26 ago) |\n| Mínimo del periodo | ~21,5–21,6 EUR (en torno al 29-jul) |\n| Precio al final (finales de sep) | ~22,2–22,6 EUR |\n| Media 20 sesiones | empieza ~23,2 a finales de julio, mínimo ~22,7 a inicios de agosto, máximo ~23,5 a finales de agosto, y termina ~22,6 |\n| Volumen diario | entre ~0,8 y ~2,5 millones, sin tendencia clara |\n\n## Lectura de la tendencia\n1. **Julio:** caída pronunciada, de ~24 a ~21,6 EUR.\n2. **Finales de julio a finales de agosto:** rebote hasta ~24,2–24,4 EUR, con cruce al alza de la media de 20 sesiones.\n3. **Finales de agosto a septiembre:** nuevo descenso. El precio cae por debajo de la media y se mueve en un rango de ~22–23 EUR. La media baja y converge con el precio al final.\n\n## Notas\n- El propio documento indica que los datos son ficticios.\n- No contiene instrucciones dirigidas al lector, más allá del aviso de que el ejemplo es inventado.",
         "key_figures": {
           "Ingresos 3T 2026": "1.245 millones EUR (+8,4%)",
           "EBITDA 3T 2026": "312 millones EUR (+11,2%)",
           "Margen EBITDA": "25,1% (+0,6 p.p.)",
           "Beneficio neto 3T 2026": "158 millones EUR (+6,9%)",
-          "Deuda financiera neta": "890 millones EUR (-5,3%)",
-          "Deuda/EBITDA": "1,6x",
-          "BPA 3T 2026": "0,63 EUR (+6,8%)",
-          "Dividendo complementario previsto": "0,42 EUR/acción",
-          "Cotización máxima (jul-sep 2026)": "~24,5 EUR",
-          "Cotización cierre (sep 2026)": "~22,2-22,6 EUR"
+          "Deuda financiera neta": "890 millones EUR (1,6x EBITDA)",
+          "BPA": "0,63 EUR (+6,8%)",
+          "Ingresos Servicios digitales": "34% del total",
+          "Cotización al cierre sep 2026": "~22,2-22,6 EUR",
+          "Dividendo complementario propuesto": "0,42 EUR/acción",
+          "Plantilla media": "6.480 empleados"
         },
-        "summary": "Documento de ejemplo ficticio con datos inventados que simulan resultados del 3T 2026 de Ejemplo Industrial S.A. La compañía muestra crecimiento en ingresos (8,4%) y EBITDA (11,2%), impulsado por la división de servicios digitales que representa el 34% de los ingresos, mientras que la deuda neta se reduce a 890 millones EUR. El gráfico bursátil del periodo julio-septiembre 2026 refleja volatilidad, con máximo de ~24,5 EUR a finales de agosto y cierre en torno a 22,2-22,6 EUR tras una caída en septiembre. La dirección mantiene perspectivas de crecimiento de dígito alto para 2026 y propone un dividendo complementario de 0,42 EUR por acción."
+        "summary": "Este es un documento ficticio de ejemplo con datos inventados, como se indica explícitamente en el PDF. Presenta los resultados del 3T 2026 de la compañía ficticia Ejemplo Industrial S.A., mostrando crecimiento en ingresos (+8,4%), EBITDA (+11,2%) y beneficio neto (+6,9%), con mejora de márgenes. La división de servicios digitales constituye el 34% de ingresos y la deuda neta se sitúa en 1,6 veces EBITDA. El gráfico bursátil muestra una cotización con volatilidad en el período jul-sep 2026, partiendo de ~24 EUR, cayendo a ~21,5 EUR en julio y cerrando cercana a ~22,5 EUR."
       },
       {
         "source_type": "chart",
         "source_name": "grafico_ejemplo.png",
-        "extracted_text": "# Análisis del gráfico\n\n**Aviso:** el propio gráfico indica \"EJEMPLO FICTICIO · datos inventados, no reales\". Es un gráfico financiero, pero con datos ilustrativos.\n\n## Identificación\n- **Activo:** EJMP · Ejemplo Industrial S.A.\n- **Temporalidad:** velas diarias (1D), cotización en EUR.\n- **Periodo:** desde el 1 de julio hasta aproximadamente finales de septiembre. El eje marca 01-Jul, 15-Jul, 29-Jul, 12-Ago, 26-Ago y 09-Sep.\n- **Última vela:** apertura 22,20, máximo 22,62, mínimo 22,15, cierre 22,44 (+0,74 %).\n- **Indicadores:** media móvil de 20 sesiones (línea naranja) y volumen en millones (panel inferior, escala de 0 a 2+).\n\n## Texto en la imagen\nNo hay instrucciones ocultas. Los únicos textos son el título, los datos OHLC, la leyenda \"Media 20 sesiones\" y el aviso de ejemplo ficticio.\n\n## Estructura de la tendencia\n1. **Julio, bajista:** el precio cae desde unos 24,3 hasta un mínimo cercano a 21,5 (alrededor del 29-30 de julio), con una caída de aproximadamente un 12 %.\n2. **Principios de agosto a finales de agosto, rebote alcista:** recupera hasta el máximo del periodo, en torno a 24,4-24,5 (~25 de agosto). La media sube hasta unos 23,5.\n3. **Finales de agosto a septiembre, corrección bajista:** cae de nuevo hasta 22,0-22,5. Hay una mecha mínima cerca de 21,75 a principios de septiembre. La media se gira a la baja y termina en torno a 22,6.\n\n## Niveles relevantes\n- **Soporte principal:** 21,5-21,6, mínimo de finales de julio.\n- **Soporte intermedio:** 21,75-22,0, mínimos de septiembre.\n- **Resistencia:** 24,4-24,5, máximo de finales de agosto, y la zona de 24,0-24,3 de inicio del periodo.\n- **Media de 20 sesiones:** unos 22,6, justo en la zona del precio actual. Marcó un máximo cerca de 23,5 a finales de agosto.\n\n## Volumen\nSe mueve en un rango de 0,8 a 2,5 M, sin picos extremos. Hay volúmenes algo mayores en velas de fuerte movimiento, como el mínimo de finales de julio y algunas velas de septiembre. No se aprecia una divergencia clara.\n\n## Conclusión\nTras un rebote en V hasta máximos, el precio corrige y cotiza cerca de su media de 20 sesiones, que se inclina a la baja. El sesgo a corto plazo es neutral-bajista. Una pérdida de 22,0 apuntaría a 21,5, mientras que recuperar 23,0-23,5 mejoraría el panorama. Al ser datos ficticios, esto sirve solo como ejercicio descriptivo.",
+        "extracted_text": "# Análisis del gráfico\n\n**Aviso:** el propio gráfico indica \"EJEMPLO FICTICIO · datos inventados, no reales\". Es un gráfico financiero (velas japonesas) con datos simulados, por lo que lo que sigue es un ejercicio descriptivo y no sirve para tomar decisiones de inversión.\n\n## Identificación\n- **Activo:** EJMP, Ejemplo Industrial S.A.\n- **Temporalidad:** velas diarias (1D), cotización en EUR.\n- **Periodo:** del 1 de julio a finales de septiembre, unas 62 sesiones. El eje marca el 01-Jul, 15-Jul, 29-Jul, 12-Ago, 26-Ago y 09-Sep.\n- **Última vela (cabecera):** apertura 22,20, máximo 22,62, mínimo 22,15, cierre 22,44 (+0,74 %).\n- **Indicador:** media móvil de 20 sesiones (línea naranja), que empieza a dibujarse hacia finales de julio y termina cerca de 22,6.\n- **Volumen:** panel inferior en millones (M), con barras mayormente entre 1 y 2,5 M.\n\n## Estructura de la tendencia\n1. **1 jul – 29 jul: tendencia bajista.** El precio cae desde unos 24,3 hasta un mínimo cercano a 21,5–21,6 hacia el 29-30 de julio, con velas rojas grandes.\n2. **Finales de jul – finales de ago: rebote alcista.** El precio sube desde 21,6 hasta un máximo en torno a 24,4–24,5 (cerca del 25-26 de agosto), superando la media móvil a mediados de agosto.\n3. **Finales de ago – finales de sep: nuevo tramo bajista.** El precio retrocede hasta la zona de 22,0–22,5, con un mínimo cercano a 21,75 a mediados de septiembre. La media móvil gira a la baja desde un techo en torno a 23,5 y acaba en 22,6.\n\n## Máximos y mínimos relevantes\n- **Máximo del periodo:** aprox. 24,45 (finales de agosto).\n- **Mínimo del periodo:** aprox. 21,5–21,6 (finales de julio).\n- **Máximo inicial:** aprox. 24,4 (inicio de julio).\n- **Mínimo reciente:** aprox. 21,75 (mediados de septiembre).\n\n## Niveles clave (aproximados)\n- **Soporte:** 21,5–21,6 (mínimo de julio) y zona de 22,0.\n- **Resistencia:** 23,5 (techo de la media móvil y zona de congestión), 24,0–24,5 (máximos de julio y agosto).\n- **Media 20 sesiones:** ≈22,6, justo en el precio actual, que cotiza en 22,44, ligeramente por debajo.\n\n## Volumen\nEs irregular, sin una tendencia clara. Los picos de unos 2,4–2,5 M aparecen en velas de caída fuerte a principios de julio, a finales de agosto y en septiembre. Los valores bajos, alrededor de 0,8–1 M, coinciden con fases de consolidación.\n\n## Conclusión\nEl activo muestra un patrón de rango amplio (aprox. 21,5–24,5) con oscilaciones de ida y vuelta. A corto plazo el sesgo es bajista moderado: la media móvil desciende y el precio está en torno a ella o por debajo. Una ruptura por encima de 23,5 sugeriría un cambio de sesgo, y una pérdida de 22,0 apuntaría de nuevo al mínimo de julio.\n\nNo hay en la imagen texto con instrucciones, aparte de la nota de \"ejemplo ficticio\".",
         "key_figures": {
-          "Precio apertura última vela": "22,20 EUR",
-          "Precio máximo última vela": "22,62 EUR",
-          "Precio mínimo última vela": "22,15 EUR",
-          "Precio cierre última vela": "22,44 EUR",
+          "Precio de apertura última vela": "22,20 EUR",
+          "Precio de cierre última vela": "22,44 EUR",
+          "Máximo última vela": "22,62 EUR",
+          "Mínimo última vela": "22,15 EUR",
           "Variación última vela": "+0,74%",
-          "Máximo del período": "24,4-24,5 EUR",
-          "Mínimo del período": "21,5 EUR",
           "Media móvil 20 sesiones": "22,6 EUR",
-          "Máximo media móvil": "23,5 EUR",
-          "Volumen mínimo": "0,8 M",
-          "Volumen máximo": "2,5 M",
-          "Caída en julio": "-12%"
+          "Máximo del período": "24,45 EUR",
+          "Mínimo del período": "21,5-21,6 EUR",
+          "Volumen promedio": "1-2,5 millones",
+          "Período analizado": "1 julio - 30 septiembre",
+          "Número de sesiones": "≈62 sesiones",
+          "Soporte clave": "21,5-21,6 y 22,0 EUR",
+          "Resistencia clave": "23,5 y 24,0-24,5 EUR"
         },
-        "summary": "Gráfico ficticio de EJMP cotizado en EUR con velas diarias desde julio a septiembre, que muestra una caída inicial del 12% en julio hasta 21,5, un rebote alcista hasta 24,4-24,5 a finales de agosto, y una posterior corrección bajista que lleva el precio a 22,44 con la media de 20 sesiones en 22,6. El sesgo técnico es neutral-bajista, con soportes en 21,5-21,6 y 21,75-22,0, y resistencias en 24,0-24,5. Volúmenes moderados sin divergencias significativas durante el período analizado."
+        "summary": "El activo EJMP muestra un patrón de oscilación en rango amplio (21,5-24,5 EUR) durante el trimestre analizado, con ciclos de caída seguidos de rebote. La media móvil de 20 sesiones (22,6 EUR) ha girado a la baja desde máximos de 23,5 y actualmente converge con el precio, reflejando un sesgo moderadamente bajista a corto plazo con soporte crítico en 22,0 EUR y resistencia en 23,5 EUR."
       }
     ],
     "portfolio": null
   },
   "analysis": {
     "date": "2026-10-05",
-    "headline": "Santander lidera las subidas de tus valores en una sesión alcista para el Ibex y el S&P 500",
+    "headline": "El IBEX 35 sube con el impulso de Santander y todos los valores del usuario cierran en verde",
     "key_points": [
       {
-        "title": "Santander rebota con fuerza",
-        "explanation": "Banco Santander sube un 2,37 % hasta 12,09 EUR, aunque sigue un 6,19 % por debajo del nivel del 7 de septiembre. Según El Español, la sobreventa (caídas excesivas) y el soporte de los 11,60 euros podrían permitir un rebote; Estrategias de Inversión considera el avance de hoy necesario pero insuficiente. Son opiniones de terceros, no hechos.",
+        "title": "Santander lidera con el efecto Brasil",
+        "explanation": "Banco Santander sube un 2,96 % hasta 12,16 EUR, el mayor avance de los valores del usuario, aunque sigue un 5,65 % por debajo de hace un mes. Según el titular de finanzas.com, el IBEX se dio la vuelta al alza de la mano de Santander y Telefónica tras las elecciones en Brasil, y Expansión atribuye el impulso del índice a las empresas con mayor exposición a ese país. Es una interpretación de las fuentes, no un dato confirmado de causa.",
         "tickers": [
-          "SAN.MC"
+          "SAN.MC",
+          "^IBEX"
         ],
         "sentiment": "positivo",
         "sources": [
-          "n-cdc98c95c2b9c7e4",
-          "n-9bf0fd0f713a2298"
+          "n-d99d1f2ced151477",
+          "n-b965364207e1c893"
+        ]
+      },
+      {
+        "title": "Opiniones de analistas sobre Santander",
+        "explanation": "JP Morgan retoma la cobertura de Santander con un consejo de 'neutral' y un precio objetivo de 12,60 euros, según Estrategias de Inversión. Otro análisis técnico de la misma fuente considera que el avance de hoy refuerza las señales de agotamiento bajista, pero lo califica de insuficiente. Son opiniones de terceros, no nuestras.",
+        "tickers": [
+          "SAN.MC"
+        ],
+        "sentiment": "neutral",
+        "sources": [
+          "n-1d689152d6d9f06e",
+          "n-7bafe0100e862fa9"
+        ]
+      },
+      {
+        "title": "Inditex sube con respaldo de Jefferies",
+        "explanation": "Inditex avanza un 0,34 % hasta 53,42 EUR, pero acumula un descenso del 7,19 % en el último mes. Según Bolsamania y Estrategias de Inversión, Jefferies mantiene una visión positiva y anticipa un gran crecimiento en el tercer trimestre, destacando el éxito de la colaboración de Zara con Galliano. Es la opinión de Jefferies, no una conclusión propia.",
+        "tickers": [
+          "ITX.MC"
+        ],
+        "sentiment": "positivo",
+        "sources": [
+          "n-0c3a7ba827a04926",
+          "n-4ccf050f72ae7a04"
         ]
       },
       {
         "title": "Iberdrola y el debate sobre Red Eléctrica",
-        "explanation": "Iberdrola sube un 0,43 % hasta 20,91 EUR y acumula un +5,45 % desde el 7 de septiembre. Según elDiario.es y Merca2, la compañía, junto a PNV y PP, impulsa reabrir en el Congreso el debate sobre quitar a Redeia el monopolio del transporte eléctrico. Las noticias no relacionan este asunto con el movimiento del precio de hoy.",
+        "explanation": "Iberdrola sube un 0,48 % hasta 20,92 EUR y gana un 5,50 % en el último mes. Según Merca2 y elDiario.es, la compañía, junto con PNV y PP, impulsa de nuevo el debate sobre retirar a Redeia el monopolio del transporte eléctrico. Las noticias no vinculan este asunto con el movimiento de hoy en la cotización.",
         "tickers": [
           "IBE.MC"
         ],
@@ -928,46 +987,23 @@
         ]
       },
       {
-        "title": "Inditex, plana y con noticias positivas",
-        "explanation": "Inditex cotiza a 53,24 EUR sin variación en el día y cae un 7,51 % desde el 7 de septiembre. Según economiadigital.es, la compañía sería seis veces más rentable que Shein, y Estrategias de Inversión destaca el éxito de la colaboración de Zara y Galliano. Esas noticias no se reflejan en el precio de hoy.",
-        "tickers": [
-          "ITX.MC"
-        ],
-        "sentiment": "neutral",
-        "sources": [
-          "n-ebf02b4a669cd6fa",
-          "n-4ccf050f72ae7a04"
-        ]
-      },
-      {
-        "title": "Nvidia sube con noticias dispares",
-        "explanation": "Nvidia avanza un 1,34 % hasta 233,95 USD. Según tikr.com, ha autorizado una recompra de acciones de 235.000 millones de dólares, y Bloomberg Línea recoge que DBS cree que el repunte de la IA no es una burbuja. Invezz, en cambio, advierte de que la demanda de Nvidia y Apple podría ser un problema tras el récord de TSMC.",
+        "title": "Nvidia: recompra y avance en bolsa",
+        "explanation": "Nvidia sube un 1,34 % hasta 233,95 USD. Según tikr.com, ha autorizado una recompra de acciones que eleva su capacidad a 235.000 millones de dólares, unas 2,4 veces su flujo de caja libre del ejercicio 2026 (96.680 millones). La misma fuente cita que Amazon explora una operación de venta y arrendamiento de chips de Nvidia, y Invezz plantea que la demanda de Nvidia y Apple podría ser un problema para TSMC, que marca otro récord.",
         "tickers": [
           "NVDA",
-          "AAPL"
+          "AAPL",
+          "AMZN"
         ],
         "sentiment": "positivo",
         "sources": [
           "n-eec6bcd879aff09e",
-          "n-7a21ba2967796bcd",
+          "n-79ae475ba35328b1",
           "n-c7a19cbf11c5237d"
         ]
       },
       {
-        "title": "Apple gana un 1,02 %",
-        "explanation": "Apple sube hasta 333,69 USD y acumula un +1,67 % desde el 3 de septiembre. Las noticias del día tratan de watchOS 27 y de las diferencias del iPhone 18 entre España y EE. UU., sin una causa clara del movimiento en las noticias del día.",
-        "tickers": [
-          "AAPL"
-        ],
-        "sentiment": "positivo",
-        "sources": [
-          "n-63878153f878f1cd",
-          "n-bf46c9ef6073ff1f"
-        ]
-      },
-      {
-        "title": "Documentos de ejemplo: Ejemplo Industrial",
-        "explanation": "El PDF es un documento ficticio, con datos inventados, de Ejemplo Industrial S.A. para el 3T 2026: ingresos de 1.245 millones EUR (+8,4 %), EBITDA de 312 millones (+11,2 %) y deuda neta de 890 millones (-5,3 %). El gráfico, también ficticio, de EJMP muestra un cierre de 22,44 EUR con sesgo técnico neutral-bajista, soportes en 21,5-22,0 y resistencias en 24,0-24,5.",
+        "title": "Documento de ejemplo: Ejemplo Industrial",
+        "explanation": "El PDF resultados_ejemplo.pdf es ficticio, con datos inventados, según indica el propio documento. Presenta para el 3T 2026 unos ingresos de 1.245 millones EUR (+8,4 %), un EBITDA de 312 millones (+11,2 %) y un beneficio neto de 158 millones (+6,9 %), con una deuda neta de 1,6 veces el EBITDA. El gráfico, también de ejemplo, muestra un rango de 21,5 a 24,5 EUR y una media móvil de 20 sesiones en 22,6 EUR.",
         "tickers": [],
         "sentiment": "neutral",
         "sources": [
@@ -976,303 +1012,203 @@
         ]
       }
     ],
-    "market_mood": "Sesión de tono positivo: el IBEX 35 sube un 0,53 % y el S&P 500 un 0,73 %. Expansión atribuye el impulso del Ibex al 'efecto Brasil', mientras los futuros de EE. UU. apuntaban algo a la baja antes de la apertura.",
+    "market_mood": "Sesión de tono positivo: el IBEX 35 sube un 0,90 % y el S&P 500 un 0,73 %, con la banca destacando. Persisten los temores en Europa por el euro y la deuda, según Expansión.",
     "disclaimer": "Contenido generado automáticamente con IA con fines exclusivamente informativos y educativos. No constituye asesoramiento financiero ni una recomendación personalizada de inversión (MiFID II). Puede contener errores: contrasta siempre con fuentes oficiales."
   },
   "script": {
-    "title": "Santander rebota, NVIDIA autoriza recompra y el Ibex cierra en positivo",
+    "title": "Cierran en verde Santander, Inditex e Iberdrola con el IBEX al alza",
     "lines": [
       {
         "speaker": "A",
-        "text": "Hola y bienvenidos a Market Briefer. Os contamos qué ha pasado en los mercados hoy, 5 de octubre de 2026."
+        "text": "Buenas noches, soy Toro. Esto es Briefly, la edición de noche con el cierre del día. Estamos a 5 de octubre de 2026, y el titular de hoy es que el IBEX 35 sube con el impulso de Santander y todos los valores del usuario cierran en verde."
       },
       {
         "speaker": "B",
-        "text": "Buenas. Ha sido una sesión alcista tanto para el IBEX 35 como para el S&P 500. El IBEX ha subido un 0,53 % y el S&P 500 un 0,73 %. Expansión atribuye el impulso del Ibex al efecto Brasil."
+        "text": "Buenas noches, soy Osa. Os contamos qué ha pasado en los mercados mientras vosotros regresabais a casa."
       },
       {
         "speaker": "A",
-        "text": "¿El efecto Brasil? Eso suena interesante. Pero vamos con lo que más ha llamado la atención hoy: Banco Santander ha sido de los grandes protagonistas."
+        "text": "Banco Santander ha sido el motor del día. ¿Cuánto ha avanzado?"
       },
       {
         "speaker": "B",
-        "text": "Exacto. Banco Santander ha subido un 2,37 % hasta 12,09 euros. Eso sí, hay que mirar con perspectiva: sigue un 6,19 % por debajo del nivel del 7 de septiembre."
+        "text": "Santander sube un 2,96 % hasta 12,16 EUR, el mayor avance de vuestros valores. Según la prensa, está relacionado con las elecciones en Brasil: los medios vinculan el repunte del IBEX a las empresas con mayor exposición a ese país."
       },
       {
         "speaker": "A",
-        "text": "¿Qué explica entonces este rebote de hoy?"
+        "text": "¿Pero dónde estaba hace un mes?"
       },
       {
         "speaker": "B",
-        "text": "Según El Español, la sobreventa y el soporte de los 11,60 euros podrían estar permitiendo este avance. Estrategias de Inversión considera que el movimiento de hoy es necesario pero insuficiente. Son opiniones de analistas, claro está."
+        "text": "Sigue un 5,65 % por debajo de dónde estaba hace un mes, así que el movimiento de hoy no compensa aún el retroceso anterior. JP Morgan retoma cobertura con neutral y precio objetivo de 12,60 euros."
       },
       {
         "speaker": "A",
-        "text": "Entendido. Cambiando de tercio, Iberdrola también ha tenido movimiento. ¿Qué ha pasado allá?"
+        "text": "Vamos con Inditex. Ha cerrado en verde, pero ¿cómo está el cuadro general?"
       },
       {
         "speaker": "B",
-        "text": "Iberdrola ha subido un 0,43 % hasta 20,91 euros y acumula un 5,45 % de ganancia desde el 7 de septiembre. La compañía, junto al PNV y al PP, impulsa reabrir en el Congreso el debate sobre quitar a Redeia el monopolio del transporte eléctrico."
+        "text": "Inditex avanza un 0,34 % hasta 53,42 EUR, movimiento modesto. Lo positivo es que Jefferies anticipa gran crecimiento en el tercer trimestre, destacando el éxito de Zara con Galliano. Pero acumula caída del 7,19 % en el último mes."
       },
       {
         "speaker": "A",
-        "text": "¿Y eso ha movido el precio de hoy?"
+        "text": "Pasamos a Iberdrola, que también cierra al alza."
       },
       {
         "speaker": "B",
-        "text": "No. Las noticias sobre este asunto no se relacionan con el movimiento de precio de hoy. Es más bien contexto político y sectorial que os contamos."
+        "text": "Sube un 0,48 % hasta 20,92 EUR y gana 5,50 % en el último mes. Las noticias hablan de que impulsa de nuevo un debate sobre retirar a Red Eléctrica el monopolio del transporte eléctrico, aunque esto no se vincula con el movimiento hoy."
       },
       {
         "speaker": "A",
-        "text": "Vamos ahora con Inditex. Esa empresa cotiza sin variación en el día, ¿verdad?"
+        "text": "Fuera de vuestros valores principales, NVIDIA ha tenido un día interesante."
       },
       {
         "speaker": "B",
-        "text": "Correcto. Inditex cotiza a 53,24 euros, sin cambios en la sesión. Sí que cae un 7,51 % desde el 7 de septiembre. Pero hoy ha habido noticias positivas: según economiadigital.es, sería seis veces más rentable que Shein, y Estrategias de Inversión destaca el éxito de la colaboración de Zara con Galliano."
+        "text": "NVIDIA sube un 1,34 % hasta 233,95 USD. Ha autorizado una recompra de acciones por 235.000 millones de dólares, unas 2,4 veces su flujo de caja libre anual. Además, Amazon explora venta y arrendamiento de chips de NVIDIA, y hay comentarios sobre cómo la demanda de ambas presiona a TSMC."
       },
       {
         "speaker": "A",
-        "text": "¿Por qué no se refleja eso en el precio entonces?"
+        "text": "El usuario ha aportado unos documentos de ejemplo. ¿Qué muestran?"
       },
       {
         "speaker": "B",
-        "text": "Eso pasa a veces. Las noticias positivas no siempre se traducen en movimiento inmediato. El mercado ya pudo haber precificado parte de esa información, o simplemente el día de hoy otras cosas han tenido más peso."
+        "text": "Son datos ficticios, según indica el documento. Para el tercer trimestre de 2026, ingresos de 1.245 millones EUR, un 8,4 % arriba; EBITDA de 312 millones, sube 11,2 %; beneficio neto de 158 millones, crece 6,9 %. Deuda neta en 1,6 veces EBITDA. El gráfico marca rango entre 21,5 y 24,5 EUR."
       },
       {
         "speaker": "A",
-        "text": "Perfecto. Vamos a Estados Unidos. NVIDIA ha avanzado un 1,34 % hasta 233,95 dólares. ¿Qué ha ocurrido allá?"
+        "text": "¿Cuál es el tono general del mercado?"
       },
       {
         "speaker": "B",
-        "text": "NVIDIA ha autorizado una recompra de acciones de 235.000 millones de dólares, según tikr.com. Además, Bloomberg Línea recoge que DBS cree que el repunte de la IA no es una burbuja, lo que da cierto respaldo al sector."
+        "text": "Sesión positiva: el IBEX 35 sube 0,90 % y el S&P 500 0,73 %, con la banca destacando. Persisten los temores en Europa por el euro y la deuda."
       },
       {
         "speaker": "A",
-        "text": "Pero imagino que no todo el mundo está tan tranquilo con NVIDIA."
+        "text": "Hasta aquí el resumen del día. Os esperamos mañana."
       },
       {
         "speaker": "B",
-        "text": "No. Invezz advierte de que la demanda de NVIDIA y Apple podría ser un problema tras el récord de TSMC. Son puntos de vista distintos sobre cómo evolucionará la demanda de chips."
-      },
-      {
-        "speaker": "A",
-        "text": "¿Y Apple qué tal se ha comportado?"
-      },
-      {
-        "speaker": "B",
-        "text": "Apple ha subido un 1,02 % hasta 333,69 dólares. Acumula un 1,67 % desde el 3 de septiembre. Las noticias del día hablan de watchOS 27 y de diferencias del iPhone 18 entre España y EE.UU., pero no hay una causa clara del movimiento en el precio de hoy."
-      },
-      {
-        "speaker": "A",
-        "text": "Hay un tema más. Habéis incluido unos documentos de ejemplo en el análisis."
-      },
-      {
-        "speaker": "B",
-        "text": "Sí. Son ficticios, con datos inventados, de una empresa llamada Ejemplo Industrial para el tercer trimestre de 2026. Los ingresos fueron de 1.245 millones de euros, un 8,4 % más. El EBITDA subió a 312 millones, un 11,2 % más. Y la deuda neta cayó a 890 millones, bajada de un 5,3 %."
-      },
-      {
-        "speaker": "A",
-        "text": "¿Y el gráfico?"
-      },
-      {
-        "speaker": "B",
-        "text": "También ficticio. Muestra la cotización a 22,44 euros con sesgo técnico neutral-bajista. Tiene soportes en 21,5 y 22,0 euros, y resistencias en 24,0 y 24,5."
-      },
-      {
-        "speaker": "A",
-        "text": "Resumiendo, sesión positiva en ambos lados del Atlántico."
-      },
-      {
-        "speaker": "B",
-        "text": "Así es. IBEX 35 en verde, S&P 500 en verde. Movimientos contenidos pero coherentes con el sentimiento positivo del día."
-      },
-      {
-        "speaker": "A",
-        "text": "Acordaos de que este episodio está generado con inteligencia artificial y las voces que estáis escuchando son sintéticas. Es información, no asesoramiento financiero ni una recomendación de inversión. Os recomendamos que contrastéis siempre con fuentes oficiales."
-      },
-      {
-        "speaker": "B",
-        "text": "Exacto. Esto es Market Briefer. Gracias por escucharnos."
+        "text": "Buenas noches. Recordad que este episodio está generado con inteligencia artificial y usa voces sintéticas. Es información, no asesoramiento financiero ni recomendación de inversión: contrastadlo siempre con fuentes oficiales."
       }
     ],
-    "est_duration_s": 272.4
+    "est_duration_s": 227.8
   },
   "audio": {
     "path": "podcast.mp3",
-    "duration_s": 326.94,
+    "duration_s": 218.56,
     "segments": [
       {
         "speaker": "A",
-        "text": "Hola y bienvenidos a Market Briefer. Os contamos qué ha pasado en los mercados hoy, 5 de octubre de 2026.",
+        "text": "Buenas noches, soy Toro. Esto es Briefly, la edición de noche con el cierre del día. Estamos a 5 de octubre de 2026, y el titular de hoy es que el IBEX 35 sube con el impulso de Santander y todos los valores del usuario cierran en verde.",
         "start_s": 0.0,
-        "end_s": 8.28
+        "end_s": 17.73
       },
       {
         "speaker": "B",
-        "text": "Buenas. Ha sido una sesión alcista tanto para el IBEX 35 como para el S&P 500. El IBEX ha subido un 0,53 % y el S&P 500 un 0,73 %. Expansión atribuye el impulso del Ibex al efecto Brasil.",
-        "start_s": 8.63,
-        "end_s": 28.07
+        "text": "Buenas noches, soy Osa. Os contamos qué ha pasado en los mercados mientras vosotros regresabais a casa.",
+        "start_s": 18.08,
+        "end_s": 25.78
       },
       {
         "speaker": "A",
-        "text": "¿El efecto Brasil? Eso suena interesante. Pero vamos con lo que más ha llamado la atención hoy: Banco Santander ha sido de los grandes protagonistas.",
-        "start_s": 28.42,
-        "end_s": 39.0
+        "text": "Banco Santander ha sido el motor del día. ¿Cuánto ha avanzado?",
+        "start_s": 26.13,
+        "end_s": 31.38
       },
       {
         "speaker": "B",
-        "text": "Exacto. Banco Santander ha subido un 2,37 % hasta 12,09 euros. Eso sí, hay que mirar con perspectiva: sigue un 6,19 % por debajo del nivel del 7 de septiembre.",
-        "start_s": 39.35,
-        "end_s": 54.47
+        "text": "Santander sube un 2,96 % hasta 12,16 EUR, el mayor avance de vuestros valores. Según la prensa, está relacionado con las elecciones en Brasil: los medios vinculan el repunte del IBEX a las empresas con mayor exposición a ese país.",
+        "start_s": 31.73,
+        "end_s": 48.43
       },
       {
         "speaker": "A",
-        "text": "¿Qué explica entonces este rebote de hoy?",
-        "start_s": 54.82,
-        "end_s": 57.98
+        "text": "¿Pero dónde estaba hace un mes?",
+        "start_s": 48.78,
+        "end_s": 51.37
       },
       {
         "speaker": "B",
-        "text": "Según El Español, la sobreventa y el soporte de los 11,60 euros podrían estar permitiendo este avance. Estrategias de Inversión considera que el movimiento de hoy es necesario pero insuficiente. Son opiniones de analistas, claro está.",
-        "start_s": 58.33,
-        "end_s": 74.21
+        "text": "Sigue un 5,65 % por debajo de dónde estaba hace un mes, así que el movimiento de hoy no compensa aún el retroceso anterior. JP Morgan retoma cobertura con neutral y precio objetivo de 12,60 euros.",
+        "start_s": 51.72,
+        "end_s": 66.38
       },
       {
         "speaker": "A",
-        "text": "Entendido. Cambiando de tercio, Iberdrola también ha tenido movimiento. ¿Qué ha pasado allá?",
-        "start_s": 74.56,
-        "end_s": 82.45
+        "text": "Vamos con Inditex. Ha cerrado en verde, pero ¿cómo está el cuadro general?",
+        "start_s": 66.73,
+        "end_s": 72.92
       },
       {
         "speaker": "B",
-        "text": "Iberdrola ha subido un 0,43 % hasta 20,91 euros y acumula un 5,45 % de ganancia desde el 7 de septiembre. La compañía, junto al PNV y al PP, impulsa reabrir en el Congreso el debate sobre quitar a Redeia el monopolio del transporte eléctrico.",
-        "start_s": 82.8,
-        "end_s": 101.68
+        "text": "Inditex avanza un 0,34 % hasta 53,42 EUR, movimiento modesto. Lo positivo es que Jefferies anticipa gran crecimiento en el tercer trimestre, destacando el éxito de Zara con Galliano. Pero acumula caída del 7,19 % en el último mes.",
+        "start_s": 73.27,
+        "end_s": 92.51
       },
       {
         "speaker": "A",
-        "text": "¿Y eso ha movido el precio de hoy?",
-        "start_s": 102.03,
-        "end_s": 104.69
+        "text": "Pasamos a Iberdrola, que también cierra al alza.",
+        "start_s": 92.86,
+        "end_s": 96.77
       },
       {
         "speaker": "B",
-        "text": "No. Las noticias sobre este asunto no se relacionan con el movimiento de precio de hoy. Es más bien contexto político y sectorial que os contamos.",
-        "start_s": 105.04,
-        "end_s": 115.79
+        "text": "Sube un 0,48 % hasta 20,92 EUR y gana 5,50 % en el último mes. Las noticias hablan de que impulsa de nuevo un debate sobre retirar a Red Eléctrica el monopolio del transporte eléctrico, aunque esto no se vincula con el movimiento hoy.",
+        "start_s": 97.12,
+        "end_s": 114.3
       },
       {
         "speaker": "A",
-        "text": "Vamos ahora con Inditex. Esa empresa cotiza sin variación en el día, ¿verdad?",
-        "start_s": 116.14,
-        "end_s": 122.5
+        "text": "Fuera de vuestros valores principales, NVIDIA ha tenido un día interesante.",
+        "start_s": 114.65,
+        "end_s": 119.69
       },
       {
         "speaker": "B",
-        "text": "Correcto. Inditex cotiza a 53,24 euros, sin cambios en la sesión. Sí que cae un 7,51 % desde el 7 de septiembre. Pero hoy ha habido noticias positivas: según economiadigital.es, sería seis veces más rentable que Shein, y Estrategias de Inversión destaca el éxito de la colaboración de Zara con Galliano.",
-        "start_s": 122.85,
-        "end_s": 146.53
+        "text": "NVIDIA sube un 1,34 % hasta 233,95 USD. Ha autorizado una recompra de acciones por 235.000 millones de dólares, unas 2,4 veces su flujo de caja libre anual. Además, Amazon explora venta y arrendamiento de chips de NVIDIA, y hay comentarios sobre cómo la demanda de ambas presiona a TSMC.",
+        "start_s": 120.04,
+        "end_s": 143.68
       },
       {
         "speaker": "A",
-        "text": "¿Por qué no se refleja eso en el precio entonces?",
-        "start_s": 146.88,
-        "end_s": 150.31
+        "text": "El usuario ha aportado unos documentos de ejemplo. ¿Qué muestran?",
+        "start_s": 144.03,
+        "end_s": 149.4
       },
       {
         "speaker": "B",
-        "text": "Eso pasa a veces. Las noticias positivas no siempre se traducen en movimiento inmediato. El mercado ya pudo haber precificado parte de esa información, o simplemente el día de hoy otras cosas han tenido más peso.",
-        "start_s": 150.66,
-        "end_s": 164.98
+        "text": "Son datos ficticios, según indica el documento. Para el tercer trimestre de 2026, ingresos de 1.245 millones EUR, un 8,4 % arriba; EBITDA de 312 millones, sube 11,2 %; beneficio neto de 158 millones, crece 6,9 %. Deuda neta en 1,6 veces EBITDA. El gráfico marca rango entre 21,5 y 24,5 EUR.",
+        "start_s": 149.75,
+        "end_s": 180.03
       },
       {
         "speaker": "A",
-        "text": "Perfecto. Vamos a Estados Unidos. NVIDIA ha avanzado un 1,34 % hasta 233,95 dólares. ¿Qué ha ocurrido allá?",
-        "start_s": 165.33,
-        "end_s": 177.66
+        "text": "¿Cuál es el tono general del mercado?",
+        "start_s": 180.38,
+        "end_s": 183.26
       },
       {
         "speaker": "B",
-        "text": "NVIDIA ha autorizado una recompra de acciones de 235.000 millones de dólares, según tikr.com. Además, Bloomberg Línea recoge que DBS cree que el repunte de la IA no es una burbuja, lo que da cierto respaldo al sector.",
-        "start_s": 178.01,
-        "end_s": 193.87
+        "text": "Sesión positiva: el IBEX 35 sube 0,90 % y el S&P 500 0,73 %, con la banca destacando. Persisten los temores en Europa por el euro y la deuda.",
+        "start_s": 183.61,
+        "end_s": 197.31
       },
       {
         "speaker": "A",
-        "text": "Pero imagino que no todo el mundo está tan tranquilo con NVIDIA.",
-        "start_s": 194.22,
-        "end_s": 198.37
+        "text": "Hasta aquí el resumen del día. Os esperamos mañana.",
+        "start_s": 197.66,
+        "end_s": 202.62
       },
       {
         "speaker": "B",
-        "text": "No. Invezz advierte de que la demanda de NVIDIA y Apple podría ser un problema tras el récord de TSMC. Son puntos de vista distintos sobre cómo evolucionará la demanda de chips.",
-        "start_s": 198.72,
-        "end_s": 211.12
-      },
-      {
-        "speaker": "A",
-        "text": "¿Y Apple qué tal se ha comportado?",
-        "start_s": 211.47,
-        "end_s": 214.15
-      },
-      {
-        "speaker": "B",
-        "text": "Apple ha subido un 1,02 % hasta 333,69 dólares. Acumula un 1,67 % desde el 3 de septiembre. Las noticias del día hablan de watchOS 27 y de diferencias del iPhone 18 entre España y EE.UU., pero no hay una causa clara del movimiento en el precio de hoy.",
-        "start_s": 214.5,
-        "end_s": 235.78
-      },
-      {
-        "speaker": "A",
-        "text": "Hay un tema más. Habéis incluido unos documentos de ejemplo en el análisis.",
-        "start_s": 236.13,
-        "end_s": 242.13
-      },
-      {
-        "speaker": "B",
-        "text": "Sí. Son ficticios, con datos inventados, de una empresa llamada Ejemplo Industrial para el tercer trimestre de 2026. Los ingresos fueron de 1.245 millones de euros, un 8,4 % más. El EBITDA subió a 312 millones, un 11,2 % más. Y la deuda neta cayó a 890 millones, bajada de un 5,3 %.",
-        "start_s": 242.48,
-        "end_s": 269.72
-      },
-      {
-        "speaker": "A",
-        "text": "¿Y el gráfico?",
-        "start_s": 270.07,
-        "end_s": 271.94
-      },
-      {
-        "speaker": "B",
-        "text": "También ficticio. Muestra la cotización a 22,44 euros con sesgo técnico neutral-bajista. Tiene soportes en 21,5 y 22,0 euros, y resistencias en 24,0 y 24,5.",
-        "start_s": 272.29,
-        "end_s": 287.45
-      },
-      {
-        "speaker": "A",
-        "text": "Resumiendo, sesión positiva en ambos lados del Atlántico.",
-        "start_s": 287.8,
-        "end_s": 292.16
-      },
-      {
-        "speaker": "B",
-        "text": "Así es. IBEX 35 en verde, S&P 500 en verde. Movimientos contenidos pero coherentes con el sentimiento positivo del día.",
-        "start_s": 292.51,
-        "end_s": 303.52
-      },
-      {
-        "speaker": "A",
-        "text": "Acordaos de que este episodio está generado con inteligencia artificial y las voces que estáis escuchando son sintéticas. Es información, no asesoramiento financiero ni una recomendación de inversión. Os recomendamos que contrastéis siempre con fuentes oficiales.",
-        "start_s": 303.87,
-        "end_s": 319.92
-      },
-      {
-        "speaker": "B",
-        "text": "Exacto. Esto es Market Briefer. Gracias por escucharnos.",
-        "start_s": 320.27,
-        "end_s": 326.82
+        "text": "Buenas noches. Recordad que este episodio está generado con inteligencia artificial y usa voces sintéticas. Es información, no asesoramiento financiero ni recomendación de inversión: contrastadlo siempre con fuentes oficiales.",
+        "start_s": 202.97,
+        "end_s": 218.49
       }
     ]
   },
   "transcript": {
-    "text": "Álvaro: Hola y bienvenidos a Market Briefer. Os contamos qué ha pasado en los mercados hoy, 5 de octubre de 2026.\n\nElvira: Buenas. Ha sido una sesión alcista tanto para el IBEX 35 como para el S&P 500. El IBEX ha subido un 0,53 % y el S&P 500 un 0,73 %. Expansión atribuye el impulso del Ibex al efecto Brasil.\n\nÁlvaro: ¿El efecto Brasil? Eso suena interesante. Pero vamos con lo que más ha llamado la atención hoy: Banco Santander ha sido de los grandes protagonistas.\n\nElvira: Exacto. Banco Santander ha subido un 2,37 % hasta 12,09 euros. Eso sí, hay que mirar con perspectiva: sigue un 6,19 % por debajo del nivel del 7 de septiembre.\n\nÁlvaro: ¿Qué explica entonces este rebote de hoy?\n\nElvira: Según El Español, la sobreventa y el soporte de los 11,60 euros podrían estar permitiendo este avance. Estrategias de Inversión considera que el movimiento de hoy es necesario pero insuficiente. Son opiniones de analistas, claro está.\n\nÁlvaro: Entendido. Cambiando de tercio, Iberdrola también ha tenido movimiento. ¿Qué ha pasado allá?\n\nElvira: Iberdrola ha subido un 0,43 % hasta 20,91 euros y acumula un 5,45 % de ganancia desde el 7 de septiembre. La compañía, junto al PNV y al PP, impulsa reabrir en el Congreso el debate sobre quitar a Redeia el monopolio del transporte eléctrico.\n\nÁlvaro: ¿Y eso ha movido el precio de hoy?\n\nElvira: No. Las noticias sobre este asunto no se relacionan con el movimiento de precio de hoy. Es más bien contexto político y sectorial que os contamos.\n\nÁlvaro: Vamos ahora con Inditex. Esa empresa cotiza sin variación en el día, ¿verdad?\n\nElvira: Correcto. Inditex cotiza a 53,24 euros, sin cambios en la sesión. Sí que cae un 7,51 % desde el 7 de septiembre. Pero hoy ha habido noticias positivas: según economiadigital.es, sería seis veces más rentable que Shein, y Estrategias de Inversión destaca el éxito de la colaboración de Zara con Galliano.\n\nÁlvaro: ¿Por qué no se refleja eso en el precio entonces?\n\nElvira: Eso pasa a veces. Las noticias positivas no siempre se traducen en movimiento inmediato. El mercado ya pudo haber precificado parte de esa información, o simplemente el día de hoy otras cosas han tenido más peso.\n\nÁlvaro: Perfecto. Vamos a Estados Unidos. NVIDIA ha avanzado un 1,34 % hasta 233,95 dólares. ¿Qué ha ocurrido allá?\n\nElvira: NVIDIA ha autorizado una recompra de acciones de 235.000 millones de dólares, según tikr.com. Además, Bloomberg Línea recoge que DBS cree que el repunte de la IA no es una burbuja, lo que da cierto respaldo al sector.\n\nÁlvaro: Pero imagino que no todo el mundo está tan tranquilo con NVIDIA.\n\nElvira: No. Invezz advierte de que la demanda de NVIDIA y Apple podría ser un problema tras el récord de TSMC. Son puntos de vista distintos sobre cómo evolucionará la demanda de chips.\n\nÁlvaro: ¿Y Apple qué tal se ha comportado?\n\nElvira: Apple ha subido un 1,02 % hasta 333,69 dólares. Acumula un 1,67 % desde el 3 de septiembre. Las noticias del día hablan de watchOS 27 y de diferencias del iPhone 18 entre España y EE.UU., pero no hay una causa clara del movimiento en el precio de hoy.\n\nÁlvaro: Hay un tema más. Habéis incluido unos documentos de ejemplo en el análisis.\n\nElvira: Sí. Son ficticios, con datos inventados, de una empresa llamada Ejemplo Industrial para el tercer trimestre de 2026. Los ingresos fueron de 1.245 millones de euros, un 8,4 % más. El EBITDA subió a 312 millones, un 11,2 % más. Y la deuda neta cayó a 890 millones, bajada de un 5,3 %.\n\nÁlvaro: ¿Y el gráfico?\n\nElvira: También ficticio. Muestra la cotización a 22,44 euros con sesgo técnico neutral-bajista. Tiene soportes en 21,5 y 22,0 euros, y resistencias en 24,0 y 24,5.\n\nÁlvaro: Resumiendo, sesión positiva en ambos lados del Atlántico.\n\nElvira: Así es. IBEX 35 en verde, S&P 500 en verde. Movimientos contenidos pero coherentes con el sentimiento positivo del día.\n\nÁlvaro: Acordaos de que este episodio está generado con inteligencia artificial y las voces que estáis escuchando son sintéticas. Es información, no asesoramiento financiero ni una recomendación de inversión. Os recomendamos que contrastéis siempre con fuentes oficiales.\n\nElvira: Exacto. Esto es Market Briefer. Gracias por escucharnos.",
+    "text": "Toro: Buenas noches, soy Toro. Esto es Briefly, la edición de noche con el cierre del día. Estamos a 5 de octubre de 2026, y el titular de hoy es que el IBEX 35 sube con el impulso de Santander y todos los valores del usuario cierran en verde.\n\nOsa: Buenas noches, soy Osa. Os contamos qué ha pasado en los mercados mientras vosotros regresabais a casa.\n\nToro: Banco Santander ha sido el motor del día. ¿Cuánto ha avanzado?\n\nOsa: Santander sube un 2,96 % hasta 12,16 EUR, el mayor avance de vuestros valores. Según la prensa, está relacionado con las elecciones en Brasil: los medios vinculan el repunte del IBEX a las empresas con mayor exposición a ese país.\n\nToro: ¿Pero dónde estaba hace un mes?\n\nOsa: Sigue un 5,65 % por debajo de dónde estaba hace un mes, así que el movimiento de hoy no compensa aún el retroceso anterior. JP Morgan retoma cobertura con neutral y precio objetivo de 12,60 euros.\n\nToro: Vamos con Inditex. Ha cerrado en verde, pero ¿cómo está el cuadro general?\n\nOsa: Inditex avanza un 0,34 % hasta 53,42 EUR, movimiento modesto. Lo positivo es que Jefferies anticipa gran crecimiento en el tercer trimestre, destacando el éxito de Zara con Galliano. Pero acumula caída del 7,19 % en el último mes.\n\nToro: Pasamos a Iberdrola, que también cierra al alza.\n\nOsa: Sube un 0,48 % hasta 20,92 EUR y gana 5,50 % en el último mes. Las noticias hablan de que impulsa de nuevo un debate sobre retirar a Red Eléctrica el monopolio del transporte eléctrico, aunque esto no se vincula con el movimiento hoy.\n\nToro: Fuera de vuestros valores principales, NVIDIA ha tenido un día interesante.\n\nOsa: NVIDIA sube un 1,34 % hasta 233,95 USD. Ha autorizado una recompra de acciones por 235.000 millones de dólares, unas 2,4 veces su flujo de caja libre anual. Además, Amazon explora venta y arrendamiento de chips de NVIDIA, y hay comentarios sobre cómo la demanda de ambas presiona a TSMC.\n\nToro: El usuario ha aportado unos documentos de ejemplo. ¿Qué muestran?\n\nOsa: Son datos ficticios, según indica el documento. Para el tercer trimestre de 2026, ingresos de 1.245 millones EUR, un 8,4 % arriba; EBITDA de 312 millones, sube 11,2 %; beneficio neto de 158 millones, crece 6,9 %. Deuda neta en 1,6 veces EBITDA. El gráfico marca rango entre 21,5 y 24,5 EUR.\n\nToro: ¿Cuál es el tono general del mercado?\n\nOsa: Sesión positiva: el IBEX 35 sube 0,90 % y el S&P 500 0,73 %, con la banca destacando. Persisten los temores en Europa por el euro y la deuda.\n\nToro: Hasta aquí el resumen del día. Os esperamos mañana.\n\nOsa: Buenas noches. Recordad que este episodio está generado con inteligencia artificial y usa voces sintéticas. Es información, no asesoramiento financiero ni recomendación de inversión: contrastadlo siempre con fuentes oficiales.",
     "srt_path": "podcast.srt"
   },
   "charts": [
@@ -1314,16 +1250,16 @@
       "step": "ingest.news",
       "provider": "yfinance+rss",
       "model": "-",
-      "latency_s": 11.9203,
+      "latency_s": 0.2616,
       "est_cost_eur": 0.0,
       "error": null,
-      "detail": "30 fuentes (0 fallidas, 0 de caché) en 8.2 s · 20 seleccionadas (12 con extracto) · 6 casi duplicadas · 11 fichas de cotización descartadas · extractos: 0 URL resueltas, 0 nuevos (8 sin tiempo)"
+      "detail": "30 fuentes (0 fallidas, 30 de caché) en 0.0 s: Google News 124, Bing News 81, Yahoo RSS 106, prensa 30, yfinance 0 · 20 seleccionadas (18 con extracto) · extracto en el 90 % · descartadas: 10 fichas de cotización, 22 duplicadas, 8 casi duplicadas, 167 fuera de ventana (48 h), 114 por cupo de relevancia · extractos: 7 URL resueltas, 5 nuevos (0 sin tiempo) · relevancia: ^GSPC 5.7 «Kalshi obtiene luz verde para llevar los perpet…» (titular, 4 h, es, extracto añadido); NVDA 5.7 «Amazon Wants to Sell Its Nvidia Chips and Rent…» (titular, 4 h, es, extracto añadido); general «Euríbor hoy, 05 de octubre: El Euríbor se desin…» (contexto general, extracto añadido); ^IBEX 6.1 «Los valores del Ibex más alcistas por el 'efect…» (titular, 5 h, es, extracto); ^IBEX 6.1 «El Ibex, condicionado por el euro, la deuda y l…» (titular, 5 h, es, extracto); NVDA 5.5 «Nvidia Just Authorized a $235 Billion Buyback,…» (titular, 6 h, es, extracto añadido); AAPL 5.5 «TSMC marca otro récord; la demanda de Nvidia y…» (titular, 6 h, es); ^GSPC 5.5 «Récord de optimismo empresarial: 72 compañías d…» (titular, 7 h, es, extracto añadido); ITX.MC 5.5 «El éxito de la colaboración de Zara y Galliano…» (titular, 8 h, es, extracto añadido); ^GSPC 5.2 «El índice S&P 500 apenas registró variaciones t…» (titular, 11 h, es); SAN.MC 5.7 «El IBEX 35 se da la vuelta al alza de la mano d…» (titular, 12 h, es, extracto); SAN.MC 5.7 «Análisis de Banco Santander: Necesario pero no…» (titular, 12 h, es, extracto); ITX.MC 5.7 «Jefferies apuesta por Inditex y anticipa un \"im…» (titular, 12 h, es, extracto); SAN.MC 5.7 «JP Morgan es prudente sobre Banco Santander, au…» (titular, 13 h, es, extracto); AAPL 5.6 «7 novedades de watchOS 27 que merece la pena pr…» (titular, 14 h, es, extracto); IBE.MC 5.6 «Iberdrola, PNV y PP reabren el troceo de Red El…» (titular, 14 h, es, extracto); IBE.MC 5.5 «Iberdrola, PNV y PP calientan el “viejo” debate…» (titular, 17 h, es, extracto); IBE.MC 5.2 «Iberdrola lanza los Premios FP para atraer a lo…» (titular, 24 h, es, extracto); ITX.MC 4.9 «Inditex mira por el retrovisor a Shein y ya es…» (titular, 37 h, es, extracto); AAPL 4.9 «Apple Watch Serie 12 vs Serie 11: ¿merece la pe…» (titular, 38 h, es, extracto)"
     },
     {
       "step": "ingest.prices",
       "provider": "yfinance",
       "model": "-",
-      "latency_s": 8.009,
+      "latency_s": 0.274,
       "est_cost_eur": 0.0,
       "error": null,
       "detail": null
@@ -1332,26 +1268,26 @@
       "step": "ingest.tickers",
       "provider": "local",
       "model": "-",
-      "latency_s": 0.0075,
+      "latency_s": 0.0065,
       "est_cost_eur": 0.0,
       "error": null,
-      "detail": "16 de 20 noticias relevantes (4 de índices de contexto)"
+      "detail": "19 de 20 noticias relevantes (5 de índices de contexto)"
     },
     {
       "step": "ingest.pdf",
       "provider": "anthropic",
       "model": "claude-sonnet-5-5",
-      "latency_s": 31.8107,
-      "est_cost_eur": 0.014463,
+      "latency_s": 19.3893,
+      "est_cost_eur": 0.018619,
       "error": null,
-      "detail": null
+      "detail": "3 de 3 páginas leídas · 1 a visión (1 renderizadas)"
     },
     {
       "step": "ingest.chart",
       "provider": "anthropic",
       "model": "claude-sonnet-5-5",
-      "latency_s": 31.5672,
-      "est_cost_eur": 0.015708,
+      "latency_s": 21.3087,
+      "est_cost_eur": 0.01814,
       "error": null,
       "detail": null
     },
@@ -1359,8 +1295,8 @@
       "step": "agents.analyst",
       "provider": "anthropic",
       "model": "claude-sonnet-5-5",
-      "latency_s": 11.0481,
-      "est_cost_eur": 0.026051,
+      "latency_s": 11.0586,
+      "est_cost_eur": 0.028438,
       "error": null,
       "detail": "grounding: todas las cifras trazables"
     },
@@ -1368,16 +1304,16 @@
       "step": "agents.scriptwriter",
       "provider": "anthropic",
       "model": "claude-haiku-4-5-20251001",
-      "latency_s": 17.9386,
-      "est_cost_eur": 0.009975,
+      "latency_s": 24.3009,
+      "est_cost_eur": 0.019728,
       "error": null,
-      "detail": "guion: cifras trazables al análisis · guion: 28 intervenciones, ~4.5 min"
+      "detail": "guion: reintento 1 (La duración estimada es 5.3 min (667 palabras) y debe estar entre 3 y 5 min: apunta a unas 500 palabras en total (resume).) · guion: cifras trazables al análisis · guion: 18 intervenciones, ~3.8 min"
     },
     {
       "step": "media.podcast",
       "provider": "edge",
       "model": "edge-tts",
-      "latency_s": 20.412,
+      "latency_s": 10.6653,
       "est_cost_eur": 0.0,
       "error": null,
       "detail": null
@@ -1386,7 +1322,7 @@
       "step": "media.transcript",
       "provider": "local",
       "model": "-",
-      "latency_s": 0.0042,
+      "latency_s": 0.0022,
       "est_cost_eur": 0.0,
       "error": null,
       "detail": null
@@ -1395,16 +1331,25 @@
       "step": "media.charts",
       "provider": "matplotlib",
       "model": "-",
-      "latency_s": 1.6527,
+      "latency_s": 1.2387,
       "est_cost_eur": 0.0,
       "error": null,
       "detail": null
     },
     {
+      "step": "media.verify",
+      "provider": "openai",
+      "model": "whisper-1",
+      "latency_s": 12.05,
+      "est_cost_eur": 0.018796,
+      "error": null,
+      "detail": "WER 0,9 % frente al guion (5/560 palabras); peores: línea 14 (4 err.): «Son datos ficticios, según indica el documento. Para el terc…»; línea 8 (1 err.): «Inditex avanza un 0,34 % hasta 53,42 EUR, movimiento modesto…»"
+    },
+    {
       "step": "storage.save",
       "provider": "local",
       "model": "-",
-      "latency_s": 0.0072,
+      "latency_s": 0.0045,
       "est_cost_eur": 0.0,
       "error": null,
       "detail": null
