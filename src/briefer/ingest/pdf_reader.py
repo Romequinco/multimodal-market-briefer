@@ -7,13 +7,14 @@ Encadena dos modelos especializados: extracción de texto (pypdf) + VLM para lo 
 
 Qué se manda a visión (páginas con poco texto, como mucho ``MAX_VISION_PAGES``):
 
-- Si ``pypdfium2`` está instalado (opcional, **no** está en ``requirements.txt``; ver
-  ``pdf_render_available``), se **renderiza la página completa** a PNG (``RENDER_SCALE``): así
+- Con ``pypdfium2`` (en ``requirements.txt``; ver ``pdf_render_available``) se **renderiza la
+  página completa** a PNG (``RENDER_SCALE``): así
   también llegan los gráficos vectoriales y las páginas escaneadas con filtros que pypdf no
   descodifica, con su contexto (títulos, ejes). Una imagen por página.
-- Si no, se usan las **imágenes raster embebidas** (``page_images``, hasta ``MAX_IMAGES_PER_PAGE``
-  por página, descartando iconos/logos de menos de ``MIN_IMAGE_SIDE`` px). Limitación: un gráfico
-  vectorial (sin imagen raster) no llega al VLM.
+- Si falta (instalación antigua o rota), se usan las **imágenes raster embebidas** (``page_images``,
+  hasta ``MAX_IMAGES_PER_PAGE`` por página, descartando iconos/logos de menos de ``MIN_IMAGE_SIDE``
+  px), con un aviso en el log y en ``StepMetric.detail`` (``format_pdf_stats``). Limitación: un
+  gráfico vectorial (sin imagen raster) no llega al VLM.
 
 Límites: ``MAX_PDF_BYTES`` (fichero), ``max_pages`` (páginas leídas, 30 por defecto),
 ``MAX_VISION_PAGES`` (coste/latencia de visión) y ``MAX_LLM_CHARS`` (texto al LLM). Lo que queda
@@ -236,6 +237,27 @@ def render_page(path: Path, page_index: int, scale: float = RENDER_SCALE) -> byt
             close()
 
 
+def format_pdf_stats(stats: dict[str, Any]) -> str | None:
+    """Resumen de ``read_pdf(stats_out=...)`` para ``StepMetric.detail`` (``None`` si está vacío).
+
+    Ej.: ``"12 de 12 páginas leídas · 3 a visión (3 renderizadas)"`` o, sin ``pypdfium2``,
+    ``"… · 2 a visión (2 imágenes embebidas; sin pypdfium2: gráficos vectoriales no analizados)"``.
+    """
+    if not stats:
+        return None
+    parts = [f"{stats.get('pages_read', 0)} de {stats.get('total_pages', 0)} páginas leídas"]
+    if stats.get("vision_pages"):
+        how = []
+        if stats.get("rendered"):
+            how.append(f"{stats['rendered']} renderizadas")
+        if stats.get("embedded_images") or stats.get("render_missing"):
+            how.append(f"{stats.get('embedded_images', 0)} imágenes embebidas")
+        if stats.get("render_missing"):
+            how.append("sin pypdfium2: gráficos vectoriales no analizados")
+        parts.append(f"{stats['vision_pages']} a visión" + (f" ({'; '.join(how)})" if how else ""))
+    return " · ".join(parts)
+
+
 def _vision_images(path: Path, reader: Any, page_index: int, render: bool) -> tuple[list[bytes], str]:
     """Imágenes de una página para visión y su etiqueta (``"página renderizada"`` o ``"imagen"``)."""
     if render:
@@ -251,6 +273,8 @@ def read_pdf(
     llm: LLMProvider,
     vision: VisionProvider | None = None,
     max_pages: int = 30,
+    *,
+    stats_out: dict[str, Any] | None = None,
 ) -> DocumentInsight:
     """Procesa un PDF completo y devuelve un ``DocumentInsight``.
 
@@ -258,6 +282,10 @@ def read_pdf(
     pypdfium2 si está instalado; si no, sus imágenes embebidas) -> LLM que estructura cifras clave
     y resumen. ``source_type``/``source_name`` y ``extracted_text`` (texto real + descripciones,
     recortado, con avisos de lo que no se leyó) se fijan aquí, no los decide el LLM.
+
+    ``stats_out`` (si se pasa) recibe ``pages_read``, ``total_pages``, ``vision_pages``,
+    ``rendered``, ``embedded_images`` y ``render_missing`` (páginas que necesitaban visión sin
+    ``pypdfium2``); ``format_pdf_stats`` lo resume para ``StepMetric.detail``.
 
     Raises:
         FileNotFoundError, ValueError: ver ``extract_page_texts``; ``ValueError`` también si no se
@@ -267,6 +295,13 @@ def read_pdf(
     reader = _open(path)
     total_pages = len(reader.pages)
     texts = _page_texts(reader, path.name, max_pages)
+    stats: dict[str, Any] = {
+        "pages_read": len(texts), "total_pages": total_pages, "vision_pages": 0, "rendered": 0,
+        "embedded_images": 0, "render_missing": False,
+    }
+    if stats_out is not None:
+        stats_out.update(stats)
+        stats = stats_out
 
     parts = [f"[Página {i + 1}]\n{t}" for i, t in enumerate(texts) if t]
     notes: list[str] = []
@@ -275,6 +310,14 @@ def read_pdf(
     if vision is not None:
         render = pdf_render_available()
         selected = pages_needing_vision(texts)
+        stats["vision_pages"] = len(selected)
+        if selected and not render:
+            stats["render_missing"] = True
+            log.warning(
+                "pypdfium2 no está instalado: %d página(s) de %s con poco texto se analizan solo por sus "
+                "imágenes embebidas (los gráficos vectoriales no llegan a visión). Instálalo: "
+                "pip install -r requirements.txt", len(selected), path.name,
+            )
         skipped = [i for i, t in enumerate(texts) if len("".join(t.split())) < 200 and i not in selected]
         if skipped:
             notes.append(
@@ -283,6 +326,10 @@ def read_pdf(
             )
         for i in selected:
             images, label = _vision_images(path, reader, i, render)
+            if label == "página renderizada":
+                stats["rendered"] += 1
+            else:
+                stats["embedded_images"] += len(images)
             for n, image in enumerate(images, start=1):
                 try:
                     description = (vision.describe(image, PAGE_VISION_PROMPT) or "").strip()

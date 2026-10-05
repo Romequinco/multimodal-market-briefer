@@ -22,6 +22,7 @@ feedparser>=6.0
 # Documentos e imagenes
 pypdf>=6.0                    # probada 6.19 (protecciones contra bombas de descompresion)
 Pillow>=12.3                  # < 12.3 tiene avisos PYSEC (procesa imagenes subidas por el usuario)
+pypdfium2>=4.30,<6           # probada 5.14 (rueda binaria win/mac/linux): renderiza paginas de PDF para vision
 # Graficos
 matplotlib>=3.8
 # Audio y video (ffmpeg directo via el binario de imageio-ffmpeg; sin moviepy)

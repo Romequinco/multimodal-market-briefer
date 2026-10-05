@@ -515,7 +515,11 @@ def process_upload(
     if ext in PDF_EXTS:
         llm, vision = _MeteredLLM(providers.llm_cheap), _MeteredVision(providers.vision)
         with track_step("ingest.pdf", vision.provider_name, vision.model, metrics) as step:
-            insight = pdf_reader.read_pdf(path, llm=llm, vision=vision)
+            pdf_stats: dict = {}
+            try:
+                insight = pdf_reader.read_pdf(path, llm=llm, vision=vision, stats_out=pdf_stats)
+            finally:
+                step.detail = pdf_reader.format_pdf_stats(pdf_stats)
             step.est_cost_eur = llm.cost_eur() + vision.cost_eur()
         return insight
     if ext in IMAGE_EXTS:
