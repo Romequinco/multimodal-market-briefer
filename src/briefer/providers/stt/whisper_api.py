@@ -14,9 +14,11 @@ Elección del modelo (medido el 05-oct-2026 con 3 preguntas financieras sintetiz
 0,006 USD/min). Es el valor por defecto; ``whisper-1`` sigue siendo válido.
 
 Silencio y alucinaciones: con un audio mudo, ``whisper-1`` se inventa frases («Más información
-www…») y cualquier modelo al que se le pase un ``prompt`` lo repite tal cual. Por eso **no** se
-envía ``prompt`` y un WAV sin voz (energía por debajo de ``SILENCE_RMS``) devuelve ``""`` sin
-llamar a la API (``st.audio_input`` graba WAV PCM).
+www…») y cualquier modelo al que se le pase un ``prompt`` lo repite tal cual. Por eso un WAV sin
+voz (energía por debajo de ``SILENCE_RMS``) devuelve ``""`` sin llamar a la API (``st.audio_input``
+graba WAV PCM). El ``prompt`` es opcional y solo lleva vocabulario (nombres de las empresas del
+briefing, ``ingest.voice.vocabulary_hint``): sin él, «Apple» se transcribía «Yabel» con la voz
+sintética. ``ingest.voice`` descarta la salida si es un eco de esa pista.
 """
 
 from __future__ import annotations
@@ -122,8 +124,10 @@ class WhisperAPI(STTProvider):
             )
         return path
 
-    def transcribe(self, audio_path: Path, language: str = "es") -> str:
+    def transcribe(self, audio_path: Path, language: str = "es", prompt: str | None = None) -> str:
         """Transcribe ``audio_path`` en ``language`` y devuelve el texto (espacios normalizados).
+
+        ``prompt`` (opcional): pista de vocabulario para nombres propios (ver la cabecera).
 
         Devuelve ``""`` si no se reconoce voz (``ingest.voice`` lo convierte en un aviso claro).
 
@@ -137,6 +141,8 @@ class WhisperAPI(STTProvider):
             self.last_duration_s = 0.0  # no se llama a la API: sin coste
             return ""
         kwargs: dict[str, Any] = {"model": self.model, "language": (language or "es")[:2]}
+        if prompt:
+            kwargs["prompt"] = prompt[:800]
         if self.model == "whisper-1":
             kwargs["response_format"] = "verbose_json"  # trae ``duration`` (para el coste)
         with path.open("rb") as fh:

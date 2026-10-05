@@ -33,7 +33,7 @@ from briefer.agents.guardrails import (
     unhedged_causal_claims,
     untraceable_figures,
 )
-from briefer.logging_utils import get_logger
+from briefer.logging_utils import error_text, get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import Analysis, PodcastScript, ScriptLine
 
@@ -387,11 +387,28 @@ def _finalize(
     return PodcastScript(title=title, lines=lines, est_duration_s=estimate_duration_s(lines))
 
 
+#: Errores del proveedor que no se arreglan reintentando (clave inválida, sin permiso, modelo
+#: inexistente): no se gasta una segunda llamada.
+_NON_RETRYABLE_STATUS = frozenset({401, 403, 404})
+_NON_RETRYABLE_NAMES = frozenset({"AuthenticationError", "PermissionDeniedError", "NotFoundError"})
+
+
+class _NonRetryableLLMError(Exception):
+    """El LLM falló por una causa que un reintento no cambia."""
+
+
+def _is_non_retryable(exc: BaseException) -> bool:
+    status = getattr(exc, "status_code", None)
+    return type(exc).__name__ in _NON_RETRYABLE_NAMES or status in _NON_RETRYABLE_STATUS
+
+
 def _call(llm: LLMProvider, system: str, messages: list[dict]) -> PodcastScript | None:
     try:
         result = llm.complete(system, messages, response_model=PodcastScript)
     except Exception as exc:  # salida no válida del LLM: se reintenta / se usa respaldo
-        log.warning("Guionista: el LLM no devolvió un guion válido (%s)", exc)
+        log.warning("Guionista: el LLM no devolvió un guion válido (%s)", error_text(exc))
+        if _is_non_retryable(exc):
+            raise _NonRetryableLLMError(type(exc).__name__) from exc
         return None
     if isinstance(result, PodcastScript):
         return result
@@ -440,7 +457,11 @@ def write_script(
     best: PodcastScript | None = None
     best_score: tuple[int, float] | None = None
     for attempt in range(max_retries + 1):
-        script = _call(llm, system, messages)
+        try:
+            script = _call(llm, system, messages)
+        except _NonRetryableLLMError as exc:
+            notes.append(f"guion: sin reintento ({exc}: un reintento no lo arregla)")
+            break
         if script is None:
             problems = ["La respuesta no tenía el formato estructurado pedido."]
         else:

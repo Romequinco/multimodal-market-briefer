@@ -1117,7 +1117,8 @@ def answer_question(
         if isinstance(question, Path):
             stt = providers.stt
             with _core_step("qa.stt", stt.provider_name, stt.model, metrics) as stt_step:
-                question_text = voice.transcribe_question(question, stt, s.briefer_language)
+                hint = voice.vocabulary_hint(briefing.context.tickers if briefing else None)
+                question_text = voice.transcribe_question(question, stt, s.briefer_language, vocabulary=hint)
                 stt_step.est_cost_eur = costs.estimate_cost_eur(
                     stt.provider_name, stt.model, duration_s=float(getattr(stt, "last_duration_s", 0.0) or 0.0)
                 )

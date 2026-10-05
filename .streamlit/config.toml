@@ -1,7 +1,7 @@
 # Tema y ajustes de la app Streamlit (Market Briefer).
 # Diseño «Noticiero nocturno»: base oscura de terminal, titulares serif de periódico y acento naranja
 # «en antena». El CSS complementario (cinta, cabecera, reproductor, tarjetas) está en
-# app/components/theme.py; los gráficos (media/charts.py) usan la misma paleta.
+# app/components/theme.py; los gráficos (media/charts.py) usan la misma base con colores ajustados a ≥ 3:1 sobre su fondo.
 
 [theme]
 base = "dark"

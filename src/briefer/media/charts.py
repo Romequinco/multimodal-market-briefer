@@ -68,10 +68,10 @@ GRID = "#e4e3df"
 UP = "#2a78d6"  # azul
 DOWN = "#e34948"  # rojo
 NEUTRAL = "#8a8984"
-INDEX_COLOR = "#a3a29c"  # índices de referencia: gris, distinto de los valores del usuario
+INDEX_COLOR = "#8f8e88"  # índices de referencia: gris, distinto de los valores del usuario
 # Orden categórico fijo (validado para daltonismo en pares adyacentes); "Otros" en gris.
-CATEGORICAL = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
-OTHERS_COLOR = "#b5b4ae"
+CATEGORICAL = ["#2a78d6", "#eb6834", "#139068", "#b07800", "#c2577f", "#008300", "#4a3aa7", "#e34948"]
+OTHERS_COLOR = "#8a8a85"
 FONT = "DejaVu Sans"
 
 
@@ -127,7 +127,7 @@ DARK = ChartTheme(
     text_secondary="#A9B3BF",
     muted="#888780",
     grid="#2A313B",
-    axis="#4A5361",
+    axis="#6B7480",
     up="#5DCAA5",
     down="#F09595",
     neutral="#888780",
@@ -135,7 +135,7 @@ DARK = ChartTheme(
     price_line="#F0997B",
     fill_alpha=0.06,
     categorical=("#F0997B", "#5DCAA5", "#85B7EB", "#EF9F27", "#ED93B1", "#AFA9EC", "#97C459", "#F09595"),
-    others="#5F5E5A",
+    others="#7A7975",
     title_font="DejaVu Serif",
     body_font="DejaVu Sans",
     mono_font="DejaVu Sans Mono",

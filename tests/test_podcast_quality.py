@@ -273,3 +273,26 @@ def test_pipeline_verification_is_skipped(tmp_path: Path, mode, stt, podcast_pro
 def test_mock_briefing_has_no_verify_step(tmp_path: Path) -> None:
     briefing = pipeline.run_briefing(["SAN.MC"], settings=_settings(tmp_path), mode="mock")
     assert "media.verify" not in {m.step for m in briefing.metrics}
+
+
+def test_write_script_does_not_retry_on_auth_error() -> None:
+    """Una clave inválida (401) no se arregla reintentando: una sola llamada y guion de respaldo."""
+    from briefer.agents import scriptwriter
+    from briefer.providers.mock import MockLLM
+
+    class AuthenticationError(Exception):
+        status_code = 401
+
+    class FailingLLM(MockLLM):
+        calls = 0
+
+        def complete(self, *args, **kwargs):
+            FailingLLM.calls += 1
+            raise AuthenticationError("invalid x-api-key")
+
+    analysis = MockLLM().complete("", [], response_model=scriptwriter.Analysis)
+    trace: list[str] = []
+    script = scriptwriter.write_script(analysis, FailingLLM(), max_retries=2, trace=trace)
+    assert FailingLLM.calls == 1
+    assert script.lines and scriptwriter.FALLBACK_NOTE in trace
+    assert any("sin reintento" in note for note in trace)

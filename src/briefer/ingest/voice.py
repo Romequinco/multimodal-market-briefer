@@ -6,6 +6,7 @@ Carril A. Entrada: audio (ruta o bytes de ``st.audio_input``). Salida: ``str`` o
 
 from __future__ import annotations
 
+import inspect
 import re
 import uuid
 from datetime import datetime
@@ -39,8 +40,49 @@ def save_audio_upload(data: bytes, out_dir: Path, suffix: str = ".wav") -> Path:
     return path
 
 
-def transcribe_question(audio_path: Path, stt: STTProvider, language: str = "es") -> str:
+def vocabulary_hint(tickers: list[str] | None, max_names: int = 20) -> str:
+    """Pista de vocabulario para el STT: nombres de las empresas del briefing e índices.
+
+    Sin ella, la transcripción confunde nombres propios con la voz sintética (medido: «Apple» se
+    oyó «Yabel» y el Q&A respondió que Apple no estaba en el briefing). Devuelve ``""`` si no
+    hay tickers. Solo nombres públicos de empresas: nada de la cartera (pesos) ni del usuario.
+    """
+    from briefer.ingest.tickers import TICKER_UNIVERSE, normalize_ticker
+
+    names: list[str] = []
+    for raw in tickers or []:
+        ticker = normalize_ticker(raw)
+        info = TICKER_UNIVERSE.get(ticker)
+        name = str(info["name"]) if info else ticker.split(".")[0].lstrip("^")
+        if name and name not in names:
+            names.append(name)
+    if not names:
+        return ""
+    return "Vocabulario: " + ", ".join([*names[:max_names], "IBEX 35", "S&P 500"]) + "."
+
+
+def _accepts_prompt(stt: STTProvider) -> bool:
+    """``True`` si ``stt.transcribe`` admite el argumento opcional ``prompt``."""
+    try:
+        return "prompt" in inspect.signature(stt.transcribe).parameters
+    except (TypeError, ValueError):
+        return False
+
+
+def _is_hint_echo(text: str, hint: str) -> bool:
+    """``True`` si el texto es (parte de) la pista: el modelo la repite ante audio sin voz."""
+    fold = lambda s: re.sub(r"[^\w]+", " ", s.casefold()).strip()  # noqa: E731
+    folded = fold(text)
+    return bool(folded) and folded in fold(hint)
+
+
+def transcribe_question(
+    audio_path: Path, stt: STTProvider, language: str = "es", vocabulary: str | None = None
+) -> str:
     """Transcribe una pregunta hablada; devuelve texto limpio (espacios normalizados).
+
+    ``vocabulary`` (opcional, ver ``vocabulary_hint``) se pasa como ``prompt`` al STT si lo
+    admite. Si la salida es solo un eco de esa pista (audio sin voz), se trata como vacía.
 
     Raises:
         FileNotFoundError: si no existe el audio.
@@ -49,7 +91,13 @@ def transcribe_question(audio_path: Path, stt: STTProvider, language: str = "es"
     audio_path = Path(audio_path)
     if not audio_path.exists():
         raise FileNotFoundError(f"No existe el audio: {audio_path}")
-    text = " ".join(str(stt.transcribe(audio_path, language) or "").split())
+    if vocabulary and _accepts_prompt(stt):
+        raw = stt.transcribe(audio_path, language, prompt=vocabulary)  # type: ignore[call-arg]
+    else:
+        raw = stt.transcribe(audio_path, language)
+    text = " ".join(str(raw or "").split())
+    if vocabulary and _is_hint_echo(text, vocabulary):
+        text = ""
     if not text:
         raise ValueError("No se ha entendido el audio")
     return text

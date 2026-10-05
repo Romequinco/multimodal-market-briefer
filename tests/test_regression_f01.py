@@ -521,3 +521,57 @@ def test_m1_portfolio_chart_tmp_dirs_are_purged(monkeypatch: pytest.MonkeyPatch,
     new = pipeline._portfolio_chart_dir("20261005-000000-abcdef")
     assert new.parent == tmp_path / "briefer_cartera" and new.is_dir()
     assert not old.exists()
+
+
+# ── Pista de vocabulario para el STT (nombres del briefing) ───────────────────────
+
+
+def test_vocabulary_hint_uses_company_names() -> None:
+    from briefer.ingest import voice
+
+    hint = voice.vocabulary_hint(["AAPL", "itx.mc", "AAPL", "ZZZ.MC"])
+    assert hint.startswith("Vocabulario: Apple, Inditex, ZZZ,") and "IBEX 35" in hint
+    assert voice.vocabulary_hint(None) == "" and voice.vocabulary_hint([]) == ""
+
+
+def test_whisper_sends_prompt_only_when_given(tmp_path: Path) -> None:
+    audio = tmp_path / "q.wav"
+    audio.write_bytes(_wav_bytes(seconds=1.0, amplitude=3000))
+    stt, fake = _whisper("gpt-4o-mini-transcribe", SimpleNamespace(text="¿Por qué sube Apple?"))
+    assert stt.transcribe(audio, "es", prompt="Vocabulario: Apple.") == "¿Por qué sube Apple?"
+    assert fake.calls[0]["prompt"] == "Vocabulario: Apple."
+
+
+def test_transcribe_question_passes_hint_and_drops_echo(tmp_path: Path) -> None:
+    from briefer.ingest import voice
+
+    audio = tmp_path / "q.wav"
+    audio.write_bytes(_wav_bytes())
+    seen: dict = {}
+
+    class HintSTT(mock.MockSTT):
+        def transcribe(self, audio_path, language="es", prompt=None):
+            seen["prompt"] = prompt
+            return self.reply
+
+    stt = HintSTT()
+    stt.reply = "¿Qué ha pasado con Apple?"
+    hint = voice.vocabulary_hint(["AAPL"])
+    assert voice.transcribe_question(audio, stt, vocabulary=hint) == "¿Qué ha pasado con Apple?"
+    assert seen["prompt"] == hint
+    stt.reply = "Vocabulario: Apple"  # eco de la pista ante audio sin voz
+    with pytest.raises(ValueError, match="No se ha entendido"):
+        voice.transcribe_question(audio, stt, vocabulary=hint)
+
+
+def test_transcribe_question_old_signature_stt_still_works(tmp_path: Path) -> None:
+    from briefer.ingest import voice
+
+    audio = tmp_path / "q.wav"
+    audio.write_bytes(_wav_bytes())
+
+    class OldSTT(mock.MockSTT):
+        def transcribe(self, audio_path, language="es"):
+            return "Hola"
+
+    assert voice.transcribe_question(audio, OldSTT(), vocabulary="Vocabulario: Apple.") == "Hola"

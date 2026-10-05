@@ -102,3 +102,29 @@ def test_dark_keeps_arrows_signs_and_fonts(tmp_path: Path, monkeypatch: pytest.M
     assert "DejaVu Sans Mono" in badge.get_fontfamily()
     over = [t.get_text() for t in overview]
     assert "▲ +2,40 %" in over and "▼ −1,10 %" in over and "▲ +0,50 %" in over
+
+
+def _luminance(hex_color: str) -> float:
+    rgb = [int(hex_color.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def _contrast(a: str, b: str) -> float:
+    hi, lo = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+@pytest.mark.parametrize("theme_name", ["DARK", "LIGHT"])
+def test_chart_graphic_colors_meet_wcag_3_to_1(theme_name: str) -> None:
+    """Ejes, series, índices y «otros» se distinguen del fondo (WCAG 1.4.11: ≥ 3:1)."""
+    from briefer.media import charts
+
+    theme = getattr(charts, theme_name)
+    colors = {
+        "axis": theme.axis, "up": theme.up, "down": theme.down, "neutral": theme.neutral,
+        "index": theme.index, "others": theme.others, "muted": theme.muted,
+        **{f"categorical[{i}]": c for i, c in enumerate(theme.categorical)},
+    }
+    low = {name: round(_contrast(c, theme.surface), 2) for name, c in colors.items() if _contrast(c, theme.surface) < 3}
+    assert not low, f"Colores con contraste < 3:1 sobre {theme.surface}: {low}"
