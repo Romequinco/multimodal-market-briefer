@@ -267,8 +267,9 @@ Reglas comunes:
 > *Hecho en la revisión:* `og:description` solo del `<head>` con `robots.txt` y caché de 7 días
 > (`ingest/article_meta.py`), URL final del medio (Google News resuelto, Bing News directo), `relevance_score`,
 > casi duplicados y fichas de cotización descartadas, estadísticas en `StepMetric.detail` de `ingest.news`.
-> Medido: ~45-50 % de noticias con extracto en frío y ~80 % desde la 2.ª ejecución del día. **Queda:** subir el
-> porcentaje en frío (presupuesto de 3 s) y FinBERT (Could).
+> Medido: ~45-50 % de noticias con extracto en frío y ~80 % desde la 2.ª ejecución del día. *Después (carril A,
+> 05-oct):* enriquecimiento adelantado mientras termina yfinance → **90 % en frío** (18/20; 13/20 antes en la misma
+> medida) y relevancia + motivos de cada noticia en `StepMetric.detail` de `ingest.news`. **Queda:** FinBERT (Could).
 
 - [ ] **Qué:** extracto útil (`og:description` de la página cuando el feed no trae resumen; hoy 15 de 16 noticias
   del pregenerado llegan sin resumen), URL real del artículo en lugar del enlace de redirección de Google News,

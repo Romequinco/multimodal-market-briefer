@@ -241,12 +241,12 @@ def test_enrich_news_fills_summary_and_final_url(monkeypatch) -> None:
     FakeWeb({SAN_URL: ("text/html", article_page(SAN_DESC + " " + "x" * 300))},
             google={"CBMiAAA111": SAN_URL}).install(monkeypatch)
     items = [_item("Santander sube en bolsa", G1), _item("Ya tiene resumen", ITX_URL, summary="Resumen propio del feed.")]
-    out = news.enrich_news(items)
+    stats: dict = {}
+    out = news.enrich_news(items, stats_out=stats)
     assert out[0].url == SAN_URL and out[0].summary.startswith("El banco cántabro")
     assert len(out[0].summary) <= news.SUMMARY_MAX_CHARS
     assert out[0].id == items[0].id  # el id no cambia
     assert out[1] == items[1]  # con resumen y URL directa: no se toca
-    stats = news.last_quality_stats["enrich"]
     assert stats["candidates"] == 1 and stats["resolved"] == 1 and stats["summaries"] == 1
 
 
@@ -266,9 +266,10 @@ def test_enrich_news_respects_budget(monkeypatch) -> None:
     FakeWeb({SAN_URL: ("text/html", article_page(SAN_DESC))}, delay=1.0).install(monkeypatch)
     items = [_item("Santander sube en bolsa", SAN_URL)]
     start = time.perf_counter()
-    out = news.enrich_news(items, budget_s=0.2)
+    stats: dict = {}
+    out = news.enrich_news(items, budget_s=0.2, stats_out=stats)
     assert time.perf_counter() - start < 0.9  # no espera a la petición lenta
-    assert out == items and news.last_quality_stats["enrich"]["timed_out"] == 1
+    assert out == items and stats["timed_out"] == 1
     assert news.enrich_news(items, budget_s=0) == items
 
 
@@ -438,48 +439,151 @@ def test_fetch_news_end_to_end_with_bing_and_enrichment(monkeypatch) -> None:
     other = "https://www.otro.es/2026/10/05/santander-abre-oficinas-brasil-mexico.html"
     FakeWeb({other: ("text/html", article_page("La entidad refuerza su red en Latinoamérica con 40 nuevas oficinas."))},
             google={"CBMiBBB222": other}).install(monkeypatch)
-    out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS)
+    stats: dict = {}
+    out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, stats_out=stats)
     by_title = {i.title: i for i in out}
     sube = by_title["Santander sube en bolsa"]  # Google + Bing fusionadas: enlace directo y extracto de Bing
     assert sube.url == SAN_URL and sube.summary == SAN_DESC
     abre = by_title["Santander abre oficinas en Brasil y México"]  # solo Google: resuelta y con og:description
     assert abre.url == other and abre.summary.startswith("La entidad refuerza")
     assert not any("(SAN)" in t for t in by_title)  # la ficha de cotización se descarta
-    q = news.last_quality_stats
+    q = stats["quality"]
     assert q["landing_pages"] == 1 and q["google_urls"] == 0 and q["with_summary"] == len(out)
     assert all(len(i.summary) <= news.SUMMARY_MAX_CHARS for i in out)
-    assert news.last_fetch_stats["bing:SAN.MC"]["items"] == 2
+    assert stats["fetch"]["bing:SAN.MC"]["items"] == 2
 
 
-def test_fetch_news_stats_out_per_call_matches_globals(monkeypatch) -> None:
-    """``stats_out`` devuelve las estadísticas de ESTA llamada (sin depender de los globales)."""
+def test_fetch_news_stats_out_per_call(monkeypatch) -> None:
+    """``stats_out`` devuelve las estadísticas de ESTA llamada (ya no hay globales de «última llamada»)."""
     monkeypatch.setattr(news, "_http_get", FeedHTTP({"news.google.com": GOOGLE_SAN, "expansion": MARKET_RSS}))
     FakeWeb({}).install(monkeypatch)
     stats: dict = {}
     out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, stats_out=stats)
     assert out
-    assert stats["fetch"] == news.last_fetch_stats
+    assert not hasattr(news, "last_fetch_stats") and not hasattr(news, "last_quality_stats")
+    assert set(stats["fetch"]) >= {"google:SAN.MC", "bing:SAN.MC"}
     assert stats["quality"]["selected"] == len(out)
-    assert stats["quality"]["enrich"] == news.last_quality_stats["enrich"]
-    assert "scores" not in stats["quality"]
+    assert stats["quality"]["enrich"]["candidates"] >= 0
+    assert "scores" not in stats["quality"] and "explain" not in stats["quality"]
     line = news.format_news_stats(stats)
     assert f"{len(stats['fetch'])} fuentes" in line and f"{len(out)} seleccionadas" in line
+
+
+def test_concurrent_fetches_do_not_mix_stats(monkeypatch) -> None:
+    """Dos briefings simultáneos (dos sesiones de la UI): cada uno recibe SOLO sus estadísticas."""
+    barrier = threading.Barrier(3, timeout=5)  # Google News de SAN.MC, AAPL y NVDA a la vez
+    google_apple = GOOGLE_SAN.replace(b"Santander sube en bolsa", b"Apple sube en Wall Street por la IA") \
+        .replace(b"Santander abre oficinas en Brasil y M\xc3\xa9xico", b"Apple presenta resultados con ventas al alza")
+
+    class SyncedHTTP(FeedHTTP):
+        def __call__(self, url: str, timeout: float = 0) -> bytes:
+            if "news.google.com" in url:
+                barrier.wait()  # las descargas de Google News de los dos briefings coinciden en el tiempo
+                if "Apple" in url:
+                    return google_apple
+                return GOOGLE_SAN if "Santander" in url else EMPTY_RSS
+            return super().__call__(url, timeout)
+
+    monkeypatch.setattr(news, "_http_get", SyncedHTTP({"expansion": MARKET_RSS}))
+    results: dict[str, tuple[list, dict]] = {}
+
+    def run(name: str, tickers: list[str]) -> None:
+        stats: dict = {}
+        results[name] = (news.fetch_news(tickers, rss_feeds=FEEDS, enrich=False, stats_out=stats), stats)
+
+    threads = [threading.Thread(target=run, args=("san", ["SAN.MC"])),
+               threading.Thread(target=run, args=("apple", ["AAPL", "NVDA"]))]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(10)
+    (san_out, san), (apple_out, apple) = results["san"], results["apple"]
+    assert {k.split(":", 1)[1] for k in san["fetch"] if not k.startswith("rss:")} == {"SAN.MC"}
+    assert {k.split(":", 1)[1] for k in apple["fetch"] if not k.startswith("rss:")} == {"AAPL", "NVDA"}
+    for out, stats in ((san_out, san), (apple_out, apple)):
+        assert not any(v["error"] for v in stats["fetch"].values())  # la barrera no se rompió
+        assert stats["quality"]["selected"] == len(out)
+        assert [s["id"] for s in stats["quality"]["selection"]] == [i.id for i in out]
+    assert any("Santander" in s["title"] for s in san["quality"]["selection"])
+    assert not any("Santander" in s["title"] for s in apple["quality"]["selection"])
+
+
+def test_news_stats_explain_relevance_in_spanish(monkeypatch) -> None:
+    """``StepMetric.detail`` de ``ingest.news``: fuentes por tipo, % con extracto, descartes y por qué entra cada una."""
+    bing = bing_rss([
+        ("Santander sube en bolsa", SAN_URL, SAN_DESC, "Medio", 2.5),
+        ("Banco Santander (SAN)", "https://es.investing.com/equities/banco-santander", "Ficha de cotización.", "Investing", 1),
+    ])
+    monkeypatch.setattr(news, "_http_get", FeedHTTP({"news.google.com": GOOGLE_SAN, "www.bing.com": bing,
+                                                     "expansion": MARKET_RSS}))
+    stats: dict = {}
+    out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, enrich=False, stats_out=stats)
+    q = stats["quality"]
+    sube = next(s for s in q["selection"] if s["title"] == "Santander sube en bolsa")
+    assert sube["ticker"] == "SAN.MC" and sube["score"] > 4 and sube["has_summary"]
+    assert sube["reasons"][0] == "titular" and "es" in sube["reasons"] and "extracto" in sube["reasons"]
+    ibex = next(s for s in q["selection"] if s["title"].startswith("El Ibex"))
+    assert ibex["ticker"] is None and ibex["reasons"] == ["contexto general"]
+    assert q["landing_pages"] == 1 and q["near_duplicates"] + q["exact_duplicates"] >= 1
+    line = news.format_news_stats(stats)
+    assert "Google News 2" in line and "Bing News 2" in line and "prensa 1" in line
+    pct = round(100 * q["with_summary"] / len(out))
+    assert f"extracto en el {pct} %" in line
+    assert "descartadas: 1 fichas de cotización" in line
+    assert "relevancia: " in line and f"SAN.MC {sube['score']:.1f} «Santander sube en bolsa» (titular" in line
+    assert "general «El Ibex abre plano" in line
+    # el resumen va primero (el nodo del grafo de «Cómo se hizo» recorta el detalle)
+    assert line.index("seleccionadas") < line.index("relevancia:")
+
+
+def test_relevance_explained_matches_score() -> None:
+    item = _item("Inditex dispara sus ventas", "https://a.es/1-a-b.html", hours=10,
+                 tickers=["ITX.MC", "SAN.MC", "BBVA.MC", "IBE.MC"])
+    score, reasons = news.relevance_explained(item, "ITX.MC", NOW)
+    assert score == news.relevance_score(item, "ITX.MC", NOW)
+    assert reasons == ["titular", "10 h", "es", "lista de valores"]
+
+
+def test_enrichment_is_prefetched_while_slow_sources_finish(monkeypatch) -> None:
+    """Mientras yfinance (lenta) termina, se adelantan los metadatos de la selección provisional
+    y ``enrich_news`` reutiliza esas peticiones (sin repetirlas)."""
+    slow = _no_yfinance()
+
+    class SlowTicker(slow.Ticker):  # type: ignore[name-defined, misc]
+        def get_news(self, count: int = 10, tab: str = "news") -> list:
+            time.sleep(0.8)
+            return []
+
+    slow.Ticker = SlowTicker  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "yfinance", slow)
+    monkeypatch.setattr(news, "_http_get", FeedHTTP({"news.google.com": GOOGLE_SAN, "expansion": MARKET_RSS}))
+    web = FakeWeb({SAN_URL: ("text/html", article_page(SAN_DESC))}, google={"CBMiAAA111": SAN_URL}).install(monkeypatch)
+    stats: dict = {}
+    out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, stats_out=stats)
+    sube = next(i for i in out if i.title == "Santander sube en bolsa")
+    assert sube.url == SAN_URL and sube.summary.startswith("El banco cántabro")
+    enrich = stats["quality"]["enrich"]
+    assert enrich["prefetched"] == enrich["candidates"] >= 1
+    assert web.calls.count(SAN_URL) == 1  # la página se pidió una sola vez
+    assert "adelantados" in news.format_news_stats(stats)
 
 
 def test_fetch_news_enrich_false_makes_no_page_requests(monkeypatch) -> None:
     monkeypatch.setattr(news, "_http_get", FeedHTTP({"news.google.com": GOOGLE_SAN}))
     web = FakeWeb({}).install(monkeypatch)
-    out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, enrich=False)
+    stats: dict = {}
+    out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, enrich=False, stats_out=stats)
     assert out and web.calls == []
-    assert news.last_quality_stats["enrich"]["candidates"] == 0
+    assert stats["quality"]["enrich"]["candidates"] == 0
 
 
 def test_fetch_news_google_html_error_is_a_failure_not_cached(monkeypatch) -> None:
     consent = b"<!doctype html><html><head><title>Antes de ir a Google</title></head><body>cookies</body></html>"
     http = FeedHTTP({"news.google.com": consent, "expansion": MARKET_RSS})
     monkeypatch.setattr(news, "_http_get", http)
-    news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, enrich=False)
-    assert news.last_fetch_stats["google:SAN.MC"]["error"].startswith("ValueError")
+    stats: dict = {}
+    news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, enrich=False, stats_out=stats)
+    assert stats["fetch"]["google:SAN.MC"]["error"].startswith("ValueError")
     assert cache.read_cache("news-google", cache.cache_key("google", "SAN.MC")) is None  # no se cachea
     http.routes["news.google.com"] = GOOGLE_SAN
     out = news.fetch_news(["SAN.MC"], rss_feeds=FEEDS, enrich=False)
@@ -489,9 +593,10 @@ def test_fetch_news_google_html_error_is_a_failure_not_cached(monkeypatch) -> No
 @pytest.mark.parametrize("tickers", [["$", "  ", "SAN.MC"], ["san"], ["ZZZZ.XX", "SAN.MC"], ["brk-b", "SAN.MC"]])
 def test_fetch_news_odd_tickers(monkeypatch, tickers: list[str]) -> None:
     monkeypatch.setattr(news, "_http_get", FeedHTTP({"news.google.com": GOOGLE_SAN}))
-    out = news.fetch_news(tickers, rss_feeds=FEEDS, enrich=False)
+    stats: dict = {}
+    out = news.fetch_news(tickers, rss_feeds=FEEDS, enrich=False, stats_out=stats)
     assert any("SAN.MC" in i.tickers for i in out)
-    assert not any(k.startswith("google:$") for k in news.last_fetch_stats)
+    assert not any(k.startswith("google:$") for k in stats["fetch"])
 
 
 def test_fetch_news_ticker_without_news_returns_market_context(monkeypatch) -> None:
