@@ -176,6 +176,12 @@ def to_api_messages(messages: list[dict]) -> list[dict]:
     Se conservan solo los roles ``user``/``assistant`` (el ``system`` va aparte) y los
     contenidos vacíos se descartan (la API los rechaza). El contenido puede ser ``str`` o una
     lista de bloques ya formateados.
+
+    Caché de prompt (v0.3.2): un mensaje con ``"cache": True`` y contenido ``str`` se envía como
+    bloque de texto con ``cache_control`` efímero (5 min): el prefijo hasta él (system + ese
+    mensaje) se reutiliza en las llamadas siguientes. Lo usa el Q&A para el contexto del
+    briefing. Por debajo del mínimo de tokens del modelo la API simplemente no cachea. Los
+    demás proveedores ignoran la clave.
     """
     out: list[dict] = []
     for msg in messages:
@@ -183,6 +189,8 @@ def to_api_messages(messages: list[dict]) -> list[dict]:
         content = msg.get("content")
         if role not in ("user", "assistant") or content in (None, "", []):
             continue
+        if msg.get("cache") and isinstance(content, str):
+            content = [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}]
         out.append({"role": role, "content": content})
     if not out or out[0]["role"] != "user":
         raise ValueError("El historial debe empezar por un mensaje de usuario")

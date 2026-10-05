@@ -246,6 +246,63 @@ def test_qa_unhedged_cause_is_traced(sample_briefing: Briefing) -> None:
     assert "causa afirmada sin atribuir a la fuente" in trace
 
 
+def test_qa_unhedged_cause_retry_attributes_it(sample_briefing: Briefing) -> None:
+    """Causa sin atribuir -> un reintento pidiendo atribuirla; si lo corrige, se usa ese texto."""
+    llm = ScriptedLLM(
+        "El Santander sube debido a sus resultados [ejemplo-001].",
+        "Tienes razón. Aquí está la respuesta corregida: Según el titular de la noticia, el Santander "
+        "sube por sus resultados [ejemplo-001].",
+    )
+    trace: list[str] = []
+    ans = qa.answer("¿Por qué sube el Santander?", sample_briefing, llm, trace=trace)
+    assert len(llm.calls) == 2
+    retry = llm.calls[1]["messages"]
+    assert retry[-2]["role"] == "assistant" and "debido a" in retry[-2]["content"]
+    assert retry[-1]["role"] == "user" and "debido a sus resultados" in retry[-1]["content"]
+    assert ans.answer_text.startswith("Según el titular")
+    assert ans.sources == ["ejemplo-001"]
+    assert guardrails.unhedged_causal_claims(ans.answer_text) == []
+    assert "causalidad: atribuida tras reintento" in trace
+
+
+def test_qa_unhedged_cause_persists_gets_deterministic_hedge(sample_briefing: Briefing) -> None:
+    """Si el reintento sigue afirmando la causa, se antepone «Según las noticias del briefing»."""
+    llm = ScriptedLLM("Hoy el banco cae un 1,2 %. El Santander cae debido a la caída de márgenes.")
+    trace: list[str] = []
+    ans = qa.answer("¿Por qué cae?", sample_briefing, llm, trace=trace)
+    assert len(llm.calls) == 2  # un único reintento
+    # la frase sin causa no se toca; en la otra, «El» pasa a minúscula tras el prefijo
+    assert ans.answer_text == (
+        "Hoy el banco cae un 1,2 %. Según las noticias del briefing, el Santander cae debido a la "
+        "caída de márgenes."
+    )
+    assert guardrails.unhedged_causal_claims(ans.answer_text) == []
+    assert any("matizada(s) de forma determinista" in n for n in trace)
+
+
+def test_qa_hedge_keeps_proper_nouns_and_retry_failure_is_absorbed(sample_briefing: Briefing) -> None:
+    assert qa.hedge_causal_claims("Inditex sube gracias a sus ventas.") == (
+        "Según las noticias del briefing, Inditex sube gracias a sus ventas.", 1,
+    )
+    assert qa.hedge_causal_claims("Según Reuters, sube gracias a sus ventas.")[1] == 0
+    llm = ScriptedLLM("Cae a causa de la inflación.", RuntimeError("caída de red"))
+    trace: list[str] = []
+    ans = qa.answer("¿Por qué cae?", sample_briefing, llm, trace=trace)
+    assert ans.answer_text == "Según las noticias del briefing, cae a causa de la inflación."
+    assert any("determinista" in n for n in trace)
+
+
+def test_qa_causal_retry_keeps_advice_guard(sample_briefing: Briefing) -> None:
+    """El reintento pasa por los mismos guardarraíles MiFID que la primera respuesta."""
+    llm = ScriptedLLM(
+        "Sube principalmente por los resultados.",
+        "Según la noticia, sube por los resultados [ejemplo-001]. Deberías comprar ya.",
+    )
+    ans = qa.answer("¿Qué pasa con el Santander?", sample_briefing, llm)
+    assert not guardrails.contains_advice(ans.answer_text)
+    assert guardrails.ADVICE_REMINDER_ES in ans.answer_text
+
+
 # ── Guionista ─────────────────────────────────────────────────────────────────────
 
 
