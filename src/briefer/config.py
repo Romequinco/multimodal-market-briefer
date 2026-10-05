@@ -23,6 +23,8 @@ from typing import Literal
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from briefer import brand
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 LLMProviderName = Literal["anthropic", "gemini", "openai", "mock"]
@@ -94,8 +96,9 @@ class Settings(BaseSettings):
     briefer_language: str = "es"
     briefer_voice_a: str = "es-ES-AlvaroNeural"
     briefer_voice_b: str = "es-ES-ElviraNeural"
-    briefer_speaker_a_name: str = "Álvaro"
-    briefer_speaker_b_name: str = "Elvira"
+    # Locutores (marca Briefly): A = Toro (voz masculina), B = Osa (voz femenina).
+    briefer_speaker_a_name: str = brand.SPEAKER_A_NAME
+    briefer_speaker_b_name: str = brand.SPEAKER_B_NAME
     # Velocidad y tono de edge-tts (opcionales): "+0%", "+8%", "-5%" / "+0Hz", "-2Hz".
     briefer_tts_rate: str | None = None
     briefer_tts_pitch: str | None = None

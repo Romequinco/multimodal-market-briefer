@@ -1,4 +1,6 @@
-"""Market Briefer: briefing de mercados multimodal (noticias -> análisis -> podcast a 2 voces).
+"""Briefly: briefing de mercados multimodal al cierre (noticias -> análisis -> podcast a 2 voces).
+
+La marca visible es **Briefly** (``briefer.brand``); el paquete interno sigue llamándose ``briefer``.
 
 Paquetes:
 - ``ingest``    (carril A): noticias, precios, cartera, PDF, capturas de gráfico, voz.

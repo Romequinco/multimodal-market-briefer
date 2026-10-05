@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from briefer import pipeline, storage
+from briefer import brand, pipeline, storage
 from briefer.config import reset_settings_cache
 
 pytest.importorskip("streamlit")
@@ -62,9 +62,9 @@ def demo_samples(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
 def test_home_first_30_seconds(demo_samples: Path) -> None:
     at = _app("main.py").run()
     assert not at.exception
-    assert at.title[0].value == "Market Briefer"
+    assert at.title[0].value == brand.BRAND_NAME
     head = _texts(at.markdown)
-    assert "podcast de 4 minutos" in head                      # propuesta de valor en 1 línea
+    assert brand.TAGLINE in head and brand.VALUE_PROPOSITION in head  # eslogan + propuesta de valor
     assert "Demo offline" in head                              # insignia de modo
     assert at.get("audio")                                     # reproductor arriba, sin pulsar nada
     assert any(b.label == "Preguntar sobre este briefing" for b in at.button)

@@ -26,7 +26,7 @@ from pathlib import Path
 import streamlit as st
 from streamlit.errors import StreamlitAPIException
 
-from briefer import costs
+from briefer import brand, costs
 from briefer.config import Settings, get_settings
 from briefer.logging_utils import error_text, redact_secrets
 from briefer.providers import registry
@@ -546,10 +546,12 @@ PAGE_BRIEFING = "pages/1_Briefing.py"
 PAGE_ASK = "pages/2_Preguntar.py"
 PAGE_PORTFOLIO = "pages/3_Mi_cartera.py"
 PAGE_HISTORY = "pages/4_Historico.py"
-VALUE_PROPOSITION = (
-    "Tu cartera, contada en un podcast de 4 minutos: noticias filtradas por tus valores, "
-    "analizadas por IA y leídas a dos voces."
-)
+PAGE_ABOUT = "pages/5_Quienes_somos.py"
+#: Propuesta de valor y eslogan: fuente única en ``briefer.brand``.
+VALUE_PROPOSITION = brand.VALUE_PROPOSITION
+TAGLINE = brand.TAGLINE
+#: Prefijo de los ficheros descargados (``briefly_<id>.mp3``).
+_FILE_PREFIX = brand.BRAND_NAME.lower()
 
 
 def set_active_briefing(briefing: Briefing) -> None:
@@ -664,7 +666,7 @@ def render_downloads(briefing: Briefing, key: str = "briefing", *, zip_export: b
         cols[0].download_button(
             f"Descargar audio ({audio_path.suffix.lstrip('.')})",
             _reader(audio_path),
-            file_name=f"market_briefer_{briefing.id}{audio_path.suffix}",
+            file_name=f"{_FILE_PREFIX}_{briefing.id}{audio_path.suffix}",
             mime="audio/mpeg" if audio_path.suffix.lower() == ".mp3" else "audio/wav",
             key=f"{key}_dl_audio",
             on_click="ignore",
@@ -674,7 +676,7 @@ def render_downloads(briefing: Briefing, key: str = "briefing", *, zip_export: b
         cols[1].download_button(
             "Descargar subtítulos (.srt)",
             _reader(Path(briefing.transcript.srt_path)),
-            file_name=f"market_briefer_{briefing.id}.srt",
+            file_name=f"{_FILE_PREFIX}_{briefing.id}.srt",
             mime="application/x-subrip",
             key=f"{key}_dl_srt",
             on_click="ignore",
@@ -686,7 +688,7 @@ def render_downloads(briefing: Briefing, key: str = "briefing", *, zip_export: b
         cols[2].download_button(
             "Descargar todo (.zip)",
             lambda: storage.export_briefing_zip(briefing),
-            file_name=f"market_briefer_{briefing.id}.zip",
+            file_name=f"{_FILE_PREFIX}_{briefing.id}.zip",
             mime="application/zip",
             key=f"{key}_dl_zip",
             on_click="ignore",

@@ -179,6 +179,6 @@ def test_edge_tts_live_two_voices(settings: Settings, tmp_path: Path) -> None:
 
     tts = EdgeTTS(settings)
     for voice in (settings.briefer_voice_a, settings.briefer_voice_b):
-        out = tts.synthesize("Hola, esto es una prueba de Market Briefer.", voice, tmp_path / voice)
+        out = tts.synthesize("Buenas noches, esto es una prueba de Briefly.", voice, tmp_path / voice)
         assert out.stat().st_size > 1000
         assert 1.0 < audio_duration_s(out) < 10.0

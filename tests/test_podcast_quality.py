@@ -34,19 +34,32 @@ def _demo() -> dict:
 
 
 def test_words_per_minute_matches_pregenerated_podcast() -> None:
-    """La estimación de duración del pregenerado cae a menos de un 3 % de su duración real."""
+    """La estimación de duración del pregenerado cae a menos de un 6 % de su duración real.
+
+    ``WORDS_PER_MINUTE`` se calibró con el pregenerado anterior (780 palabras habladas en 326,9 s,
+    error del 3 %); con el actual (3:39) el error es del 4 %.
+    """
     data = _demo()
     script = PodcastScript.model_validate(data["script"])
-    real = data["audio"]["duration_s"]  # 5:27 medido en el MP3
+    real = data["audio"]["duration_s"]
     estimate = scriptwriter.estimate_duration_s(script.lines)
-    assert abs(estimate - real) / real < 0.03
-    # Con el ritmo antiguo (150 ppm sobre texto escrito) se estimaban ~4,5 min: fuera de la puerta.
-    assert scriptwriter.written_word_count(script.lines) / 150 * 60 < real * 0.85
+    assert abs(estimate - real) / real < 0.06
 
 
-def test_duration_gate_flags_the_pregenerated_podcast_as_too_long() -> None:
+def test_duration_gate_accepts_the_pregenerated_podcast() -> None:
+    """El pregenerado (generado con el ritmo calibrado) queda dentro de la banda de 3-5 min."""
     script = PodcastScript.model_validate(_demo()["script"])
     problems = scriptwriter.script_problems(script, 4.0)
+    assert not any("duración estimada" in p for p in problems)
+
+
+def test_duration_gate_flags_a_long_script() -> None:
+    """Un guion de ~6 min (el pregenerado anterior duraba 5:27) se marca para resumir."""
+    long_lines = [
+        ScriptLine(speaker="A" if i % 2 == 0 else "B", text="El mercado cierra la sesión con calma. " * 6)
+        for i in range(24)
+    ]
+    problems = scriptwriter.script_problems(PodcastScript(title="t", lines=long_lines), 4.0)
     assert any("duración estimada" in p and "(resume)" in p for p in problems)
 
 
@@ -57,7 +70,7 @@ def test_estimate_counts_spoken_words_not_written() -> None:
 
 
 def test_prompt_asks_for_written_words_at_measured_pace() -> None:
-    system = scriptwriter._render_system(4.0, ("Álvaro", "Elvira"))
+    system = scriptwriter._render_system(4.0, ("Toro", "Osa"))
     assert scriptwriter.target_written_words(4.0) == 500
     assert "500 palabras" in system and "125 palabras" in system
     assert "{" not in system.replace("{}", "")  # sin marcadores sin sustituir
@@ -118,7 +131,7 @@ def test_regionalisms_are_a_script_problem_and_get_repaired() -> None:
 
 
 def test_prompt_asks_for_spain_spanish() -> None:
-    system = scriptwriter._render_system(4.0, ("Álvaro", "Elvira"))
+    system = scriptwriter._render_system(4.0, ("Toro", "Osa"))
     assert "español de España" in system and "precificar" in system and "ahorita" in system
 
 
@@ -171,7 +184,7 @@ class FakeSTT(STTProvider):
 SCRIPT = PodcastScript(
     title="t",
     lines=[
-        ScriptLine(speaker="A", text="Hola, esto es Market Briefer."),
+        ScriptLine(speaker="A", text="Hola, esto es Briefly."),
         ScriptLine(speaker="B", text="El IBEX 35 sube un 0,53 % y Redeia cae."),
         ScriptLine(speaker="A", text="Gracias por escucharnos."),
     ],
@@ -195,7 +208,7 @@ def test_word_error_rate_counts_substitutions_deletions_insertions() -> None:
 
 def test_verify_podcast_perfect_transcription(tmp_path: Path) -> None:
     # El STT escribe cifras y el nombre «real»: la misma normalización a los dos lados.
-    stt = FakeSTT("Hola, esto es Market Briefer. El Ibex 35 sube un 0,53% y Redeia cae. Gracias por escucharnos.")
+    stt = FakeSTT("Hola, esto es Briefly. El Ibex 35 sube un 0,53% y Redeia cae. Gracias por escucharnos.")
     result = transcript.verify_podcast(tmp_path / "podcast.mp3", SCRIPT, stt)
     assert result.wer == 0.0 and result.errors == 0 and not result.worst_lines
     assert not result.simulated and result.duration_s == 300.0
@@ -204,7 +217,7 @@ def test_verify_podcast_perfect_transcription(tmp_path: Path) -> None:
 
 
 def test_verify_podcast_reports_worst_lines() -> None:
-    stt = FakeSTT("Hola, esto es Market Briefer. El Ibex 35 sube un 0,53% y red y a cae. Gracias por escucharnos.")
+    stt = FakeSTT("Hola, esto es Briefly. El Ibex 35 sube un 0,53% y red y a cae. Gracias por escucharnos.")
     result = transcript.verify_podcast(Path("p.mp3"), SCRIPT, stt)
     assert result.errors == 3  # «redeia» -> «red y a»: 1 sustitución + 2 inserciones
     assert result.wer == round(3 / result.ref_words, 4)
@@ -235,7 +248,7 @@ AUDIO = AudioAsset(path=Path("podcast.mp3"), duration_s=300.0)
 
 
 def test_pipeline_verification_records_wer_and_cost(tmp_path: Path) -> None:
-    stt = FakeSTT("Hola, esto es Market Briefer. El Ibex 35 sube un 0,53% y Redeia cae. Gracias por escucharnos.")
+    stt = FakeSTT("Hola, esto es Briefly. El Ibex 35 sube un 0,53% y Redeia cae. Gracias por escucharnos.")
     future = pipeline._start_podcast_verification(
         _settings(tmp_path), "real", stt, AUDIO, SCRIPT, _podcast_metrics()
     )

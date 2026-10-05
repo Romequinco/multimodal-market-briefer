@@ -234,6 +234,7 @@ def test_failed_podcast_parallel_propagates_root_cause(tmp_path: Path) -> None:
         ("EUR/USD en 1,16", "euro dólar en uno coma dieciséis"),
         ("en el FY26", "en el año fiscal dos mil veintiséis"),
         ("YTD sube un 12%", "en lo que va de año sube un doce por ciento"),
+        ("Esto es Briefly, buenas noches.", "Esto es Brífli, buenas noches."),
         ("Esto es Market Briefer.", "Esto es Márket Brífer."),
         ("ratio 2:1", "ratio 2:1"),
     ],
@@ -250,7 +251,7 @@ def test_demo_script_reads_cleanly() -> None:
     assert lines
     for line in lines:
         out = normalize_for_speech(line)
-        for bad in ("%", "€", "$", "&", ".MC", "^", "NVIDIA", "S&P", "ese and pe", "Market Briefer"):
+        for bad in ("%", "€", "$", "&", ".MC", "^", "NVIDIA", "S&P", "ese and pe", "Market Briefer", "Briefly"):
             assert bad not in out, (bad, out)
         assert not re.search(r"\d[.,]\d", out), out  # ningún decimal ni miles con punto
         assert normalize_for_speech(out) == out  # idempotente

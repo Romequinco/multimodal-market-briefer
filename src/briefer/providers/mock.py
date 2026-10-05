@@ -27,6 +27,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from briefer import brand
 from briefer.costs import estimate_tokens
 from briefer.providers.base import (
     ImageClassifier,
@@ -170,16 +171,28 @@ def sample_analysis() -> Analysis:
 
 
 def sample_script() -> PodcastScript:
-    """Guion de ejemplo a 2 voces."""
+    """Guion de ejemplo a 2 voces (edición de noche: A = Toro abre, B = Osa cierra con el aviso)."""
+    a, b = brand.SPEAKER_A_NAME, brand.SPEAKER_B_NAME
     lines = [
-        ScriptLine(speaker="A", text="Buenos días, esto es Market Briefer, versión de pruebas."),
-        ScriptLine(speaker="B", text="Hoy la banca española sube y la tecnología americana descansa."),
+        ScriptLine(
+            speaker="A",
+            text=f"{brand.GREETING}, soy {a} y esto es {brand.BRAND_NAME}, versión de pruebas. "
+            "¡Hoy la banca española ha cerrado en verde!",
+        ),
+        ScriptLine(
+            speaker="B",
+            text=f"Y yo soy {b}. Sí, pero con matices: la tecnología americana se ha tomado un respiro.",
+        ),
         ScriptLine(speaker="A", text="Recordad que todo esto son datos simulados."),
-        ScriptLine(speaker="B", text="Y que no es asesoramiento financiero. ¡Hasta mañana!"),
+        ScriptLine(
+            speaker="B",
+            text="Y que las voces son sintéticas y esto no es asesoramiento financiero. "
+            "Buenas noches y ¡hasta mañana!",
+        ),
     ]
     words = sum(len(line.text.split()) for line in lines)
     return PodcastScript(
-        title="[MOCK] Market Briefer del día", lines=lines, est_duration_s=round(words / 2.5, 1)
+        title=f"[MOCK] {brand.BRAND_NAME} del día", lines=lines, est_duration_s=round(words / 2.5, 1)
     )
 
 

@@ -14,7 +14,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from briefer import pipeline, storage
+from briefer import brand, pipeline, storage
 from briefer.config import Settings, reset_settings_cache
 from briefer.logging_utils import error_text, fallback_error, redact_secrets, track_step
 from briefer.media import charts as charts_mod
@@ -461,7 +461,7 @@ def test_s10_fallback_script_in_finalize_uses_configured_names(monkeypatch: pyte
     monkeypatch.setattr(scriptwriter, "merge_long_runs", lambda lines: [])  # guion vacío tras reparar
     out = scriptwriter._finalize(mock.sample_script(), analysis, None, ("Nuria", "Pablo"))
     text = " ".join(line.text for line in out.lines)
-    assert "Nuria" in text and "Álvaro" not in text
+    assert "Nuria" in text and brand.SPEAKER_A_NAME not in text
 
 
 def test_s6_no_nested_retries_with_edge(monkeypatch: pytest.MonkeyPatch) -> None:

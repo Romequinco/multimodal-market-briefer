@@ -92,7 +92,7 @@ def build_transcript(
 ) -> Transcript:
     """Genera la transcripción legible y escribe ``out_dir/podcast.srt``.
 
-    ``text`` usa una línea por intervención con el nombre del locutor (``"Álvaro: …"``),
+    ``text`` usa una línea por intervención con el nombre del locutor (``"Toro: …"``),
     separadas por una línea en blanco. Si ``segments`` está vacío (sin audio) no hay SRT.
     """
     names = _names(speaker_names)

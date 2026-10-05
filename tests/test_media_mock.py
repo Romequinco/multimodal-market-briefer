@@ -159,11 +159,11 @@ def test_segments_to_srt_names_and_splitting() -> None:
         AudioSegment(speaker="A", text="Hola", start_s=0.0, end_s=1.0),
         AudioSegment(speaker="B", text=long_text, start_s=1.35, end_s=11.35),
     ]
-    srt = transcript.segments_to_srt(segments, {"A": "Álvaro", "B": "Elvira"})
+    srt = transcript.segments_to_srt(segments, {"A": "Toro", "B": "Osa"})
     blocks = [b for b in srt.strip().split("\n\n") if b]
     assert len(blocks) > 2
-    assert blocks[0].splitlines()[2] == "Álvaro: Hola"
-    assert blocks[1].splitlines()[2].startswith("Elvira: ")
+    assert blocks[0].splitlines()[2] == "Toro: Hola"
+    assert blocks[1].splitlines()[2].startswith("Osa: ")
     for i, block in enumerate(blocks, start=1):
         lines = block.splitlines()
         assert lines[0] == str(i)
@@ -177,11 +177,11 @@ def test_segments_to_srt_names_and_splitting() -> None:
 def test_build_transcript_matches_audio(tmp_path: Path) -> None:
     script = sample_script()
     audio = podcast.synthesize_podcast(script, MockTTS(), tmp_path, "a", "b")
-    names = {"A": "Álvaro", "B": "Elvira"}
+    names = {"A": "Toro", "B": "Osa"}
     tr = transcript.build_transcript(script, audio.segments, tmp_path, speaker_names=names)
 
     assert tr.srt_path == tmp_path / "podcast.srt" and tr.srt_path.exists()
-    assert tr.text.startswith("Álvaro: ") and "Elvira: " in tr.text
+    assert tr.text.startswith("Toro: ") and "Osa: " in tr.text
     srt = tr.srt_path.read_text(encoding="utf-8")
     ends = re.findall(r"--> (\d{2}):(\d{2}):(\d{2}),(\d{3})", srt)
     h, m, s, ms = map(int, ends[-1])

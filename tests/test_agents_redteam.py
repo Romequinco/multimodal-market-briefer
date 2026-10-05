@@ -321,7 +321,7 @@ _CLOSING = (
 
 def test_scriptwriter_grounding_retry_then_strip() -> None:
     analysis = _analysis(_kp("Banca", "El banco sube un 1,2 %."))
-    bad = _script("Hola, esto es Market Briefer.", "El banco sube un 1,2 %. Y su beneficio crece un 37,5 %.", _CLOSING)
+    bad = _script("Buenas noches, esto es Briefly.", "El banco sube un 1,2 %. Y su beneficio crece un 37,5 %.", _CLOSING)
     llm = ScriptedLLM(bad)
     trace: list[str] = []
     final = scriptwriter.write_script(analysis, llm, length_tolerance=None, trace=trace)

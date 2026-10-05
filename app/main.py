@@ -5,8 +5,9 @@ Las páginas de ``app/pages/`` aparecen automáticamente en la barra lateral.
 «Demo que nunca falla» (lo que ve el evaluador en los primeros 30 s), con el tema «Noticiero
 nocturno» (``components.theme``):
 
-1. Cinta de cotizaciones del briefing destacado y cabecera: nombre en serif, insignia «● en antena»,
-   fecha de la sesión en mono, propuesta de valor en una línea e insignia del modo (real / demo).
+1. Cinta de cotizaciones del briefing destacado y cabecera: velas del logo y nombre en serif
+   (``briefer.brand``), insignia «● en antena», fecha de la sesión en mono, eslogan, propuesta de valor
+   en una línea e insignia del modo (real / demo).
 2. El briefing de hoy **sin pulsar nada**: el último guardado (``data/outputs``) o, si no hay, el
    pregenerado real de ``data/samples/demo_briefing/`` (``storage.load_featured_briefing``, cacheado),
    con titular serif, reproductor, 3 puntos clave, «Preguntar sobre este briefing» (primario) y
@@ -26,11 +27,14 @@ import components  # noqa: F401  (añade src/ al sys.path)
 from briefer import storage
 from briefer.logging_utils import error_text
 from components import ROOT_DIR
+from components.brand import mark_html, setup_page
 from components.players import (
+    PAGE_ABOUT,
     PAGE_ASK,
     PAGE_BRIEFING,
     PAGE_HISTORY,
     PAGE_PORTFOLIO,
+    TAGLINE,
     VALUE_PROPOSITION,
     briefing_tape,
     featured_briefing,
@@ -43,7 +47,7 @@ from components.players import (
 )
 from components.theme import apply_theme, masthead
 
-st.set_page_config(page_title="Market Briefer", page_icon=":material/podcasts:", layout="wide")
+setup_page(None, ":material/podcasts:")
 apply_theme()
 handle_navigation()
 mode = sidebar_mode()
@@ -59,8 +63,10 @@ except Exception as exc:  # nunca romper la portada
 # ── Cinta y cabecera ──────────────────────────────────────────────────────────────
 if featured is not None:
     briefing_tape(featured[0])
-masthead(featured[0].analysis.date if featured is not None else None, on_air=featured is not None)
-st.markdown(f'<p class="mb-tagline">{escape(VALUE_PROPOSITION)}</p>', unsafe_allow_html=True)
+masthead(featured[0].analysis.date if featured is not None else None, on_air=featured is not None,
+         mark=mark_html())
+st.markdown(f'<p class="mb-tagline">{escape(TAGLINE)}</p><p class="mb-value">{escape(VALUE_PROPOSITION)}</p>',
+            unsafe_allow_html=True)
 mode_badge(mode)
 if load_error:
     st.caption(f"No se pudo cargar el briefing guardado ({load_error}).")
@@ -111,5 +117,7 @@ with st.expander("¿Cómo funciona? (cadena de modelos)"):
     diagram = ROOT_DIR / "docs" / "assets" / "arquitectura_mvp_podcast_financiero.png"
     if diagram.exists():
         st.image(str(diagram), caption="Arquitectura del MVP")
+
+page_link(PAGE_ABOUT, "Quiénes somos: el equipo, Toro y Osa", ":material/groups:")
 
 show_disclaimer()

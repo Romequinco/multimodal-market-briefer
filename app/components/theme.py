@@ -28,6 +28,8 @@ from typing import Any
 
 import streamlit as st
 
+from briefer.brand import BRAND_NAME
+
 # ── Paleta (tokens fijos del diseño) ──────────────────────────────────────────────────
 # Accesibilidad (WCAG 2.1 AA, revisado con ``contrast_ratio``; ver ``CONTRAST_PAIRS`` y el test):
 # - ``text-muted`` era #888780 (4,48:1 sobre surface, 4,01:1 sobre surface-2): ahora #9A9992 (≥ 5:1).
@@ -174,7 +176,23 @@ input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 .mb-tape__item.mb-idx b, .mb-tape__item.mb-idx .mb-up, .mb-tape__item.mb-idx .mb-down { color: var(--mb-muted); }
 
 /* Cabecera */
-.st-key-mb-masthead h1 { font-family: var(--mb-serif); font-size: 2.1rem; padding: 0; }
+.st-key-mb-masthead h1 { font-family: var(--mb-serif); font-size: 2.1rem; padding: 0; text-transform: lowercase;
+  letter-spacing: -.01em; color: var(--mb-text-strong); }
+.mb-mark { display: block; height: 2.6rem; width: auto; }
+.mb-value { font-family: var(--mb-sans); font-size: .98rem; color: var(--mb-muted); margin: 0 0 .5rem; max-width: 46rem; }
+/* Quiénes somos */
+.mb-about { font-family: var(--mb-serif); font-size: 1.12rem; line-height: 1.6; color: var(--mb-text); max-width: 46rem; margin: 0; }
+.mb-values { list-style: none; padding: 0; margin: .2rem 0 0; display: grid; gap: .6rem; max-width: 46rem; }
+.mb-values li { border-left: 3px solid var(--mb-accent); padding: .15rem 0 .15rem .8rem; color: var(--mb-text); }
+.mb-values b { color: var(--mb-text-strong); font-weight: 600; }
+.mb-host { display: flex; gap: .9rem; align-items: flex-start; }
+.mb-host__badge { flex: none; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+  font-family: var(--mb-serif); font-weight: 600; font-size: 1.5rem; color: #FFFFFF; background: var(--mb-accent); }
+.mb-host__badge--b { background: var(--mb-surface-2); color: var(--mb-accent-soft); border: 1px solid var(--mb-accent); }
+.mb-host__name { font-family: var(--mb-serif); font-weight: 600; font-size: 1.35rem; color: var(--mb-text-strong); margin: 0; }
+.mb-host__voice { font-family: var(--mb-mono); font-size: 11.5px; color: var(--mb-amber); text-transform: uppercase; letter-spacing: .06em; margin: .1rem 0 .35rem; }
+.mb-host__role { color: var(--mb-text); margin: 0; }
+.mb-team { font-family: var(--mb-mono); font-size: 13px; color: var(--mb-accent-soft); letter-spacing: .02em; }
 .mb-mast { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; }
 .mb-onair { font-family: var(--mb-mono); font-size: 12px; text-transform: lowercase; color: var(--mb-accent-soft);
   border: 1px solid var(--mb-accent); border-radius: 999px; padding: .15rem .6rem; }
@@ -481,9 +499,13 @@ def ticker_tape(prices: Iterable[Any], names: dict[str, str] | None = None, indi
         st.html(body)
 
 
-def masthead(when: date | datetime | str | None = None, on_air: bool = True, title: str = "Market Briefer") -> None:
-    """Cabecera: nombre en serif (``st.title``) + insignia «● en antena» + fecha mono."""
+def masthead(when: date | datetime | str | None = None, on_air: bool = True, title: str = BRAND_NAME,
+             mark: str = "") -> None:
+    """Cabecera: velas del logo (``mark``, HTML decorativo) + nombre en serif (``st.title``) +
+    insignia «● en antena» + fecha mono. El nombre se ve en minúscula, como el logotipo (solo CSS)."""
     with st.container(key="mb-masthead", horizontal=True, vertical_alignment="center", gap="medium"):
+        if mark:
+            st.html(mark, width="content")
         st.title(title, anchor=False, width="content")
         st.html(masthead_meta_html(when, on_air), width="content")
 

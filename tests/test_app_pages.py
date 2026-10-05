@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from briefer import pipeline, storage
+from briefer import brand, pipeline, storage
 from briefer.config import reset_settings_cache
 
 pytest.importorskip("streamlit")
@@ -61,7 +61,7 @@ def _make_demo(samples: Path) -> None:
 def test_home_without_any_briefing_shows_friendly_message(empty_samples: Path) -> None:
     at = _app("main.py").run()
     assert not at.exception
-    assert at.title[0].value == "Market Briefer"
+    assert at.title[0].value == brand.BRAND_NAME
     assert "Todavía no hay ningún briefing" in _texts(at.info)
     assert "MODO DEMO" in _texts(at.sidebar.markdown)
 

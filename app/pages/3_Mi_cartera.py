@@ -11,6 +11,7 @@ import streamlit as st
 import components  # noqa: F401  (añade src/ al sys.path)
 from briefer.config import get_settings
 from briefer.logging_utils import get_logger
+from components.brand import setup_page
 from components.players import (
     handle_navigation,
     mode_badge,
@@ -24,8 +25,7 @@ from components.theme import apply_theme
 
 log = get_logger("app.cartera")
 
-st.set_page_config(page_title="Mi cartera · Market Briefer", page_icon=":material/account_balance_wallet:",
-                   layout="wide")
+setup_page("Mi cartera", ":material/account_balance_wallet:")
 apply_theme()
 handle_navigation()
 mode = sidebar_mode()

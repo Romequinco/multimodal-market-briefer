@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 
+from briefer.brand import BRAND_NAME
 from briefer.config import Settings
 from briefer.schemas import DISCLAIMER_ES, Briefing, DeliveryResult
 
@@ -24,7 +25,10 @@ def build_caption(briefing: Briefing, max_len: int = 1024) -> str:
     """
     a = briefing.analysis
     tail = f"\n\n<i>Voces sintéticas generadas con IA.</i>\n<i>{html.escape(a.disclaimer or DISCLAIMER_ES)}</i>"
-    head = f"<b>{html.escape(a.headline)}</b>\n<i>{a.date:%d/%m/%Y} · {html.escape(a.market_mood)}</i>"
+    head = (
+        f"<b>{html.escape(a.headline)}</b>\n"
+        f"<i>{BRAND_NAME} · {a.date:%d/%m/%Y} · {html.escape(a.market_mood)}</i>"
+    )
     if len(head) + len(tail) > max_len:
         # Caso extremo (titular larguísimo o max_len pequeño): titular recortado sin formato.
         room = max(0, max_len - len(tail) - 1)

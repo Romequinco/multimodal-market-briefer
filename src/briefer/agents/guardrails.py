@@ -297,6 +297,8 @@ GRAMMAR_FIXES: dict[str, str] = {
     for pron in ("", " lo", " os")
     for wrong, right in _SUBJUNCTIVE.items()
 }
+# Concordancia de género con «cartera» (visto con Haiku: «en vuestro cartera»).
+GRAMMAR_FIXES.update({f"{det}o cartera": f"{det}a cartera" for det in ("vuestr", "nuestr")})
 _GRAMMAR_RE = re.compile(
     r"\b(" + "|".join(re.escape(k) for k in sorted(GRAMMAR_FIXES, key=len, reverse=True)) + r")\b",
     re.IGNORECASE,

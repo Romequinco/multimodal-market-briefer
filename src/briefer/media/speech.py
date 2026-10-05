@@ -19,7 +19,8 @@ compacta en lo que un locutor diría en voz alta, para que el TTS no lea «san p
   «tercera», «primer»; «nº 1» → «número 1»; «3,5x» → «tres coma cinco veces».
 - Fechas con mes abreviado: «5 oct. 2026» → «cinco de octubre de dos mil veintiséis»; año fiscal
   «FY26» → «año fiscal dos mil veintiséis».
-- Marca: «Market Briefer» → «Márket Brífer» (pronunciación inglesa aproximada con voz es-ES).
+- Marca: «Briefly» → «Brífli» (pronunciación inglesa aproximada con voz es-ES); el nombre
+  anterior, «Market Briefer» → «Márket Brífer», se mantiene para guiones ya generados.
 - Nombres que la voz pronuncia mal (verificado con STT sobre el pregenerado): «Redeia» →
   «Redéia», «Invezz» → «Ínvez»; «Standard & Poor's» → «Standard and Poor's».
 - Decimales sueltos (``1,5`` o ``1.5``) → «uno coma cinco»; miles con punto (``10.000``) →
@@ -35,6 +36,8 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from functools import lru_cache
+
+from briefer.brand import BRAND_NAME
 
 # ── Números a palabras ─────────────────────────────────────────────────────────────
 
@@ -231,7 +234,8 @@ _PRE_RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"(?<![\w/])USD\s?/\s?EUR(?![\w/])"), "dólar euro"),
     (re.compile(r"(?<![\w/])EUR\s?/\s?GBP(?![\w/])"), "euro libra"),
     (re.compile(r"\+\s?/\s?-|±"), "más o menos "),
-    (re.compile(r"\bMarket Briefer\b"), "Márket Brífer"),
+    (re.compile(rf"\b{re.escape(BRAND_NAME)}\b"), "Brífli"),
+    (re.compile(r"\bMarket Briefer\b"), "Márket Brífer"),  # marca anterior (guiones ya generados)
     (re.compile(r"(?<![\w.])(?:N\.?\s?º|n\.?\s?º|núm\.)\s?(?=\d)"), "número "),
     # Nombre completo del índice: si no, el «&» suelto se leería «y» («Standard y Poor's»).
     (re.compile(r"\bStandard\s?&\s?Poor'?s\b"), "Standard and Poor's"),

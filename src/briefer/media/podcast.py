@@ -41,6 +41,7 @@ import wave
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from briefer.brand import BRAND_NAME
 from briefer.logging_utils import get_logger
 from briefer.media.speech import normalize_for_speech
 from briefer.providers.base import TTSProvider
@@ -61,8 +62,8 @@ FFMPEG_TIMEOUT_S = 300
 # Metadatos del audio final (AI Act art. 50: contenido sintético marcado de forma detectable).
 SYNTHETIC_VOICE_NOTICE = "Voces sintéticas generadas por IA. No constituye asesoramiento financiero."
 AI_AUDIO_METADATA: dict[str, str] = {
-    "artist": "Market Briefer (voces sintéticas IA)",
-    "album": "Market Briefer",
+    "artist": f"{BRAND_NAME} (voces sintéticas IA)",
+    "album": BRAND_NAME,
     "genre": "Podcast",
     "comment": SYNTHETIC_VOICE_NOTICE,
     "copyright": "Contenido generado por IA",

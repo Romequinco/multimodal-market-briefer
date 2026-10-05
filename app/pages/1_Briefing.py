@@ -28,6 +28,7 @@ import streamlit as st
 import components  # noqa: F401  (añade src/ al sys.path)
 from briefer.config import get_settings
 from briefer.ingest.tickers import TICKER_UNIVERSE
+from components.brand import setup_page
 from components.players import (
     StatusProgress,
     briefing_tape,
@@ -43,7 +44,7 @@ from components.players import (
 )
 from components.theme import apply_theme
 
-st.set_page_config(page_title="Briefing · Market Briefer", page_icon=":material/podcasts:", layout="wide")
+setup_page("Briefing", ":material/podcasts:")
 apply_theme()
 handle_navigation()
 mode = sidebar_mode()

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 70" width="70" height="70" role="img" aria-label="Briefly · velas">
+<title>Briefly · velas</title>
+<line x1="8" y1="20" x2="8" y2="62" stroke="#F0997B" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="2" y="30" width="12" height="24" rx="2" fill="#F0997B"/>
+<line x1="26" y1="8" x2="26" y2="68" stroke="#C0502A" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="20" y="16" width="12" height="42" rx="2" fill="#C0502A"/>
+<line x1="44" y1="26" x2="44" y2="58" stroke="#F0997B" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="38" y="34" width="12" height="16" rx="2" fill="#F0997B"/>
+<line x1="62" y1="2" x2="62" y2="66" stroke="#C0502A" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="56" y="10" width="12" height="48" rx="2" fill="#C0502A"/>
+</svg>

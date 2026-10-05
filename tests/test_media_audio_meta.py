@@ -43,7 +43,7 @@ def test_concat_audio_writes_ai_metadata(tmp_path: Path) -> None:
     out = podcast.concat_audio(parts, tmp_path / "out.mp3", metadata=podcast.AI_AUDIO_METADATA)
     info = _tags(out)
     assert "Voces sintéticas generadas por IA" in info
-    assert "Market Briefer (voces sintéticas IA)" in info
+    assert "Briefly (voces sintéticas IA)" in info
 
 
 def test_synthesize_podcast_mp3_is_marked_as_synthetic(tmp_path: Path) -> None:

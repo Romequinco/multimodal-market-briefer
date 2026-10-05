@@ -2,8 +2,9 @@
 
 Carril B. Entrada: ``Analysis``. Salida: ``PodcastScript`` (líneas con ``speaker`` "A"/"B",
 ~3-5 min, cierre con el disclaimer hablado y el aviso de voz sintética). Prompt:
-``prompts/scriptwriter.md``. A = presentador/a que guía; B = analista que explica (nombres
-configurables en ``.env``).
+``prompts/scriptwriter.md``. Edición de noche de Briefly (``briefer.brand``): A = Toro, el optimista
+que abre y se fija primero en lo que sube; B = Osa, la prudente que pone contexto y riesgos y cierra
+con el aviso legal. Personalidad solo en el tono, nunca opiniones (nombres configurables en ``.env``).
 
 Robustez: el guion del LLM se valida (líneas vacías, un solo locutor, tramos del mismo
 locutor, duración fuera de 3-5 min, cifras que no están en el análisis, recomendaciones de
@@ -21,6 +22,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
+from briefer import brand
 from briefer.agents import load_prompt
 from briefer.agents.guardrails import (
     contains_advice,
@@ -62,8 +64,10 @@ CLOSING_LINE_ES = (
     "Y antes de despedirnos, un recordatorio importante: este episodio lo ha generado "
     "automáticamente un sistema de inteligencia artificial y nuestras voces son sintéticas. "
     "Es información con fines divulgativos, no asesoramiento financiero ni una recomendación "
-    "de inversión. Contrastad siempre con fuentes oficiales. ¡Hasta mañana!"
+    "de inversión. Contrastad siempre con fuentes oficiales. Buenas noches y ¡hasta mañana!"
 )
+#: Locutores por defecto (marca): A = Toro, B = Osa. El pipeline pasa los de ``Settings``.
+DEFAULT_SPEAKERS: tuple[str, str] = (brand.SPEAKER_A_NAME, brand.SPEAKER_B_NAME)
 
 _DISCLAIMER_HINTS = ("asesoramiento", "recomendación de inversión", "no es una recomendación")
 _SYNTHETIC_HINTS = ("sintétic", "inteligencia artificial", " ia ", "generad")
@@ -106,6 +110,10 @@ def _render_system(target_minutes: float, speaker_names: tuple[str, str]) -> str
         .replace("{words_per_minute}", str(WRITTEN_WORDS_PER_MINUTE))
         .replace("{speaker_a}", speaker_names[0])
         .replace("{speaker_b}", speaker_names[1])
+        .replace("{speaker_a_role}", brand.SPEAKER_A_ROLE)
+        .replace("{speaker_b_role}", brand.SPEAKER_B_ROLE)
+        .replace("{brand}", brand.BRAND_NAME)
+        .replace("{greeting}", brand.GREETING)
     )
 
 
@@ -359,35 +367,46 @@ def _repair(lines: list[ScriptLine], untraceable: list[str] | None = None) -> li
     return cleaned
 
 
-def fallback_script(analysis: Analysis, speaker_names: tuple[str, str] = ("Álvaro", "Elvira")) -> PodcastScript:
-    """Guion mínimo y determinista construido solo con el análisis (si el LLM falla)."""
+def fallback_script(analysis: Analysis, speaker_names: tuple[str, str] = DEFAULT_SPEAKERS) -> PodcastScript:
+    """Guion mínimo y determinista construido solo con el análisis (si el LLM falla).
+
+    Termina con A; ``_finalize`` añade el cierre en boca de B (Osa)."""
     a, b = speaker_names
     lines = [
-        ScriptLine(speaker="A", text=f"Buenos días, soy {a} y esto es Market Briefer."),
+        ScriptLine(
+            speaker="A",
+            text=f"{brand.GREETING}, soy {a} y esto es {brand.BRAND_NAME}, el cierre del día.",
+        ),
         ScriptLine(speaker="B", text=f"Y yo soy {b}. El titular de hoy: {analysis.headline}."),
     ]
     for kp in analysis.key_points:
         lines.append(ScriptLine(speaker="A", text=f"Vamos con otro tema: {kp.title}. ¿Qué ha pasado?"))
         lines.append(ScriptLine(speaker="B", text=kp.explanation))
     lines.append(ScriptLine(speaker="A", text=f"¿Y el tono general del mercado? {analysis.market_mood}"))
-    return PodcastScript(title=f"Market Briefer · {analysis.date:%d/%m/%Y}", lines=lines)
+    return PodcastScript(title=brand.episode_title(analysis.date), lines=lines)
 
 
 def _finalize(
     script: PodcastScript,
     analysis: Analysis,
     untraceable: list[str] | None = None,
-    speaker_names: tuple[str, str] = ("Álvaro", "Elvira"),
+    speaker_names: tuple[str, str] = DEFAULT_SPEAKERS,
 ) -> PodcastScript:
-    """Repara, añade el cierre obligatorio si falta y recalcula la duración."""
+    """Repara, añade el cierre obligatorio si falta y recalcula la duración.
+
+    El cierre lo dice siempre B (Osa, la prudente): si la última intervención ya es de B, el
+    aviso se añade a esa intervención para no romper la alternancia de locutores."""
     lines = merge_long_runs(_repair(script.lines, untraceable))
     if not lines:
         log.warning("Guionista: guion vacío tras reparar; se usa el guion de respaldo")
         lines = _repair(fallback_script(analysis, speaker_names).lines)
     if not _has_closing(lines):
-        closer: Literal["A", "B"] = "B" if lines[-1].speaker == "A" else "A"
-        lines.append(ScriptLine(speaker=closer, text=CLOSING_LINE_ES))
-    title = re.sub(r"\s+", " ", script.title or "").strip() or f"Market Briefer · {analysis.date:%d/%m/%Y}"
+        closer: Literal["A", "B"] = "B"
+        if lines[-1].speaker == closer:
+            lines[-1] = ScriptLine(speaker=closer, text=f"{lines[-1].text} {CLOSING_LINE_ES}")
+        else:
+            lines.append(ScriptLine(speaker=closer, text=CLOSING_LINE_ES))
+    title = re.sub(r"\s+", " ", script.title or "").strip() or brand.episode_title(analysis.date)
     return PodcastScript(title=title, lines=lines, est_duration_s=estimate_duration_s(lines))
 
 
@@ -431,7 +450,7 @@ def write_script(
     analysis: Analysis,
     llm: LLMProvider,
     target_minutes: float = 4.0,
-    speaker_names: tuple[str, str] = ("Álvaro", "Elvira"),
+    speaker_names: tuple[str, str] = DEFAULT_SPEAKERS,
     *,
     max_retries: int = 1,
     length_tolerance: float | None = LENGTH_TOLERANCE,
@@ -509,6 +528,7 @@ def write_script(
 
 __all__ = [
     "CLOSING_LINE_ES",
+    "DEFAULT_SPEAKERS",
     "FALLBACK_NOTE",
     "LENGTH_TOLERANCE",
     "MAX_MINUTES",

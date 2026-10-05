@@ -51,6 +51,7 @@ from matplotlib.axes import Axes  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
 from matplotlib.patches import FancyBboxPatch  # noqa: E402
 
+from briefer.brand import BRAND_NAME  # noqa: E402
 from briefer.logging_utils import get_logger  # noqa: E402
 from briefer.schemas import ChartAsset, Portfolio, PriceSnapshot  # noqa: E402
 
@@ -59,7 +60,7 @@ log = get_logger("media.charts")
 FIGSIZE = (16, 9)
 DPI = 120  # 16×9 in × 120 dpi = 1920×1080 px
 DEFAULT_SOURCE = "Yahoo Finance"
-FOOTER_NOTE = "Market Briefer · información, no asesoramiento financiero"
+FOOTER_NOTE = f"{BRAND_NAME} · información, no asesoramiento financiero"
 
 # Constantes del tema claro (se mantienen por compatibilidad; el estilo vive en ``ChartTheme``).
 SURFACE = "#fcfcfb"

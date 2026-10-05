@@ -23,6 +23,7 @@ import components  # noqa: F401  (añade src/ al sys.path)
 from briefer import storage
 from briefer.config import get_settings
 from briefer.logging_utils import error_text
+from components.brand import setup_page
 from components.players import (
     ACTIVE_BRIEFING_KEY,
     handle_navigation,
@@ -36,7 +37,7 @@ from components.players import (
 )
 from components.theme import apply_theme
 
-st.set_page_config(page_title="Histórico · Market Briefer", page_icon=":material/history:", layout="wide")
+setup_page("Histórico", ":material/history:")
 apply_theme()
 handle_navigation()
 mode = sidebar_mode()

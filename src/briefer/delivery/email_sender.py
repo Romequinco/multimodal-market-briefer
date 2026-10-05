@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 
+from briefer.brand import BRAND_NAME, EDITION
 from briefer.config import Settings
 from briefer.schemas import DISCLAIMER_ES, Briefing, DeliveryResult
 
@@ -83,7 +84,7 @@ def build_email_html(briefing: Briefing, chart_cids: list[str] | None = None) ->
         '<table role="presentation" width="600" cellpadding="0" cellspacing="0" '
         'style="max-width:600px;background:#fcfcfb;padding:24px;">'
         '<tr><td style="font-size:12px;color:#52514e;text-transform:uppercase;letter-spacing:1px;">'
-        f"Market Briefer · {a.date:%d/%m/%Y}{duration}</td></tr>"
+        f"{BRAND_NAME} · {EDITION} · {a.date:%d/%m/%Y}{duration}</td></tr>"
         '<tr><td style="font-size:24px;font-weight:bold;color:#0b0b0b;padding:8px 0;">'
         f"{html.escape(a.headline)}</td></tr>"
         '<tr><td style="font-size:14px;color:#52514e;padding-bottom:8px;">Tono del mercado: '
@@ -105,7 +106,7 @@ def send_briefing_email(
     # TODO:
     # 1. s = settings or get_settings(); to = to or s.smtp_recipients; si faltan host/from/to
     #    -> DeliveryResult(ok=False, detail="SMTP no configurado").
-    # 2. EmailMessage: Subject = f"Market Briefer · {analysis.headline}", texto plano +
+    # 2. EmailMessage: Subject = f"{BRAND_NAME} · {analysis.headline}", texto plano +
     #    add_alternative(html); adjuntar gráficos (related, CID) y el MP3 si < 10 MB.
     # 3. smtplib.SMTP(host, port) + starttls() si smtp_use_tls; login; send_message.
     # 4. try/except Exception -> ok=False, detail=str(e) (sin incluir credenciales).
