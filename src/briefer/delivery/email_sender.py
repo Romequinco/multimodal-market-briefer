@@ -33,6 +33,15 @@ def _source_html(source: str, briefing: Briefing) -> str:
     return html.escape(source)
 
 
+CHART_ALT = {"overview_bar": "Variación del día", "price_line": "Cotización", "portfolio_pie": "Reparto de la cartera"}
+
+
+def _chart_alt(chart) -> str:
+    """Texto alternativo legible del gráfico (accesibilidad y clientes que bloquean imágenes)."""
+    label = CHART_ALT.get(chart.kind, chart.kind)
+    return f"{label} · {chart.ticker}" if chart.ticker else label
+
+
 def build_email_html(briefing: Briefing, chart_cids: list[str] | None = None) -> str:
     """Cuerpo HTML: titular, puntos clave con sentimiento, gráficos inline y disclaimer.
 
@@ -58,7 +67,7 @@ def build_email_html(briefing: Briefing, chart_cids: list[str] | None = None) ->
             cell += f'<div style="font-size:12px;color:#52514e;margin-top:2px;">Fuentes: {sources}</div>'
         rows.append(f'<tr><td style="padding:12px 0;border-bottom:1px solid #e4e3df;">{cell}</td></tr>')
     charts = "".join(
-        f'<img src="cid:{html.escape(cid, quote=True)}" alt="{html.escape(chart.ticker or chart.kind)}" '
+        f'<img src="cid:{html.escape(cid, quote=True)}" alt="{html.escape(_chart_alt(chart), quote=True)}" '
         'width="560" style="display:block;width:100%;max-width:560px;margin:12px 0;border-radius:6px;">'
         for cid, chart in zip(cids, briefing.charts)
     )

@@ -1,0 +1,48 @@
+# Contexto de build minimo: el Dockerfile copia solo lo necesario, pero esto evita mandar al
+# daemon secretos, material de clase y entornos virtuales (y que un COPY futuro los meta en la imagen).
+
+# Secretos y configuracion local
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Control de versiones y CI
+.git
+.gitattributes
+.gitignore
+.github
+
+# Entornos virtuales y artefactos de Python
+.venv
+venv*
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+**/*.egg-info
+build
+dist
+
+# Datos generados (en el contenedor se montan como volumen)
+data/outputs
+data/cache
+
+# Documentacion: solo hace falta docs/assets (diagrama de la portada)
+docs/*
+!docs/assets
+
+# No forman parte de la app
+notebooks
+pitch
+tests
+
+# Docker y editores
+Dockerfile
+docker-compose.yml
+.dockerignore
+.vscode
+.idea
+.claude
+*.log

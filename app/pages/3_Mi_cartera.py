@@ -8,19 +8,28 @@ from __future__ import annotations
 
 import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
-from components.players import pending, show_disclaimer, sidebar_controls
+from components.players import (
+    handle_navigation,
+    mode_badge,
+    page_link,
+    pending,
+    show_disclaimer,
+    sidebar_mode,
+)
 
 from briefer.config import get_settings
 
-st.set_page_config(page_title="Mi cartera · Market Briefer", layout="wide")
-sidebar_controls()
+st.set_page_config(page_title="Mi cartera · Market Briefer", page_icon=":material/account_balance_wallet:",
+                   layout="wide")
+handle_navigation()
+mode = sidebar_mode()
 settings = get_settings()
 
 st.title("Mi cartera")
-show_disclaimer()
+mode_badge(mode)
 st.caption(
     "Privacidad (RGPD): la cartera se usa solo durante esta sesión para filtrar noticias; "
-    "no se guarda en disco ni se comparte. Solo los tickers se envían a los proveedores de datos."
+    "no se guarda en disco. Los tickers se usan para buscar noticias y precios, y los tickers con sus pesos se envían al modelo de IA para generar el análisis."
 )
 
 sample_path = settings.samples_path / "portfolio_ejemplo.csv"
@@ -74,8 +83,14 @@ if portfolio is not None:
         },
     )
     st.caption("La cartera se usará automáticamente en la página «Briefing» mientras dure la sesión.")
-    if st.button("Olvidar cartera"):
+    c1, c2 = st.columns(2)
+    page_link("pages/1_Briefing.py", "Generar el briefing de mi cartera", ":material/podcasts:", container=c1)
+    if c2.button("Olvidar cartera", icon=":material/delete:"):
         st.session_state.pop("portfolio", None)
+        st.session_state.pop("_portfolio_upload_id", None)
         st.rerun()
 else:
-    st.write("No hay cartera cargada.")
+    st.info("No hay cartera cargada. Sube un CSV con columnas `ticker` y `weight` (peso, 0-1) o "
+            "`quantity` (nº de acciones), o prueba con la cartera de ejemplo.")
+
+show_disclaimer()

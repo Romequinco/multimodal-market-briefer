@@ -5,11 +5,13 @@ Carril B. Entrada: ``Analysis``. Salida: ``PodcastScript`` (líneas con ``speake
 ``prompts/scriptwriter.md``. A = presentador/a que guía; B = analista que explica (nombres
 configurables en ``.env``).
 
-Robustez: el guion del LLM se valida (líneas vacías, un solo locutor, falta de cierre,
-duración muy lejos del objetivo). Si hay problemas se pide **una** reescritura con las
-correcciones; después, lo que quede se repara de forma determinista (nunca se devuelve un
-guion inválido). Si el LLM no da nada aprovechable, se genera un guion mínimo a partir del
-propio análisis.
+Robustez: el guion del LLM se valida (líneas vacías, un solo locutor, tramos del mismo
+locutor, duración fuera de 3-5 min, cifras que no están en el análisis, recomendaciones de
+inversión, palabras con letras de otros alfabetos y errores gramaticales recurrentes). Si hay
+problemas se pide **una** reescritura con las correcciones; después, lo que quede se repara de
+forma determinista (nunca se devuelve un guion inválido): homoglifos y gramática corregidos,
+palabras raras y frases con cifras no trazables o recomendaciones eliminadas, cierre añadido.
+Si el LLM no da nada aprovechable, se genera un guion mínimo a partir del propio análisis.
 """
 
 from __future__ import annotations
@@ -17,7 +19,18 @@ from __future__ import annotations
 import re
 
 from briefer.agents import load_prompt
-from briefer.agents.guardrails import strip_advice
+from briefer.agents.guardrails import (
+    contains_advice,
+    extract_figures,
+    fix_spoken_text,
+    grammar_issues,
+    odd_words,
+    shared_figures,
+    strip_advice,
+    strip_figures,
+    unhedged_causal_claims,
+    untraceable_figures,
+)
 from briefer.logging_utils import get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import Analysis, PodcastScript, ScriptLine
@@ -26,6 +39,9 @@ log = get_logger("agents.scriptwriter")
 
 WORDS_PER_MINUTE = 150  # ritmo de locución aproximado en español
 LENGTH_TOLERANCE = 0.4  # desviación relativa de duración que dispara una reescritura
+#: Duración aceptable del episodio (producto: 3-5 min). Si el objetivo está dentro de este
+#: rango, la comprobación de duración usa el rango; si no, la tolerancia relativa.
+MIN_MINUTES, MAX_MINUTES = 3.0, 5.0
 MAX_SAME_SPEAKER_RUN = 2  # intervenciones seguidas del mismo locutor que se toleran
 #: Nota que ``write_script`` añade a ``trace`` cuando usa ``fallback_script`` (el pipeline la
 #: detecta para marcar el paso como fallback).
@@ -116,10 +132,49 @@ def merge_long_runs(lines: list[ScriptLine], max_run: int = MAX_SAME_SPEAKER_RUN
     return out
 
 
+def duration_bounds_s(target_minutes: float, length_tolerance: float) -> tuple[float, float]:
+    """Duración aceptable (s): la banda ±``length_tolerance`` recortada a 3-5 min si el
+    objetivo está en ese rango (p. ej. objetivo 4 min -> 3-5 min)."""
+    low, high = target_minutes * (1 - length_tolerance), target_minutes * (1 + length_tolerance)
+    if MIN_MINUTES <= target_minutes <= MAX_MINUTES:
+        low, high = max(low, MIN_MINUTES), min(high, MAX_MINUTES)
+    return low * 60, high * 60
+
+
+def script_text(script: PodcastScript) -> str:
+    """Texto hablado del guion (una intervención por línea)."""
+    return "\n".join(line.text for line in script.lines)
+
+
+def missing_key_points(script: PodcastScript, analysis: Analysis) -> list[str]:
+    """Títulos de los puntos clave del análisis que el guion no trata.
+
+    Heurística por cifras: un punto con cifras se da por tratado si al menos una de ellas
+    (admitiendo redondeo) aparece en el guion; los puntos sin cifras no se comprueban.
+    """
+    text = script_text(script)
+    missing: list[str] = []
+    for kp in analysis.key_points:
+        figures = extract_figures(kp.explanation)
+        if figures and not shared_figures(kp.explanation, text):
+            missing.append(kp.title)
+    return missing
+
+
 def script_problems(
-    script: PodcastScript, target_minutes: float, length_tolerance: float | None = LENGTH_TOLERANCE
+    script: PodcastScript,
+    target_minutes: float,
+    length_tolerance: float | None = LENGTH_TOLERANCE,
+    *,
+    reference: str | None = None,
+    analysis: Analysis | None = None,
 ) -> list[str]:
-    """Lista de problemas del guion (vacía si es válido). Textos pensados para el LLM."""
+    """Lista de problemas del guion (vacía si es válido). Textos pensados para el LLM.
+
+    ``reference``: texto del ``Analysis`` (``build_user_message``); si se indica, las cifras del
+    guion que no aparezcan en él son un problema (*grounding* del guion).
+    ``analysis``: si se indica, cada punto clave debe estar tratado (``missing_key_points``).
+    """
     problems: list[str] = []
     lines = script.lines
     if len(lines) < 2:
@@ -136,14 +191,39 @@ def script_problems(
             "alterna A y B."
         )
     if length_tolerance is not None and lines:
-        target_s = target_minutes * 60
+        low_s, high_s = duration_bounds_s(target_minutes, length_tolerance)
         duration = estimate_duration_s(lines)
-        if abs(duration - target_s) > length_tolerance * target_s:
+        if not low_s <= duration <= high_s:
             words = int(target_minutes * WORDS_PER_MINUTE)
+            have = sum(len(line.text.split()) for line in lines)
             problems.append(
-                f"La duración estimada es {duration / 60:.1f} min y el objetivo {target_minutes:g} min "
-                f"(unas {words} palabras en total)."
+                f"La duración estimada es {duration / 60:.1f} min ({have} palabras) y debe estar entre "
+                f"{low_s / 60:g} y {high_s / 60:g} min: apunta a unas {words} palabras en total"
+                + (" (desarrolla más cada punto clave con su contexto)." if duration < low_s else " (resume).")
             )
+    text = script_text(script)
+    if reference is not None and (missing := untraceable_figures(text, reference)):
+        problems.append(
+            "Estas cifras no aparecen en el análisis: " + ", ".join(missing[:8])
+            + ". Usa solo cifras del análisis (puedes redondear) o quita esas frases."
+        )
+    if analysis is not None and (skipped := missing_key_points(script, analysis)):
+        problems.append(
+            "Faltan puntos clave del análisis: " + ", ".join(f"«{t}»" for t in skipped)
+            + ". Dedica un bloque a cada uno (también a los documentos del oyente)."
+        )
+    if contains_advice(text):
+        problems.append("Hay frases que suenan a recomendación de inversión: elimínalas (MiFID II).")
+    if odd := odd_words(text):
+        problems.append(
+            "Hay palabras con caracteres de otros alfabetos o invisibles que la voz leerá mal: "
+            + ", ".join(odd[:5]) + ". Escríbelas solo con letras españolas."
+        )
+    if bad := grammar_issues(text):
+        problems.append(
+            "Errores gramaticales: " + ", ".join(f"«{b}»" for b in bad[:5])
+            + " (con «para que» va subjuntivo: «para que veáis»)."
+        )
     return problems
 
 
@@ -160,13 +240,19 @@ def fix_homoglyphs(text: str) -> str:
     return text.translate(_HOMOGLYPHS)
 
 
-def _repair(lines: list[ScriptLine]) -> list[ScriptLine]:
-    """Reparación determinista: homoglifos, vacíos, frases de recomendación y 2 locutores."""
+def _repair(lines: list[ScriptLine], untraceable: list[str] | None = None) -> list[ScriptLine]:
+    """Reparación determinista: homoglifos, gramática y palabras raras, vacíos, frases de
+    recomendación, frases con cifras no trazables (``untraceable``) y 2 locutores."""
     cleaned: list[ScriptLine] = []
     for line in lines:
-        text, changed = strip_advice(" ".join(fix_homoglyphs(line.text).split()))
+        text = fix_spoken_text(" ".join(fix_homoglyphs(line.text).split()))
+        text, changed = strip_advice(text)
         if changed:
             log.warning("Guionista: eliminada una frase con recomendación de inversión")
+        if untraceable:
+            text, cut = strip_figures(text, untraceable)
+            if cut:
+                log.warning("Guionista: eliminada una frase con cifras no trazables %s", untraceable)
         if text:
             cleaned.append(ScriptLine(speaker=line.speaker, text=text))
     if len({line.speaker for line in cleaned}) < 2 and len(cleaned) >= 2:
@@ -192,12 +278,17 @@ def fallback_script(analysis: Analysis, speaker_names: tuple[str, str] = ("Álva
     return PodcastScript(title=f"Market Briefer · {analysis.date:%d/%m/%Y}", lines=lines)
 
 
-def _finalize(script: PodcastScript, analysis: Analysis) -> PodcastScript:
+def _finalize(
+    script: PodcastScript,
+    analysis: Analysis,
+    untraceable: list[str] | None = None,
+    speaker_names: tuple[str, str] = ("Álvaro", "Elvira"),
+) -> PodcastScript:
     """Repara, añade el cierre obligatorio si falta y recalcula la duración."""
-    lines = merge_long_runs(_repair(script.lines))
+    lines = merge_long_runs(_repair(script.lines, untraceable))
     if not lines:
         log.warning("Guionista: guion vacío tras reparar; se usa el guion de respaldo")
-        lines = _repair(fallback_script(analysis).lines)
+        lines = _repair(fallback_script(analysis, speaker_names).lines)
     if not _has_closing(lines):
         closer = "B" if lines[-1].speaker == "A" else "A"
         lines.append(ScriptLine(speaker=closer, text=CLOSING_LINE_ES))
@@ -233,6 +324,7 @@ def write_script(
     max_retries: int = 1,
     length_tolerance: float | None = LENGTH_TOLERANCE,
     trace: list[str] | None = None,
+    check_figures: bool = True,
 ) -> PodcastScript:
     """Genera el guion del episodio (A/B alternando, apertura y cierre con disclaimer).
 
@@ -246,10 +338,14 @@ def write_script(
             comprobación (útil con ``MockLLM``, que devuelve un guion fijo corto).
         trace: lista opcional donde se añaden notas de calidad (reintentos, respaldo); el
             pipeline las guarda en ``StepMetric.detail``.
+        check_figures: *grounding* del guion: toda cifra debe estar en el ``Analysis``; si no,
+            cuenta como problema (reintento) y lo que quede se elimina al reparar.
     """
     notes = trace if trace is not None else []
     system = _render_system(target_minutes, speaker_names)
-    messages: list[dict] = [{"role": "user", "content": build_user_message(analysis)}]
+    user = build_user_message(analysis)
+    reference = user if check_figures else None
+    messages: list[dict] = [{"role": "user", "content": user}]
     best: PodcastScript | None = None
     best_score: tuple[int, float] | None = None
     for attempt in range(max_retries + 1):
@@ -257,7 +353,10 @@ def write_script(
         if script is None:
             problems = ["La respuesta no tenía el formato estructurado pedido."]
         else:
-            problems = script_problems(script, target_minutes, length_tolerance)
+            problems = script_problems(
+                script, target_minutes, length_tolerance, reference=reference,
+                analysis=analysis if check_figures else None,
+            )
             score = (len(problems), abs(estimate_duration_s(script.lines) - target_minutes * 60))
             if best_score is None or score < best_score:
                 best, best_score = script, score
@@ -280,7 +379,14 @@ def write_script(
         log.warning("Guionista: sin guion del LLM; se usa el guion de respaldo")
         notes.append(FALLBACK_NOTE)
         best = fallback_script(analysis, speaker_names)
-    final = _finalize(best, analysis)
+    untraceable = untraceable_figures(script_text(best), reference) if reference is not None else []
+    if untraceable:
+        notes.append(f"guion: eliminadas frases con cifras no trazables ({', '.join(untraceable[:6])})")
+    elif reference is not None:
+        notes.append("guion: cifras trazables al análisis")
+    final = _finalize(best, analysis, untraceable, speaker_names)
+    if causal := unhedged_causal_claims(script_text(final)):
+        notes.append(f"guion: {len(causal)} frase(s) con causa no matizada")
     notes.append(f"guion: {len(final.lines)} intervenciones, ~{final.est_duration_s / 60:.1f} min")
     return final
 
@@ -289,13 +395,18 @@ __all__ = [
     "CLOSING_LINE_ES",
     "FALLBACK_NOTE",
     "LENGTH_TOLERANCE",
+    "MAX_MINUTES",
+    "MAX_SAME_SPEAKER_RUN",
+    "MIN_MINUTES",
     "WORDS_PER_MINUTE",
     "build_user_message",
+    "duration_bounds_s",
     "estimate_duration_s",
-    "MAX_SAME_SPEAKER_RUN",
     "fallback_script",
     "merge_long_runs",
+    "missing_key_points",
     "same_speaker_runs",
     "script_problems",
+    "script_text",
     "write_script",
 ]

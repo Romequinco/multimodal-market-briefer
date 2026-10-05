@@ -12,7 +12,14 @@ compacta en lo que un locutor diría en voz alta, para que el TTS no lea «san p
 - Periodos: «3T 2026» / «Q3 2026» / «T3» → «tercer trimestre de dos mil veintiséis»; «1S» / «H1»
   → «primer semestre».
 - Fechas: «05/10/2026» y «2026-10-05» → «cinco de octubre de dos mil veintiséis».
-- Abreviaturas: IBEX, BCE, Fed, EPS/BPA, EBITDA, EE. UU., S&P, pb, pp, vs.… → lectura natural.
+- Abreviaturas: IBEX, BCE, Fed, EPS/BPA, EBITDA, EE. UU., S&P, pb, pp, vs., IA, IPO, ETF, YTD… →
+  lectura natural; «EUR/USD» → «euro dólar»; «+/-» → «más o menos»; «0,25 €/acción» → «… euros
+  por acción».
+- Horas, ordinales y múltiplos: «15:30 h» → «quince treinta horas»; «1º», «3ª», «1er» → «primero»,
+  «tercera», «primer»; «nº 1» → «número 1»; «3,5x» → «tres coma cinco veces».
+- Fechas con mes abreviado: «5 oct. 2026» → «cinco de octubre de dos mil veintiséis»; año fiscal
+  «FY26» → «año fiscal dos mil veintiséis».
+- Marca: «Market Briefer» → «Márket Brífer» (pronunciación inglesa aproximada con voz es-ES).
 - Decimales sueltos (``1,5`` o ``1.5``) → «uno coma cinco»; miles con punto (``10.000``) →
   ``10000`` (el TTS ya lee bien los enteros).
 
@@ -216,6 +223,22 @@ def _replace_tickers(text: str) -> str:
 
 # ── Reglas en orden ────────────────────────────────────────────────────────────────
 
+# Antes de todo: pares de divisas, «+/-», marca y «nº» (si no, «EUR» y «+» se leerían por separado).
+_PRE_RULES: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"(?<![\w/])EUR\s?/\s?USD(?![\w/])"), "euro dólar"),
+    (re.compile(r"(?<![\w/])USD\s?/\s?EUR(?![\w/])"), "dólar euro"),
+    (re.compile(r"(?<![\w/])EUR\s?/\s?GBP(?![\w/])"), "euro libra"),
+    (re.compile(r"\+\s?/\s?-|±"), "más o menos "),
+    (re.compile(r"\bMarket Briefer\b"), "Márket Brífer"),
+    (re.compile(r"(?<![\w.])(?:N\.?\s?º|n\.?\s?º|núm\.)\s?(?=\d)"), "número "),
+]
+
+
+def _sub_pre(text: str) -> str:
+    for pattern, replacement in _PRE_RULES:
+        text = pattern.sub(replacement, text)
+    return re.sub(r"\s{2,}", " ", text)
+
 # Fechas: dd/mm/aaaa (o dd-mm-aaaa) y aaaa-mm-dd.
 _DATE_DMY = re.compile(r"(?<![\d/])(\d{1,2})[/-](\d{1,2})[/-](\d{4}|\d{2})(?![\d/])")
 _DATE_ISO = re.compile(r"(?<![\d-])(\d{4})-(\d{2})-(\d{2})(?![\d-])")
@@ -235,7 +258,21 @@ def _sub_dates(text: str) -> str:
     def _dmy(m: re.Match[str]) -> str:
         return _date_words(int(m.group(1)), int(m.group(2)), m.group(3)) or m.group(0)
 
-    return _DATE_DMY.sub(_dmy, _DATE_ISO.sub(_iso, text))
+    text = _DATE_DMY.sub(_dmy, _DATE_ISO.sub(_iso, text))
+    return _DATE_ABBR.sub(_abbr_date, text)
+
+
+_MONTH_ABBR = {"ene": 1, "feb": 2, "mar": 3, "abr": 4, "may": 5, "jun": 6, "jul": 7, "ago": 8, "sep": 9,
+               "sept": 9, "oct": 10, "nov": 11, "dic": 12}
+# «5 oct. 2026», «5-oct-2026», «5 de oct.» (el día es obligatorio: «mar» o «may» sueltos son palabras).
+_DATE_ABBR = re.compile(
+    r"(?<![\d/])(\d{1,2})(?:\s|-)(?:de\s)?(" + "|".join(sorted(_MONTH_ABBR, key=len, reverse=True))
+    + r")\.?(?:(?:\s|-)(?:de\s)?(\d{4}))?(?![\w])"
+)
+
+
+def _abbr_date(m: re.Match[str]) -> str:
+    return _date_words(int(m.group(1)), _MONTH_ABBR[m.group(2)], m.group(3)) or m.group(0)
 
 
 # Periodos: 3T 2026, 3T26, T3, Q3 2026, 3Q26, 1S, S1, H1 2026, 1H26.
@@ -264,7 +301,10 @@ def _sub_periods(text: str) -> str:
         text = pat.sub(_make("trimestre"), text)
     for pat in _HALF_PATTERNS:
         text = pat.sub(_make("semestre"), text)
-    return text
+    return _FISCAL_YEAR.sub(lambda m: f"año fiscal {_year_words(m.group(1))}", text)
+
+
+_FISCAL_YEAR = re.compile(r"(?<![\w])FY\s?'?(\d{4}|\d{2})(?![\w])")
 
 
 # Importes: [signo] [moneda] número [magnitud] [moneda].
@@ -332,7 +372,7 @@ def _sub_amounts(text: str) -> str:
 
 # Porcentajes y puntos.
 _PERCENT = re.compile(_SIGN + r"(?<![\w,.])(" + _NUM + r")\s?(?:%|por\s?ciento)")
-_POINTS = re.compile(_SIGN + r"(?<![\w,.])(" + _NUM + r")\s?(p\.?\s?b\.?|pb|p\.?\s?p\.?|pp)(?![\w])")
+_POINTS = re.compile(_SIGN + r"(?<![\w,.])(" + _NUM + r")\s?(p\.?\s?b\.?|pbs?|bps?|p\.?\s?p\.?|pp)(?![\w])")
 
 
 def _signed(sign: str | None, words: str) -> str:
@@ -360,6 +400,36 @@ def _sub_percent_points(text: str) -> str:
         return _signed(m.group(1), f"{decimal_to_words(number, apocope=True)} {unit} {kind}")
 
     return _POINTS.sub(_pts, text)
+
+
+# Horas («15:30», «9:05 h»), ordinales («1º», «3ª», «1er») y múltiplos («3,5x»).
+_TIME = re.compile(r"(?<![\d:,.])([01]?\d|2[0-3]):([0-5]\d)(?:\s?(h|horas)(?![\w]))?(?![\d:])")
+_ORDINALS_M = ["", "primero", "segundo", "tercero", "cuarto", "quinto", "sexto", "séptimo", "octavo",
+               "noveno", "décimo"]
+_ORDINAL = re.compile(r"(?<![\w,.])(10|[1-9])(?:(º)|(ª)|(er)(?![\w]))")
+_MULTIPLE = re.compile(r"(?<![\w,.])(" + _NUM + r")\s?x(?![\w])")
+
+
+def _sub_times_ordinals(text: str) -> str:
+    def _time(m: re.Match[str]) -> str:
+        hours, minutes = int(m.group(1)), int(m.group(2))
+        words = number_to_words(hours, apocope=True) if hours != 1 else "una"
+        if minutes:  # «9:05» -> «nueve y cinco»; «15:30» -> «quince treinta»
+            words += f" {'y ' if minutes < 10 else ''}{number_to_words(minutes)}"
+        return words + (" horas" if m.group(3) else "")
+
+    def _ordinal(m: re.Match[str]) -> str:
+        n = int(m.group(1))
+        word = _ORDINALS_M[n]
+        if m.group(3):  # femenino
+            return word[:-1] + "a"
+        if m.group(4) and n in (1, 3):  # «1er», «3er» -> apócope
+            return word[:-1]
+        return word
+
+    text = _TIME.sub(_time, text)
+    text = _ORDINAL.sub(_ordinal, text)
+    return _MULTIPLE.sub(lambda m: f"{decimal_to_words(m.group(1))} {'vez' if _is_one(m.group(1)) else 'veces'}", text)
 
 
 # Números sueltos con decimales o separador de miles.
@@ -396,7 +466,19 @@ ABBREVIATIONS: dict[str, str] = {
     "CFO": "director financiero",
     "NVIDIA": "Nvidia",
     "YoY": "interanual",
-    "S&P": "ese and pe",
+    "QoQ": "intertrimestral",
+    "YTD": "en lo que va de año",
+    "S&P": "Standard and Poor's",
+    "IA": "inteligencia artificial",
+    "AI": "inteligencia artificial",
+    "IPO": "salida a bolsa",
+    "OPV": "oferta pública de venta",
+    "ETF": "fondo cotizado",
+    "ETFs": "fondos cotizados",
+    "PIB": "pib",
+    "ROE": "rentabilidad sobre fondos propios",
+    "M&A": "fusiones y adquisiciones",
+    "CNMV": "Comisión Nacional del Mercado de Valores",
     "UE": "Unión Europea",
     "USD": "dólares",
     "EUR": "euros",
@@ -408,6 +490,7 @@ _SPECIAL_ABBREVIATIONS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"(?<![\w.])a/a(?![\w])"), "interanual"),
     (re.compile(r"(?<![\w.])aprox\.(?![\w])"), "aproximadamente"),
     (re.compile(r"(?<![\w.])etc\.(?![\w])"), "etcétera"),
+    (re.compile(r"(?<![\w.])AI Act(?![\w])"), "Reglamento europeo de inteligencia artificial"),
 ]
 _ABBR_RE = re.compile(
     _L + r"(" + "|".join(re.escape(k) for k in sorted(ABBREVIATIONS, key=len, reverse=True)) + r")" + _R
@@ -422,6 +505,7 @@ def _sub_abbreviations(text: str) -> str:
 
 # Símbolos sueltos que quedan.
 _SYMBOLS = [
+    (re.compile(r"(euros?|dólares?|€|\$)\s*/\s*(?=[^\W\d])"), r"\1 por "),
     (re.compile(r"\s*&\s*"), " y "),
     (re.compile(r"\s*€"), " euros"),
     (re.compile(r"\s*%"), " por ciento"),
@@ -441,16 +525,18 @@ def _sub_symbols(text: str) -> str:
 def normalize_for_speech(text: str) -> str:
     """Devuelve ``text`` preparado para leerse en voz alta en español (ver docstring del módulo).
 
-    El orden importa: tickers → fechas → periodos → importes → porcentajes/puntos → números
-    sueltos → abreviaturas → símbolos. Si el resultado quedara vacío, devuelve el original.
+    El orden importa: pares de divisas/marca → tickers → fechas → periodos → importes →
+    porcentajes/puntos → horas/ordinales/múltiplos → números sueltos → abreviaturas → símbolos. Si el resultado quedara vacío, devuelve el original.
     """
     if not text or not text.strip():
         return text
-    out = _replace_tickers(text)
+    out = _sub_pre(text)
+    out = _replace_tickers(out)
     out = _sub_dates(out)
     out = _sub_periods(out)
     out = _sub_amounts(out)
     out = _sub_percent_points(out)
+    out = _sub_times_ordinals(out)
     out = _sub_numbers(out)
     out = _sub_abbreviations(out)
     out = _sub_symbols(out)

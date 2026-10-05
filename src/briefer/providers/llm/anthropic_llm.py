@@ -51,10 +51,22 @@ class AnthropicLLM(LLMProvider):
         self._schemas: dict[type[BaseModel], dict] = {}
 
     def _get_client(self) -> Any:  # -> anthropic.Anthropic
-        """Crea el cliente de forma perezosa (import del SDK solo al usarlo)."""
+        """Cliente compartido del proceso (``common.get_client``), creado de forma perezosa.
+
+        Si se asigna ``self._client`` (tests), se usa ese.
+        """
         if self._client is None:
-            self._client = common.make_client(self.settings)
+            self._client = common.get_client(self.settings)
         return self._client
+
+    def warmup(self) -> float:
+        """Precalienta el SDK y la conexión con una llamada gratuita (``models.retrieve``).
+
+        Devuelve los segundos empleados. No consume tokens. Ver ``pipeline.warmup``.
+        """
+        if self._client is not None:  # cliente inyectado (tests): nada que calentar
+            return 0.0
+        return common.warmup_client(self.settings, self.model)
 
     def _schema(self, response_model: type[BaseModel]) -> dict:
         """Esquema JSON admitido por la API para ``response_model`` (cacheado por clase)."""
@@ -96,20 +108,21 @@ class AnthropicLLM(LLMProvider):
             LLMResponseError: rechazo, respuesta cortada o vacía.
             StructuredOutputError: JSON no válido para ``response_model`` tras el reintento.
         """
+        # Se reinicia ANTES de llamar: si la llamada falla, last_usage no debe arrastrar los
+        # tokens de la llamada anterior (el pipeline los sumaría dos veces).
+        self.last_usage = {"input_tokens": 0, "output_tokens": 0}
         if response_model is None:
             resp = self._create(system, messages, MAX_TOKENS_TEXT, None)
             self.last_usage = common.usage_dict(resp)
             return common.response_text(resp)
 
         fmt = {"type": "json_schema", "schema": self._schema(response_model)}
+
         # Se acumula en last_usage ANTES de leer el texto: si la respuesta no sirve
         # (rechazo, cortada), los tokens ya se han pagado y deben contar en el coste.
-        self.last_usage = {"input_tokens": 0, "output_tokens": 0}
-
         def call(history: list[dict]) -> tuple[str, dict[str, int]]:
             resp = self._create(system, history, MAX_TOKENS_STRUCTURED, fmt)
-            for key, value in common.usage_dict(resp).items():
-                self.last_usage[key] += value
+            common.add_usage(self.last_usage, common.usage_dict(resp))
             return common.response_text(resp), {}
 
         return complete_structured(call, messages, response_model, pair_fields=dict_fields(response_model))

@@ -3,6 +3,16 @@
 Carril C. Solo presentación: recibe schemas (``Briefing``, ``QAAnswer``) y los pinta. No
 instancia proveedores ni llama a modelos (eso es cosa de ``briefer.pipeline``); para saber qué
 está configurado usa ``registry.describe_providers`` y ``Settings.has_secret`` (solo lectura).
+
+Estado de sesión (``st.session_state``) que comparten las páginas:
+
+- ``"briefing"``: briefing activo (contexto de «Preguntar»). Lo fijan la portada (si no hay otro),
+  «Briefing» al generar, «Histórico» al abrir y el botón «Preguntar sobre este briefing».
+- ``"run_mode"`` / ``"use_mock"``: modo elegido en la barra lateral.
+- ``"_goto"``: navegación pendiente pedida desde un callback (``handle_navigation``).
+
+Rendimiento: la portada se cachea con ``st.cache_data`` (``featured_briefing``) y las descargas
+leen el fichero solo al pulsar (``data`` perezoso), no en cada recarga.
 """
 
 from __future__ import annotations
@@ -13,9 +23,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import streamlit as st
+from streamlit.errors import StreamlitAPIException
 
 from briefer import costs
 from briefer.config import Settings, get_settings
+from briefer.logging_utils import error_text, redact_secrets
 from briefer.providers import registry
 from briefer.schemas import DISCLAIMER_ES, Briefing, ChartAsset, NewsItem, QAAnswer, StepMetric
 
@@ -24,8 +36,8 @@ from .trace import build_trace_dot, fallback_tag, has_real_voices, is_demo_run, 
 SENTIMENT_LABEL = {"positivo": "▲ positivo", "negativo": "▼ negativo", "neutral": "● neutral"}
 SENTIMENT_BADGE = {"positivo": "blue", "negativo": "red", "neutral": "gray"}
 SYNTHETIC_VOICE_NOTE = (
-    "Las voces de este podcast son **sintéticas** (generadas con IA); no son personas reales. "
-    "El audio lo indica también al final del episodio y en sus metadatos (AI Act, art. 50)."
+    "voces **sintéticas** generadas con IA, no son personas reales (lo dicen también el cierre del "
+    "episodio y los metadatos del MP3, AI Act art. 50)"
 )
 # Modos de ejecución (``pipeline.RUN_MODES``) y su etiqueta en la barra lateral.
 MODE_LABELS: dict[str, str] = {
@@ -41,23 +53,36 @@ CHART_KIND_LABEL = {
 
 
 def show_disclaimer() -> None:
-    """Aviso MiFID II visible en todas las páginas."""
-    st.caption(f"Aviso: {DISCLAIMER_ES}")
+    """Aviso MiFID II visible en todas las páginas (compacto, al pie)."""
+    st.divider()
+    st.caption(f":material/info: **Aviso:** {DISCLAIMER_ES}")
 
 
 def pending(exc: BaseException, what: str) -> None:
     """Mensaje amable para funcionalidades aún no implementadas (sin traceback)."""
     st.info(
         f"**Pendiente:** {what}. Esta parte todavía se está desarrollando; el resto de la app "
-        f"sigue funcionando.\n\nDetalle técnico: `{exc}`"
+        f"sigue funcionando.\n\nDetalle técnico: `{redact_secrets(exc)}`"
     )
 
 
+def _debug_enabled() -> bool:
+    try:
+        return get_settings().briefer_log_level.upper() == "DEBUG"
+    except Exception:
+        return False
+
+
 def show_error(exc: BaseException, what: str) -> None:
-    """Error real mostrado de forma amigable; el traceback queda plegado para depurar."""
-    st.error(f"No se pudo completar {what}: {exc}")
-    with st.expander("Detalle técnico"):
-        st.code("".join(traceback.format_exception(exc)), language="text")
+    """Error real mostrado de forma amigable y **redactado** (nunca claves ni tokens).
+
+    El traceback completo (rutas del servidor) solo se muestra con ``BRIEFER_LOG_LEVEL=DEBUG``,
+    también redactado; si no, basta el tipo y el mensaje.
+    """
+    st.error(f"No se pudo completar {what}: {error_text(exc, 400)}")
+    if _debug_enabled():
+        with st.expander("Detalle técnico (DEBUG)"):
+            st.code(redact_secrets("".join(traceback.format_exception(exc))), language="text")
 
 
 # Clave de .env que necesita cada proveedor real (``None`` = no necesita clave).
@@ -123,7 +148,7 @@ def real_mode_available(settings: Settings | None = None) -> tuple[bool, str]:
     try:
         badges = {b.family: b for b in provider_badges(settings)}
     except Exception as exc:  # .env mal formado
-        return False, f"configuración inválida: {exc}"
+        return False, f"configuración inválida: {error_text(exc)}"
     llm = badges.get("LLM")
     if llm is None or llm.status != "real":
         why = llm.reason if llm else "sin LLM"
@@ -196,7 +221,7 @@ def sidebar_mode() -> str:
                 elif mode == "demo_voices":
                     st.caption("En la demo sin claves todo es simulado salvo la voz (edge-tts real).")
             except Exception as exc:  # .env mal formado
-                st.error(f"Configuración inválida: {exc}")
+                st.error(f"Configuración inválida: {error_text(exc)}")
         st.caption("Voces sintéticas generadas por IA · no es asesoramiento financiero.")
     return mode
 
@@ -276,7 +301,7 @@ def render_run_warnings(briefing: Briefing) -> None:
     bad_deliveries = [d for d in briefing.deliveries if not d.ok]
     if fallbacks:
         lines = "\n".join(
-            f"- `{m.step}` → {fallback_tag(m).lower()}: {m.error or 'proveedor real no disponible'}"
+            f"- `{m.step}` → {fallback_tag(m).lower()}: {redact_secrets(m.error) if m.error else 'proveedor real no disponible'}"
             for m in fallbacks
         )
         st.warning(
@@ -285,10 +310,10 @@ def render_run_warnings(briefing: Briefing) -> None:
             f"simulado):\n{lines}"
         )
     if errors:
-        lines = "\n".join(f"- `{m.step}` ({m.provider}): {m.error}" for m in errors)
+        lines = "\n".join(f"- `{m.step}` ({m.provider}): {redact_secrets(m.error)}" for m in errors)
         st.warning(f"**{len(errors)} paso(s) fallaron** y el briefing se generó sin ellos:\n{lines}")
     if bad_deliveries:
-        lines = "\n".join(f"- {d.channel}: {d.detail or 'error'}" for d in bad_deliveries)
+        lines = "\n".join(f"- {d.channel}: {redact_secrets(d.detail or 'error')}" for d in bad_deliveries)
         st.warning(f"**Entregas fallidas:**\n{lines}")
     if demo:
         voices = " Voces sintéticas reales (edge-tts)." if has_real_voices(briefing.metrics) else ""
@@ -453,25 +478,162 @@ class StatusProgress:
             pass
 
 
-def render_downloads(briefing: Briefing, key: str = "briefing") -> None:
-    """Botones de descarga del audio (mp3/wav) y de los subtítulos (.srt), si existen."""
-    cols = st.columns(2)
+
+
+# ── Briefing activo, portada y navegación ──────────────────────────────────────────
+
+ACTIVE_BRIEFING_KEY = "briefing"
+PAGE_BRIEFING = "pages/1_Briefing.py"
+PAGE_ASK = "pages/2_Preguntar.py"
+PAGE_PORTFOLIO = "pages/3_Mi_cartera.py"
+PAGE_HISTORY = "pages/4_Historico.py"
+VALUE_PROPOSITION = (
+    "Tu cartera, contada en un podcast de 4 minutos: noticias filtradas por tus valores, "
+    "analizadas por IA y leídas a dos voces."
+)
+
+
+def set_active_briefing(briefing: Briefing) -> None:
+    """Deja ``briefing`` como contexto de la sesión (lo usa «Preguntar»)."""
+    st.session_state[ACTIVE_BRIEFING_KEY] = briefing
+
+
+def ask_about(briefing: Briefing) -> None:
+    """Callback de «Preguntar sobre este briefing»: lo fija como contexto y abre la página.
+
+    Se usa como ``on_click`` (la navegación se pide en la siguiente ejecución con ``st.switch_page``,
+    que no se puede llamar dentro de un callback).
+    """
+    set_active_briefing(briefing)
+    st.session_state["_goto"] = PAGE_ASK
+
+
+def handle_navigation() -> None:
+    """Ejecuta la navegación pendiente que dejó un callback (``ask_about``).
+
+    Si la página no se encuentra (p. ej. una página ejecutada sola en ``AppTest``), se queda donde
+    está con un aviso en lugar de romper.
+    """
+    target = st.session_state.pop("_goto", None)
+    if not target:
+        return
+    try:
+        st.switch_page(target)
+    except StreamlitAPIException:
+        st.info("Abre la página **Preguntar** en el menú lateral: el briefing ya está seleccionado.")
+
+
+def page_link(page: str, label: str, icon: str | None = None, container=None) -> None:
+    """``st.page_link`` tolerante: si la página no está registrada, muestra el texto sin enlace."""
+    target = container or st
+    try:
+        target.page_link(page, label=label, icon=icon)
+    except StreamlitAPIException:
+        target.markdown(f"{label} (menú lateral)")
+
+
+def _featured_signature() -> tuple:
+    """Huella barata de lo que decide la portada (último guardado + pregenerado) para la caché."""
+    from briefer import storage
+
+    s = get_settings()
+    latest = storage.list_briefings(limit=1)
+    demo_json = storage.demo_briefing_dir() / storage.BRIEFING_FILE
+
+    def _mtime(p: Path) -> float:
+        try:
+            return p.stat().st_mtime
+        except OSError:
+            return 0.0
+
+    return (
+        str(s.output_path), str(latest[0]) if latest else "", _mtime(latest[0]) if latest else 0.0,
+        str(demo_json), _mtime(demo_json),
+    )
+
+
+@st.cache_data(show_spinner=False, max_entries=16)
+def _featured_cached(signature: tuple) -> tuple[Briefing, str] | None:
+    from briefer import storage
+
+    return storage.load_featured_briefing()
+
+
+def featured_briefing() -> tuple[Briefing, str] | None:
+    """``storage.load_featured_briefing`` cacheado (se invalida al guardar un briefing nuevo)."""
+    return _featured_cached(_featured_signature())
+
+
+def mode_badge(mode: str) -> None:
+    """Insignia compacta del modo activo (cabecera de las páginas)."""
+    if mode == "real":
+        st.badge("Modo real", icon=":material/bolt:", color="green")
+    elif mode == "demo_voices":
+        st.badge("Demo sin claves · voces reales", icon=":material/science:", color="orange")
+    else:
+        st.badge("Demo offline · todo simulado", icon=":material/science:", color="orange")
+
+
+def origin_badge(briefing: Briefing, origin: str) -> None:
+    """Insignia del origen del briefing destacado (pregenerado real, guardado, demo…)."""
+    demo = is_demo_run(briefing.metrics)
+    if origin == "pregenerado":
+        label = "Briefing de ejemplo pregenerado" + (" (simulado)" if demo else " con datos y modelos reales")
+        st.badge(label, icon=":material/inventory_2:", color="blue")
+    else:
+        label = "Último briefing guardado" + (" (demo)" if demo else "")
+        st.badge(label, icon=":material/history:", color="gray" if demo else "blue")
+
+
+# ── Descargas y reproductor ────────────────────────────────────────────────────────
+
+
+def _reader(path: Path):
+    """Lectura perezosa para ``st.download_button``: el fichero solo se lee al pulsar."""
+    return lambda: Path(path).read_bytes()
+
+
+def render_downloads(briefing: Briefing, key: str = "briefing", *, zip_export: bool = True) -> None:
+    """Botones de descarga: audio, subtítulos (.srt) y el briefing completo en ZIP portable.
+
+    Los datos se generan al pulsar (``data`` perezoso) y la descarga no relanza la página
+    (``on_click="ignore"``): en cada recarga no se leen ni comprimen megas de audio.
+    """
+    cols = st.columns(3)
     if briefing.audio and _exists(briefing.audio.path):
         audio_path = Path(briefing.audio.path)
         cols[0].download_button(
             f"Descargar audio ({audio_path.suffix.lstrip('.')})",
-            audio_path.read_bytes(),
+            _reader(audio_path),
             file_name=f"market_briefer_{briefing.id}{audio_path.suffix}",
             mime="audio/mpeg" if audio_path.suffix.lower() == ".mp3" else "audio/wav",
             key=f"{key}_dl_audio",
+            on_click="ignore",
+            icon=":material/download:",
         )
     if briefing.transcript and _exists(briefing.transcript.srt_path):
         cols[1].download_button(
             "Descargar subtítulos (.srt)",
-            Path(briefing.transcript.srt_path).read_bytes(),
+            _reader(Path(briefing.transcript.srt_path)),
             file_name=f"market_briefer_{briefing.id}.srt",
             mime="application/x-subrip",
             key=f"{key}_dl_srt",
+            on_click="ignore",
+            icon=":material/subtitles:",
+        )
+    if zip_export:
+        from briefer import storage
+
+        cols[2].download_button(
+            "Descargar todo (.zip)",
+            lambda: storage.export_briefing_zip(briefing),
+            file_name=f"market_briefer_{briefing.id}.zip",
+            mime="application/zip",
+            key=f"{key}_dl_zip",
+            on_click="ignore",
+            icon=":material/folder_zip:",
+            help="Briefing autocontenido (JSON con rutas relativas, audio, SRT y gráficos): se puede "
+            "abrir en otra máquina copiándolo a data/outputs/.",
         )
 
 
@@ -480,24 +642,65 @@ def render_podcast_player(briefing: Briefing, key: str = "briefing", *, download
     if briefing.audio and _exists(briefing.audio.path):
         st.audio(str(Path(briefing.audio.path)))
         st.caption(
-            f"{briefing.script.title} · {_fmt_duration(briefing.audio.duration_s)} min · "
-            f"{len(briefing.audio.segments)} intervenciones"
+            f":material/graphic_eq: {_fmt_duration(briefing.audio.duration_s)} min · "
+            f"{len(briefing.audio.segments)} intervenciones · {SYNTHETIC_VOICE_NOTE}"
         )
-        st.info(SYNTHETIC_VOICE_NOTE)
         if downloads:
             render_downloads(briefing, key)
+    elif briefing.audio:
+        st.info("El audio de este briefing ya no está en disco (¿se movió o borró la carpeta?). "
+                "La transcripción y los gráficos siguen disponibles abajo.")
     else:
-        st.write("Este briefing no tiene audio disponible.")
+        st.info("Este briefing no tiene audio.")
 
 
-def render_briefing(briefing: Briefing, key: str = "briefing") -> None:
+def disclaimer_note(text: str | None = None) -> None:
+    """Disclaimer compacto (visible, sin ocupar la pantalla como un ``st.warning``)."""
+    st.caption(f":material/info: **Aviso:** {text or DISCLAIMER_ES}")
+
+
+def render_key_points(briefing: Briefing, max_points: int | None = None, *, compact: bool = False) -> None:
+    """Puntos clave con impacto (▲/▼/●), valores y fuentes enlazadas."""
+    a = briefing.analysis
+    points = a.key_points[:max_points] if max_points else a.key_points
+    if not points:
+        st.write("Este briefing no tiene puntos clave.")
+        return
+    news = _news_index(briefing)
+    for kp in points:
+        badge = SENTIMENT_BADGE.get(kp.sentiment, "gray")
+        label = SENTIMENT_LABEL.get(kp.sentiment, kp.sentiment)
+        if compact:
+            tickers = f" · {', '.join(kp.tickers)}" if kp.tickers else ""
+            st.markdown(f"- **{kp.title}** :{badge}[{label}]{tickers}")
+            continue
+        with st.container(border=True):
+            st.markdown(f"**{kp.title}** — :{badge}[{label}]")
+            st.write(kp.explanation)
+            if kp.tickers:
+                st.caption("Valores: " + ", ".join(kp.tickers))
+            if kp.sources:
+                st.markdown("Fuentes: " + " · ".join(format_source(s, news) for s in kp.sources))
+
+
+def trace_strip(briefing: Briefing) -> str:
+    """Resumen de una línea de «Cómo se hizo» (modelos, pasos, latencia, coste)."""
+    s = trace_summary(briefing.metrics)
+    cost = f"{s['total_cost_eur']:.3f}".replace(".", ",")
+    return (f"{s['ai_models']} modelos de IA encadenados · {s['steps']} pasos · "
+            f"{s['total_latency_s']:.0f} s de proceso · {cost} € estimados")
+
+
+def render_briefing(briefing: Briefing, key: str = "briefing", *, ask_button: bool = True) -> None:
     """Pinta un briefing completo: titular, audio, puntos clave, transcripción, gráficos y traza.
 
     ``key`` distingue los widgets si se pinta más de un briefing en la misma página.
+    ``ask_button``: botón «Preguntar sobre este briefing» (lo deja como contexto y abre Preguntar).
     """
     a = briefing.analysis
     st.subheader(a.headline)
-    st.caption(f"{a.date:%d/%m/%Y} · Generado {briefing.created_at:%d/%m/%Y %H:%M} · id `{briefing.id}`")
+    st.caption(f"Sesión del {a.date:%d/%m/%Y} · generado el {briefing.created_at:%d/%m/%Y a las %H:%M} · "
+               f"id `{briefing.id}`")
     st.markdown(f"**Tono del mercado:** {a.market_mood}")
     render_run_warnings(briefing)
 
@@ -505,8 +708,10 @@ def render_briefing(briefing: Briefing, key: str = "briefing") -> None:
         st.image(str(briefing.cover_path), caption="Imagen generada por IA")
 
     # ── Podcast ──
-    st.markdown("#### Podcast")
     render_podcast_player(briefing, key)
+    if ask_button:
+        st.button("Preguntar sobre este briefing", key=f"{key}_ask", icon=":material/forum:",
+                  on_click=ask_about, args=(briefing,), type="primary")
 
     tab_points, tab_transcript, tab_charts, tab_trace = st.tabs(
         ["Puntos clave", "Transcripción", "Gráficos", "Cómo se hizo"]
@@ -514,27 +719,15 @@ def render_briefing(briefing: Briefing, key: str = "briefing") -> None:
 
     # ── Puntos clave ──
     with tab_points:
-        news = _news_index(briefing)
-        if not a.key_points:
-            st.write("Sin puntos clave.")
-        for kp in a.key_points:
-            with st.container(border=True):
-                badge = SENTIMENT_BADGE.get(kp.sentiment, "gray")
-                label = SENTIMENT_LABEL.get(kp.sentiment, kp.sentiment)
-                st.markdown(f"**{kp.title}** — :{badge}[{label}]")
-                st.write(kp.explanation)
-                if kp.tickers:
-                    st.caption("Valores: " + ", ".join(kp.tickers))
-                if kp.sources:
-                    st.markdown("Fuentes: " + " · ".join(format_source(s, news) for s in kp.sources))
+        render_key_points(briefing)
 
     # ── Transcripción (texto original del guion, no el normalizado para la voz) ──
     with tab_transcript:
-        if briefing.transcript:
+        if briefing.transcript and briefing.transcript.text.strip():
             st.text(briefing.transcript.text)
             st.caption("Transcripción del guion original; el audio lee cifras y tickers en forma hablada.")
         else:
-            st.write("Sin transcripción.")
+            st.write("Este briefing no tiene transcripción.")
 
     # ── Gráficos ──
     with tab_charts:
@@ -543,8 +736,10 @@ def render_briefing(briefing: Briefing, key: str = "briefing") -> None:
             cols = st.columns(2)
             for i, chart in enumerate(images):
                 cols[i % 2].image(str(chart.path), caption=chart_caption(chart))
+        elif briefing.charts:
+            st.write("Los gráficos de este briefing ya no están en disco.")
         else:
-            st.write("Sin gráficos.")
+            st.write("Este briefing no tiene gráficos.")
         if briefing.video and _exists(briefing.video.path):
             st.markdown("##### Vídeo")
             st.video(str(briefing.video.path))
@@ -558,46 +753,93 @@ def render_briefing(briefing: Briefing, key: str = "briefing") -> None:
             continue
         st.success(f"Entrega por {d.channel}: {d.detail or 'OK'}")
 
-    st.warning(f"**Aviso:** {a.disclaimer or DISCLAIMER_ES}")
+    disclaimer_note(a.disclaimer)
 
 
-def render_featured_briefing(briefing: Briefing, origin: str, key: str = "featured", max_points: int = 3) -> None:
-    """Tarjeta compacta para la portada: titular, reproductor, 3 puntos clave y franja de traza."""
+def render_featured_briefing(
+    briefing: Briefing, origin: str, key: str = "featured", max_points: int = 3
+) -> None:
+    """Portada: tarjeta con origen, titular, reproductor arriba, 3 puntos clave y botones de acción.
+
+    Debajo, las pestañas completas (puntos, transcripción, gráficos y «Cómo se hizo») con una franja
+    de resumen de la traza siempre visible.
+    """
     a = briefing.analysis
     with st.container(border=True):
-        tag = "Briefing pregenerado (ejemplo)" if origin == "pregenerado" else "Último briefing guardado"
-        st.caption(f"{tag} · {a.date:%d/%m/%Y} · id `{briefing.id}`")
+        origin_badge(briefing, origin)
         st.subheader(a.headline)
+        st.caption(f"Sesión del {a.date:%d/%m/%Y} · valores: {', '.join(briefing.context.tickers) or '—'}")
         if briefing.cover_path and _exists(briefing.cover_path):
             st.image(str(briefing.cover_path), caption="Imagen generada por IA")
-        render_podcast_player(briefing, key)
-        for kp in a.key_points[:max_points]:
-            badge = SENTIMENT_BADGE.get(kp.sentiment, "gray")
-            tickers = f" · {', '.join(kp.tickers)}" if kp.tickers else ""
-            st.markdown(f"- **{kp.title}** :{badge}[{SENTIMENT_LABEL.get(kp.sentiment, kp.sentiment)}]{tickers}")
+        render_podcast_player(briefing, key, downloads=False)
+        render_key_points(briefing, max_points, compact=True)
+        c1, c2 = st.columns(2)
+        c1.button("Preguntar sobre este briefing", key=f"{key}_ask", icon=":material/forum:",
+                  on_click=ask_about, args=(briefing,), width="stretch")
+        page_link(PAGE_BRIEFING, "Generar el tuyo", ":material/podcasts:", container=c2)
         if briefing.metrics:
-            summary = trace_summary(briefing.metrics)
-            with st.expander(
-                f"Cómo se hizo: {summary['ai_models']} modelos de IA · {summary['steps']} pasos · "
-                f"{summary['total_latency_s']:.0f} s · {summary['total_cost_eur']:.3f} €"
-            ):
-                render_trace(briefing, key=f"{key}_trace")
+            st.caption(f":material/account_tree: **Cómo se hizo:** {trace_strip(briefing)} "
+                       "(detalle en la pestaña «Cómo se hizo»)")
+
+    tab_points, tab_transcript, tab_charts, tab_trace = st.tabs(
+        ["Puntos clave", "Transcripción", "Gráficos", "Cómo se hizo"]
+    )
+    with tab_points:
+        render_key_points(briefing)
+    with tab_transcript:
+        if briefing.transcript and briefing.transcript.text.strip():
+            st.text(briefing.transcript.text)
+        else:
+            st.write("Este briefing no tiene transcripción.")
+    with tab_charts:
+        images = [c for c in briefing.charts if _exists(c.path)]
+        if images:
+            cols = st.columns(2)
+            for i, chart in enumerate(images):
+                cols[i % 2].image(str(chart.path), caption=chart_caption(chart))
+        else:
+            st.write("Este briefing no tiene gráficos.")
+    with tab_trace:
+        render_trace(briefing, key=f"{key}_trace")
+    render_downloads(briefing, key)
 
 
-def render_qa_answer(answer: QAAnswer) -> None:
-    """Pinta la respuesta del Agente Q&A (texto, audio y fuentes)."""
+def render_qa_answer(answer: QAAnswer, briefing: Briefing | None = None) -> None:
+    """Pinta la respuesta del Agente Q&A (texto, audio, fuentes enlazadas y latencia medida)."""
     st.markdown(f"**Pregunta:** {answer.question}")
     st.markdown(answer.answer_text)
     if _exists(answer.audio_path):
         st.audio(str(answer.audio_path))
         st.caption("Respuesta leída con voz sintética generada por IA.")
     if answer.sources:
-        st.caption("Fuentes: " + ", ".join(answer.sources))
+        news = _news_index(briefing) if briefing is not None else {}
+        st.caption("Fuentes: " + " · ".join(format_source(s, news) for s in answer.sources))
     if answer.metrics:
         total = sum(m.latency_s for m in answer.metrics)
         detail = " · ".join(
-            f"{m.step} {m.latency_s:.2f} s" + (" (error)" if m.error else "") for m in answer.metrics
+            f"{STEP_SHORT.get(m.step, m.step)} {m.latency_s:.1f} s" + (" (error)" if m.error else "")
+            for m in answer.metrics
         )
-        st.caption(f"Latencia total: {total:.2f} s ({detail})")
+        target = " ✓ < 10 s" if total < 10 else ""
+        st.caption(f":material/timer: Latencia total {total:.1f} s{target} ({detail})")
         with st.expander("Cómo se hizo (voz → texto → respuesta → voz)"):
             render_trace(answer)
+
+
+def pick_question(suggestion: str | None, typed: str, has_audio: bool, last: str | None) -> str:
+    """Qué entrada usar: ``"suggestion"``, ``"text"``, ``"audio"`` o ``""`` (nada).
+
+    Una sugerencia pulsada manda. Si hay texto y audio a la vez, gana el que se tocó el último;
+    si solo hay uno, ese.
+    """
+    if suggestion:
+        return "suggestion"
+    typed = typed.strip()
+    if typed and has_audio:
+        return "audio" if last == "audio" else "text"
+    if typed:
+        return "text"
+    return "audio" if has_audio else ""
+
+
+STEP_SHORT = {"qa.stt": "voz→texto", "agents.qa": "agente", "qa.tts": "texto→voz"}

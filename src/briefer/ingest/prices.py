@@ -5,7 +5,10 @@ histórico corto (para ``media.charts``).
 
 Modo real: una sola descarga en lote (``yf.download``) para todos los tickers que no estén en la
 caché del día (``settings.cache_path``, ver ``ingest.cache``); la divisa se pide a yfinance
-(``fast_info``) y, si no la da, se deduce con ``currency_for``. Un ticker sin datos se omite con
+(``fast_info``, con espera máxima ``CURRENCY_TIMEOUT``) y, si no la da, se deduce con
+``currency_for``. Mercado cerrado o fin de semana: ``last`` es el último cierre disponible y
+``change_pct`` su variación frente al cierre anterior (las filas sin cierre, p. ej. la sesión de
+hoy antes de la apertura, se descartan). Un ticker sin datos se omite con
 aviso; nunca se rellena con precios sintéticos.
 """
 
@@ -14,7 +17,7 @@ from __future__ import annotations
 import hashlib
 import math
 import random
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date, datetime, timedelta
 from typing import Any
 
@@ -27,6 +30,11 @@ log = get_logger("ingest.prices")
 
 #: Timeout (s) de la descarga de yfinance.
 DOWNLOAD_TIMEOUT = 10
+#: Espera máxima (s) para la divisa de yfinance (``fast_info`` no tiene timeout propio); si no
+#: llega, se deduce con ``currency_for``.
+CURRENCY_TIMEOUT = 5.0
+#: Si el último cierre tiene más de estos días se avisa en el log (valor suspendido o excluido).
+STALE_DAYS = 7
 
 
 class PriceFetchError(RuntimeError):
@@ -172,8 +180,13 @@ def get_price_snapshots(
             if t not in with_data:
                 log.warning("Ticker sin datos de precio en yfinance: %s (se omite)", t)
         if with_data:
-            with ThreadPoolExecutor(max_workers=min(8, len(with_data))) as pool:
-                currencies = dict(zip(with_data, pool.map(_currency, with_data)))
+            pool = ThreadPoolExecutor(max_workers=min(8, len(with_data)), thread_name_prefix="currency")
+            try:
+                futures = {t: pool.submit(_currency, t) for t in with_data}
+                done, _pending = wait(futures.values(), timeout=CURRENCY_TIMEOUT)
+                currencies = {t: f.result() if f in done else currency_for(t) for t, f in futures.items()}
+            finally:
+                pool.shutdown(wait=False, cancel_futures=True)
             for t in with_data:
                 try:
                     snap = snapshot_from_closes(t, closes[t], currencies[t])
@@ -181,6 +194,9 @@ def get_price_snapshots(
                     log.warning("%s; se omite", exc)
                     continue
                 found[t] = snap
+                last_day = snap.history[-1][0] if snap.history else None
+                if last_day and (date.today() - last_day).days > STALE_DAYS:
+                    log.warning("Último cierre de %s es del %s: dato antiguo (¿suspendido?)", t, last_day)
                 cache.write_cache("prices", cache.cache_key(t, period), snap.model_dump(mode="json"))
 
     if wanted and not found:

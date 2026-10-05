@@ -28,9 +28,9 @@ Diagrama de la idea: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | Capa | Elección | Alternativa por config |
 |---|---|---|
 | UI | Streamlit multipágina (`app/`) | — |
-| LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A) | Gemini, mock (OpenAI: *stub*) |
+| LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A; ADR-006) | Gemini, mock (OpenAI: *stub*); `BRIEFER_SCRIPTWRITER_MODEL` |
 | Visión (gráficos, páginas PDF) | Claude visión | Qwen2.5-VL local, mock |
-| STT | Whisper (API o local) | mock |
+| STT | OpenAI API (`gpt-4o-mini-transcribe`; `whisper-1` por config) | mock (Whisper local: *stub*) |
 | TTS 2 voces | `edge-tts` (gratis, voces es-ES) | ElevenLabs, mock |
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
 | Gráficos / vídeo | matplotlib / ffmpeg vía `imageio-ffmpeg` (vídeo pendiente, D2) | — |
@@ -75,7 +75,12 @@ Carriles de trabajo paralelos (sin asignar personas): **A** entradas/procesado �
 2. **Todo proveedor tiene mock** y el camino mock debe funcionar siempre sin red ni claves (`BRIEFER_*_PROVIDER=mock`).
 3. La UI no llama a proveedores directamente: solo a `briefer.pipeline`.
 4. **Compliance**: el producto informa, no asesora. Sin recomendaciones de compra/venta; disclaimer visible en
-   app, guion y audio; citar la fuente de cada noticia; avisar de que la voz es sintética.
+   app, guion y audio; citar la fuente de cada noticia (extracto ≤ 200 caracteres, nunca el cuerpo); avisar de
+   que la voz es sintética.
+   - **Privacidad de la cartera** (ADR-005): nunca se escribe en disco (`briefing.json` con `portfolio: null`,
+     sin gráfico de cartera en `data/`); al LLM solo van tickers y pesos, en memoria.
+   - **Secretos**: ningún error, `StepMetric`, log ni texto de la UI lleva claves o tokens; usar
+     `logging_utils.error_text` / `redact_secrets` en vez de `str(exc)`.
 5. No versionar `docs/raw/`, `.env`, ni salidas generadas (`data/outputs/`, audios, vídeos).
 6. Nunca copiar literal el material de clase a ficheros versionados: resumir.
 7. Números de coste/latencia: o medidos (y se dice cómo) o marcados como estimación.
@@ -86,13 +91,14 @@ Carriles de trabajo paralelos (sin asignar personas): **A** entradas/procesado �
 ## Comandos
 
 ```bash
-scripts/run.sh                        # Linux/macOS: venv + deps + streamlit
-scripts/run.ps1                       # Windows
-docker compose up --build             # contenedor, http://localhost:8501
+scripts/run.sh [--expose]             # Linux/macOS: venv + deps + streamlit en localhost:8501
+scripts/run.ps1 [-Expose]             # Windows (-Expose / --expose: visible en la red local)
+docker compose up --build             # contenedor, http://localhost:8501 (sin probar todavía)
 python -m pytest -q                   # tests sin red (mock/fixtures); los "live" (red + claves + coste) con -m live
 python scripts/demo.py --mock         # briefing de punta a punta por CLI, todo mock (sin red)
 python scripts/demo.py --demo-voices  # sin claves: datos de ejemplo + LLM mock + edge-tts real (necesita red)
 python scripts/demo.py [--refresh]    # modo real con claves de .env (--refresh ignora la caché diaria)
+python scripts/demo.py --question "…" --briefing pregenerado --warmup   # Q&A por CLI (salida 0/1/2/3/130)
 python scripts/smoke_real.py          # humo real y barato de cada proveedor con clave (< 0,01 €)
 ```
 

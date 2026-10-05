@@ -5,7 +5,7 @@ desde la UI) no vuelva a llamar a Yahoo/Google News. Cada entrada es un JSON en
 ``settings.cache_path`` (``BRIEFER_CACHE_DIR``, por defecto ``data/cache/``) con nombre
 ``<fuente>_<clave>_<YYYYMMDD>.json``; la fecha (local) forma parte de la clave, así que al día
 siguiente la entrada deja de usarse sola. Las entradas de días anteriores se pueden borrar con
-``purge_old``.
+``purge_old`` (``write_cache`` lo hace sola una vez al día con ``KEEP_DAYS``).
 
 La caché es «best effort»: un fichero corrupto o un error de escritura solo generan un aviso
 en el log; nunca rompen la ingesta.
@@ -17,7 +17,8 @@ import hashlib
 import json
 import os
 import re
-from datetime import date
+import threading
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -61,15 +62,56 @@ def read_cache(source: str, key: str, day: date | None = None) -> Any | None:
         return None
 
 
+def read_recent(source: str, key: str, days: int = 7) -> Any | None:
+    """Entrada más reciente de los últimos ``days`` días (hoy incluido) o ``None``.
+
+    Para datos que cambian poco (``robots.txt``) o nunca (la URL final de un enlace de Google
+    News): evita repetir peticiones cada día.
+    """
+    today = date.today()
+    for back in range(max(1, days)):
+        found = read_cache(source, key, today - timedelta(days=back))
+        if found is not None:
+            return found
+    return None
+
+
 def write_cache(source: str, key: str, data: Any, day: date | None = None) -> None:
     """Guarda ``data`` (serializable a JSON) de forma atómica; los errores solo se registran."""
     try:
         path = cache_file(source, key, day)
-        tmp = path.with_suffix(f".{os.getpid()}.tmp")
+        # pid + hilo: dos hilos escribiendo la misma clave no comparten el temporal (en Windows
+        # el segundo ``os.replace`` fallaba o se mezclaban los bytes).
+        tmp = path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
         tmp.write_text(json.dumps(data, ensure_ascii=False, default=str), encoding="utf-8")
         os.replace(tmp, path)
-    except OSError as exc:
+    except (OSError, TypeError, ValueError) as exc:  # disco, permisos o dato no serializable
         log.warning("No se pudo escribir la caché %s/%s: %s", source, key, exc)
+        try:
+            tmp.unlink(missing_ok=True)  # type: ignore[possibly-undefined]
+        except (OSError, NameError):
+            pass
+    _maybe_purge()
+
+
+#: Días que se conservan las entradas de caché antes de la limpieza automática.
+KEEP_DAYS = 7
+_purged: dict[str, date | None] = {"day": None}
+
+
+def _maybe_purge() -> None:
+    """Limpieza automática (una vez al día por proceso) de entradas de más de ``KEEP_DAYS`` días."""
+    today = date.today()
+    if _purged["day"] == today:
+        return
+    _purged["day"] = today
+    try:
+        removed = purge_old(KEEP_DAYS)
+    except OSError as exc:
+        log.debug("Limpieza de caché omitida: %s", exc)
+        return
+    if removed:
+        log.info("Caché: %d entradas de más de %d días borradas", removed, KEEP_DAYS)
 
 
 def purge_old(keep_days: int = 1) -> int:

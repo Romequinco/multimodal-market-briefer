@@ -5,7 +5,8 @@ relevantes (las que mencionan alguno de los tickers o el nombre de la empresa).
 
 Reglas de detección en texto (``extract_tickers``):
 - Símbolo literal: solo en MAYÚSCULAS y como palabra completa (``SAN.MC``, ``AAPL``, ``$NVDA`` o la
-  raíz sin sufijo ``SAN``). Así «San Sebastián» o «SANTANDER» no disparan ``SAN.MC``.
+  raíz sin sufijo ``SAN``). Así «San Sebastián» o «SANTANDER» no disparan ``SAN.MC``. Los
+  símbolos de 1-2 letras (``F``, ``GM``) solo cuentan con ``$`` delante (``MIN_BARE_SYMBOL``).
 - Alias/nombre de empresa: sin distinguir mayúsculas ni tildes, como palabra completa
   («telefonica» -> ``TEF.MC``). Los alias ambiguos en español (p. ej. «meta») no se usan sueltos.
 """
@@ -48,6 +49,10 @@ TICKER_UNIVERSE: dict[str, dict[str, list[str] | str]] = {
 
 # Índices que se usan para completar un briefing con pocas noticias específicas.
 MARKET_INDEX_TICKERS: tuple[str, ...] = ("^IBEX", "^GSPC")
+
+#: Símbolos más cortos (``F``, ``T``, ``GM``…) solo se detectan con ``$`` delante (``$F``): sueltos
+#: en mayúsculas dan falsos positivos («Fase V», «IA»).
+MIN_BARE_SYMBOL = 3
 
 # Delimitadores de "palabra" para alias y símbolos (más estrictos que \b, que falla con "&" o ".").
 _LEFT = r"(?<![\w&.^$])"
@@ -98,8 +103,15 @@ def normalize_ticker(raw: str) -> str:
 @lru_cache(maxsize=256)
 def _patterns(ticker: str) -> tuple[re.Pattern[str], re.Pattern[str] | None]:
     """Regex de símbolo literal (sensible a mayúsculas) y de alias (sobre texto plegado)."""
-    literals = {re.escape(ticker), re.escape(_root(ticker))}
-    literal = re.compile(_LEFT + r"\$?(?:" + "|".join(sorted(literals, key=len, reverse=True)) + ")" + _RIGHT)
+    symbols = sorted({ticker, _root(ticker)}, key=len, reverse=True)
+    bare = [re.escape(s) for s in symbols if len(s.lstrip("^")) >= MIN_BARE_SYMBOL]
+    dollar_only = [re.escape(s) for s in symbols if len(s.lstrip("^")) < MIN_BARE_SYMBOL]
+    options = []
+    if bare:
+        options.append(r"\$?(?:" + "|".join(bare) + ")")
+    if dollar_only:
+        options.append(r"\$(?:" + "|".join(dollar_only) + ")")
+    literal = re.compile(_LEFT + "(?:" + "|".join(options) + ")" + _RIGHT)
     info = TICKER_UNIVERSE.get(ticker)
     if not info:
         return literal, None

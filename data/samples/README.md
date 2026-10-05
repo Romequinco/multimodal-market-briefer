@@ -22,8 +22,11 @@ Reglas:
 - Los tests (`tests/test_schemas.py`, `tests/test_ingest_mock.py`) validan que estos ficheros cumplen
   los schemas y que los lectores de `ingest/` los procesan en modo mock.
 
-Modo real (sin estos ficheros): `ingest.news.fetch_news` (Google News RSS en español por empresa,
-RSS de Yahoo Finance, yfinance y feeds de mercados) e `ingest.prices.get_price_snapshots` (yfinance).
-Sus respuestas se cachean por día en `data/cache/` (`BRIEFER_CACHE_DIR`, ignorado por git): no se
-versionan ni se copian aquí, porque son contenido de terceros. Los tests sin red usan fixtures
-inline en `tests/test_ingest_real.py`.
+Modo real (sin estos ficheros): `ingest.news.fetch_news` (Google News y Bing News RSS en español por
+empresa, RSS de Yahoo Finance, yfinance y feeds de mercados; después, `ingest.article_meta` busca la
+URL final del medio y su `og:description` cuando el feed no trae extracto) e
+`ingest.prices.get_price_snapshots` (yfinance). De cada noticia solo se guarda titular, extracto breve
+(≤ 200 caracteres, `news.SUMMARY_MAX_CHARS`), fuente y enlace. Las respuestas se cachean en
+`data/cache/` (`BRIEFER_CACHE_DIR`, ignorado por git; se limpian solas a los 7 días): no se versionan
+ni se copian aquí, porque son contenido de terceros. Los tests sin red usan fixtures inline en
+`tests/test_ingest_real.py`, `tests/test_ingest_news_quality.py` y `tests/test_ingest_robustness.py`.

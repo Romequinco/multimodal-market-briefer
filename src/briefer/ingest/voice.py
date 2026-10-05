@@ -6,6 +6,7 @@ Carril A. Entrada: audio (ruta o bytes de ``st.audio_input``). Salida: ``str`` o
 
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -20,17 +21,20 @@ SUMMARY_MAX_CHARS = 300
 def save_audio_upload(data: bytes, out_dir: Path, suffix: str = ".wav") -> Path:
     """Guarda los bytes de un audio subido/grabado en ``out_dir`` y devuelve la ruta.
 
-    El nombre es ``voz_<timestamp>_<uuid corto><suffix>`` para no pisar ficheros.
+    El nombre es ``voz_<timestamp>_<uuid corto><suffix>`` para no pisar ficheros. ``suffix`` se
+    sanea (``.`` + 1-8 letras o cifras; si no, ``.wav``) porque viene del nombre del fichero subido.
 
     Raises:
         ValueError: si el audio está vacío (``st.audio_input`` puede devolver 0 bytes).
     """
     if not data:
         raise ValueError("El audio está vacío: vuelve a grabar la pregunta")
-    suffix = suffix if suffix.startswith(".") else f".{suffix}"
+    suffix = (suffix if suffix.startswith(".") else f".{suffix}").lower()
+    if not re.fullmatch(r"\.[a-z0-9]{1,8}", suffix):  # viene del nombre subido: nada de rutas
+        suffix = ".wav"
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"voz_{datetime.now():%Y%m%d-%H%M%S}_{uuid.uuid4().hex[:6]}{suffix.lower()}"
+    path = out_dir / f"voz_{datetime.now():%Y%m%d-%H%M%S}_{uuid.uuid4().hex[:6]}{suffix}"
     path.write_bytes(data)
     return path
 

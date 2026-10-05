@@ -15,7 +15,14 @@ import re
 
 from briefer.agents import load_prompt
 from briefer.agents.analyst import allowed_sources, build_user_message
-from briefer.agents.guardrails import ADVICE_REMINDER_ES, asks_for_advice, strip_advice
+from briefer.agents.guardrails import (
+    ADVICE_REMINDER_ES,
+    asks_for_advice,
+    fix_spoken_text,
+    looks_like_injection,
+    strip_advice,
+    unhedged_causal_claims,
+)
 from briefer.logging_utils import get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import Briefing, QAAnswer
@@ -73,6 +80,8 @@ def answer(
     briefing: Briefing | None,
     llm: LLMProvider,
     history: list[dict] | None = None,
+    *,
+    trace: list[str] | None = None,
 ) -> QAAnswer:
     """Responde ``question`` usando solo el contexto del briefing (sin inventar datos).
 
@@ -80,10 +89,17 @@ def answer(
     - Citas ``[id]`` -> ``sources`` (solo las que existen en el briefing).
     - Guardarraíles MiFID: se eliminan frases de recomendación y, si la pregunta pedía
       consejo personalizado, se añade el recordatorio de que no es asesoramiento.
+    - Texto hablado limpio: gramática y caracteres raros (``guardrails.fix_spoken_text``).
+    - ``trace`` (opcional) recibe notas de calidad: consejo pedido, frase recortada, intento de
+      inyección en la pregunta, nº de fuentes citadas (el pipeline las guarda en ``detail``).
     """
+    notes = trace if trace is not None else []
     question = (question or "").strip()
     if not question:
         raise ValueError("La pregunta está vacía.")
+    if looks_like_injection(question):
+        notes.append("pregunta con forma de instrucción al sistema (se mantiene el rol)")
+        log.warning("Q&A: la pregunta intenta cambiar las instrucciones del agente")
     context = build_qa_context(briefing)
     system = load_prompt("qa") + "\n\n# Contexto del briefing\n" + (context or NO_BRIEFING_NOTE)
     past = [
@@ -98,13 +114,20 @@ def answer(
     raw = llm.complete(system, messages)
     text = raw if isinstance(raw, str) else str(getattr(raw, "answer_text", raw))
     text, sources = _extract_citations(text, briefing)
-    text, changed = strip_advice(text)
+    text, changed = strip_advice(fix_spoken_text(text))
     if changed:
         log.warning("Q&A: eliminada una frase con recomendación de inversión")
+        notes.append("compliance: frase con recomendación recortada")
     if not text:
         text = "No puedo responder a eso con la información del briefing de hoy."
-    if (changed or asks_for_advice(question)) and "asesoramiento" not in text.lower():
+    advice_asked = asks_for_advice(question)
+    if advice_asked:
+        notes.append("compliance: pide consejo personalizado -> respuesta neutral + recordatorio")
+    if (changed or advice_asked) and "asesoramiento" not in text.lower():
         text = f"{text} {ADVICE_REMINDER_ES}"
+    if unhedged_causal_claims(text):
+        notes.append("causa afirmada sin atribuir a la fuente")
+    notes.append(f"fuentes citadas: {len(sources)}")
     return QAAnswer(question=question, answer_text=text, sources=sources)
 
 

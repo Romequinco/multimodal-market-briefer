@@ -1,0 +1,19 @@
+# Tema y ajustes de la app Streamlit (Market Briefer).
+# Paleta alineada con los gráficos (media/charts.py): azul = sube / acción principal, fondo cálido claro.
+
+[theme]
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#fcfcfb"
+secondaryBackgroundColor = "#f2f1ee"
+textColor = "#0b0b0b"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+maxUploadSize = 50

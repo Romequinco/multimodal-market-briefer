@@ -4,26 +4,29 @@
 contratos que permiten trabajar en paralelo, en [03_contratos_modulos.md](03_contratos_modulos.md); el estado
 vivo, en [06_estado_actual.md](06_estado_actual.md).
 
-## Estado a 05-oct-2026 (cierre de la Fase 1, camino real)
+## Estado a 05-oct-2026 (cierre de la revisión de las Fases 0 y 1)
 
-Núcleo real fin a fin funcionando (UI y CLI): noticias y precios reales con caché, Claude Sonnet 5.5 (Analista y
-visión) y Haiku 4.5 (Guionista y Q&A), edge-tts, fallback marcado, *grounding*, briefing real pregenerado en la
-portada y modos real / demo sin claves / mock. Medido: ≈ 0,065 € y ≈ 62 s por briefing con PDF + gráfico; Q&A
-≈ 0,005 € y 6-13 s. Contratos v0.3. Pendiente: Whisper (STT), Q&A < 10 s en frío, vídeo, portada, envíos.
+Núcleo real fin a fin funcionando (UI y CLI) y reforzado por una revisión completa con auditoría: noticias
+(Google News, Bing News, Yahoo, prensa) con URL del medio y extracto ≤ 200 caracteres, precios reales con caché,
+Claude Sonnet 5.5 (Analista y visión) y Haiku 4.5 (Guionista con puertas deterministas y Q&A), **Q&A por voz real**
+(Whisper API), edge-tts con `loudnorm`, fallback marcado, *grounding*, cartera no persistida, secretos
+redactados, briefing real pregenerado en la portada y modos real / demo sin claves / mock. Medido: 0,066 € y
+82,9 s por briefing con PDF + gráfico (sin caché); Q&A ≈ 0,005 € y 5,2 s con voz en frío. Contratos v0.3.1.
+Pendiente: vídeo, portada, CLIP, envíos, captura de cartera, Docker probado.
 Entrega: **8-oct-2026, 18:00** (objetivo interno 16:30).
 
 | Bloque | Evidencia actual | Estado |
 | --- | --- | --- |
 | Idea y diagrama | `assets/arquitectura_mvp_podcast_financiero.png`, [01](01_producto_y_propuesta_valor.md) | Hecho |
-| Stack y decisiones | [ADR-001](decisiones/ADR-001-stack-mvp.md) a [ADR-004](decisiones/ADR-004-salida-estructurada-json-schema.md) | Hecho |
-| Contratos (`schemas.py`, `providers/base.py`) | [03](03_contratos_modulos.md) v0.3 | Hecho; solo cambios aditivos |
-| Carril A · entradas, visión y Telegram | `src/briefer/ingest/`, `providers/vision/` | Noticias, precios, caché, PDF y gráfico reales hechos; STT (Whisper), CLIP, captura de cartera y Telegram pendientes (D2) |
-| Carril B · agentes, orquestación y calidad | `src/briefer/agents/`, `pipeline.py`, `providers/llm/` | Agentes reales con Claude, *grounding*, fallback marcado, paralelismo, CI hechos; latencia del Q&A en frío y calidad del Guionista (D2) |
-| Carril C · media, UI y demo | `src/briefer/media/`, `delivery/`, `app/` | edge-tts real, normalización para voz, modos, pregenerado, «Cómo se hizo» hechos; vídeo, portada y email pendientes (D2) |
-| Plug-and-play (scripts, Docker) | `scripts/`, `Dockerfile`, `.github/workflows/tests.yml` | Instalación limpia y CI; clon limpio y Docker pendientes |
-| Viabilidad y compliance | [04](04_viabilidad_costes_latencia_compliance.md) | Costes y latencias **medidos** (3 briefings, 4 preguntas); costes fijos y p50/p95 pendientes |
-| Revisión y mejora en paralelo | [05 · caminos](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) | 6 caminos abiertos para cualquiera (rama propia + PR) |
-| README con capturas, demo, pitch | `README.md`, `pitch/` | README al día (estado, modos, mediciones); capturas, demo y pitch pendientes (D3) |
+| Stack y decisiones | [ADR-001](decisiones/ADR-001-stack-mvp.md) a [ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md) | Hecho |
+| Contratos (`schemas.py`, `providers/base.py`) | [03](03_contratos_modulos.md) v0.3.1 | Hecho; solo cambios aditivos |
+| Carril A · entradas, visión y Telegram | `src/briefer/ingest/`, `providers/vision/`, `providers/stt/` | Noticias (con Bing News, URL del medio y extractos), precios, caché, PDF, gráfico y **STT (Whisper API)** reales hechos; CLIP, captura de cartera y Telegram pendientes (D2) |
+| Carril B · agentes, orquestación y calidad | `src/briefer/agents/`, `pipeline.py`, `providers/llm/` | Agentes reales con Claude, *grounding* en Analista y Guionista, red-team, `warmup` del Q&A (5,2 s con voz en frío), fallback marcado, paralelismo y CI hechos; p50/p95 pendiente (camino 1) |
+| Carril C · media, UI y demo | `src/briefer/media/`, `delivery/`, `app/` | edge-tts con `loudnorm`, normalización para voz, gráficos con «Índices de referencia», modos, pregenerado nuevo, «Cómo se hizo» y controles pendientes desactivados hechos; vídeo, portada y envíos pendientes (D2) |
+| Plug-and-play (scripts, Docker) | `scripts/`, `Dockerfile`, `.streamlit/config.toml`, `.github/workflows/tests.yml` | `run.ps1` probado y endurecido, CI en verde (3.11 y 3.13), `pip-audit` limpio; Docker endurecido pero **sin probar**; `run.sh` sin probar |
+| Viabilidad y compliance | [04](04_viabilidad_costes_latencia_compliance.md) | Costes y latencias **medidos** (4 briefings, 7 preguntas, STT); cartera no persistida ([ADR-005](decisiones/ADR-005-privacidad-cartera-no-persistida.md)); costes fijos y p50/p95 pendientes |
+| Revisión y mejora en paralelo | [05 · caminos](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) | Caminos 3, 4 y 5 cubiertos en gran parte; se recomiendan **1, 2 y 6** |
+| README con capturas, demo, pitch | `README.md`, `pitch/` | README al día (estado, modos, mediciones, privacidad); capturas, demo y pitch pendientes (D3) |
 
 Convenciones:
 
@@ -51,11 +54,11 @@ Leer en este orden antes de tocar nada:
 2. [02 · Arquitectura](02_arquitectura_y_flujo_datos.md): capa en la que vive cada cosa.
 3. [06 · Estado](06_estado_actual.md): qué está hecho y qué bloquea.
 4. [05 · Roadmap](05_roadmap_TODO.md): la tarea concreta, su fichero y su criterio de hecho.
-5. [Decisiones](decisiones/README.md): por qué el stack es el que es (y [ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md): pasos núcleo/opcionales).
+5. [Decisiones](decisiones/README.md): por qué el stack es el que es ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md): pasos núcleo/opcionales; [ADR-005](decisiones/ADR-005-privacidad-cartera-no-persistida.md): la cartera no se persiste).
 6. [07 · Revisión crítica](07_revision_critica.md), solo si la tarea toca prioridades o alcance (MoSCoW y orden de recortes ya están en 05).
 
 Reglas: no ejecutar git, no versionar `.env`, no copiar material de clase literal, todo debe funcionar en modo
-`mock` sin claves.
+`mock` sin claves, la cartera no se escribe en disco y ningún error, métrica o log lleva claves sin redactar.
 
 ## Mapa de documentos
 

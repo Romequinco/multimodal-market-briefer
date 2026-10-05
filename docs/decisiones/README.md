@@ -12,6 +12,8 @@ de ambos.
 | [ADR-002](ADR-002-proveedores-intercambiables.md) | Proveedores de IA intercambiables y modo mock | Aceptado | 05-oct-2026 |
 | [ADR-003](ADR-003-tolerancia-fallos-y-contratos-v02.md) | Tolerancia a fallos por paso y contratos v0.2 | Aceptado | 05-oct-2026 |
 | [ADR-004](ADR-004-salida-estructurada-json-schema.md) | Salida estructurada con `output_config` JSON Schema y pares para los diccionarios | Aceptado | 05-oct-2026 |
+| [ADR-005](ADR-005-privacidad-cartera-no-persistida.md) | Privacidad: la cartera no se persiste | Aceptado | 05-oct-2026 |
+| [ADR-006](ADR-006-guionista-haiku-puertas-deterministas.md) | Guionista en Haiku con puertas deterministas | Aceptado | 05-oct-2026 |
 
 Estados posibles: **Propuesto** · **Aceptado** · **Sustituido por ADR-XXX** · **Descartado**.
 

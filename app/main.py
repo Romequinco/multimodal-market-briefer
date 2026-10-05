@@ -2,9 +2,15 @@
 
 Las páginas de ``app/pages/`` aparecen automáticamente en la barra lateral.
 
-«Demo que nunca falla»: al abrir, la portada enseña sin pulsar nada el último briefing guardado
-(``data/outputs``) o, si no hay, el pregenerado versionado en ``data/samples/demo_briefing/``
-(``storage.load_featured_briefing``). Si no existe ninguno, lo explica y ofrece generar uno.
+«Demo que nunca falla» (lo que ve el evaluador en los primeros 30 s):
+
+1. Cabecera: nombre, propuesta de valor en una línea e insignia del modo (real / demo).
+2. El briefing de hoy **sin pulsar nada**: el último guardado (``data/outputs``) o, si no hay, el
+   pregenerado real de ``data/samples/demo_briefing/`` (``storage.load_featured_briefing``, cacheado),
+   con el reproductor arriba, 3 puntos clave, «Preguntar sobre este briefing» y «Generar el tuyo».
+3. Franja «Cómo se hizo» (modelos, pasos, latencia y coste) y pestañas con el detalle.
+
+Si no existe ningún briefing, lo explica y ofrece generar uno. El disclaimer va al pie, compacto.
 """
 
 from __future__ import annotations
@@ -12,28 +18,36 @@ from __future__ import annotations
 import components  # noqa: F401  (añade src/ al sys.path)
 from components import ROOT_DIR
 import streamlit as st
-from components.players import render_featured_briefing, show_disclaimer, sidebar_controls
+from components.players import (
+    page_link,
+    PAGE_ASK,
+    PAGE_BRIEFING,
+    PAGE_HISTORY,
+    PAGE_PORTFOLIO,
+    VALUE_PROPOSITION,
+    featured_briefing,
+    handle_navigation,
+    mode_badge,
+    render_featured_briefing,
+    show_disclaimer,
+    sidebar_mode,
+)
 
 from briefer import storage
-from briefer.schemas import DISCLAIMER_ES
+from briefer.logging_utils import error_text
 
-st.set_page_config(page_title="Market Briefer", layout="wide")
+st.set_page_config(page_title="Market Briefer", page_icon=":material/podcasts:", layout="wide")
+handle_navigation()
+mode = sidebar_mode()
 
-sidebar_controls()
-
+# ── Cabecera ──────────────────────────────────────────────────────────────────────
 st.title("Market Briefer")
-st.markdown(
-    "#### Tu briefing de mercados en formato podcast, cada mañana\n"
-    "Noticias filtradas por tu cartera, interpretadas por IA y contadas a **dos voces sintéticas**, "
-    "con transcripción, gráficos del día y vídeo corto. Sube un PDF de resultados o una captura de "
-    "un gráfico, y pregunta por voz lo que no entiendas."
-)
-st.caption(f"Aviso: {DISCLAIMER_ES}")
+st.markdown(f"#### {VALUE_PROPOSITION}")
+mode_badge(mode)
 
 # ── Briefing de hoy (último guardado o pregenerado) ────────────────────────────────
-st.markdown("### Briefing de hoy")
 try:
-    featured = storage.load_featured_briefing()
+    featured = featured_briefing()
 except Exception as exc:  # nunca romper la portada
     featured = None
     st.caption(f"No se pudo cargar el briefing guardado ({type(exc).__name__}).")
@@ -44,7 +58,7 @@ if featured is not None:
     try:
         render_featured_briefing(briefing, origin, key="home")
     except Exception as exc:  # p. ej. ficheros movidos a mano: se avisa sin traceback
-        st.warning(f"El briefing guardado no se pudo mostrar completo ({type(exc).__name__}: {exc}).")
+        st.warning(f"El briefing guardado no se pudo mostrar completo ({error_text(exc)}).")
 else:
     with st.container(border=True):
         st.info(
@@ -52,28 +66,32 @@ else:
             f"(`{storage.DEMO_BRIEFING_DIRNAME}/` en `data/samples/`). Genera el primero en la página "
             "**Briefing**: en modo demo tarda unos segundos y no necesita claves."
         )
+        page_link(PAGE_BRIEFING, "Generar mi primer briefing", ":material/podcasts:")
 
 # ── Acciones ──────────────────────────────────────────────────────────────────────
-st.markdown("### ¿Qué quieres hacer?")
-col1, col2, col3 = st.columns(3)
+st.markdown("### ¿Qué más puedes hacer?")
+col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.page_link("pages/1_Briefing.py", label="Generar el mío", icon=":material/podcasts:")
-    st.caption("Elige tickers, añade PDF, capturas o notas de voz y escucha el podcast.")
+    page_link(PAGE_BRIEFING, "Generar el tuyo", ":material/podcasts:")
+    st.caption("Elige valores, añade un PDF de resultados, una captura de gráfico o una nota de voz.")
 with col2:
-    st.page_link("pages/2_Preguntar.py", label="Preguntar por voz", icon=":material/mic:")
-    st.caption("El Agente Q&A responde sobre el briefing, también en audio.")
+    page_link(PAGE_ASK, "Preguntar por voz", ":material/mic:")
+    st.caption("El Agente Q&A responde sobre el briefing, en texto y en audio.")
 with col3:
-    st.page_link("pages/3_Mi_cartera.py", label="Mi cartera", icon=":material/account_balance_wallet:")
-    st.caption("Carga tu cartera (CSV) para personalizar las noticias.")
-st.page_link("pages/4_Historico.py", label="Histórico de briefings", icon=":material/history:")
+    page_link(PAGE_PORTFOLIO, "Mi cartera", ":material/account_balance_wallet:")
+    st.caption("Carga tu cartera (CSV) para filtrar las noticias. No se guarda en disco.")
+with col4:
+    page_link(PAGE_HISTORY, "Histórico", ":material/history:")
+    st.caption("Briefings anteriores, con su audio, gráficos y traza.")
 
 with st.expander("¿Cómo funciona? (cadena de modelos)"):
     st.markdown(
         "1. **Entradas**: noticias de mercado, cartera, PDF de resultados, captura de gráfico, voz.\n"
-        "2. **Procesado**: filtro por tickers · lectura de imagen (visión) · lectura de PDF · voz a texto.\n"
-        "3. **Agentes IA**: Analista (interpreta) → Guionista (diálogo); Q&A (responde preguntas).\n"
-        "4. **Salidas**: gráficos · podcast a 2 voces sintéticas · transcripción · vídeo corto.\n"
-        "5. **Entrega**: app web · email · Telegram.\n\n"
+        "2. **Procesado**: filtro por valores · lectura de imagen (visión) · lectura de PDF · voz a texto.\n"
+        "3. **Agentes IA**: Analista (interpreta, con control de cifras) → Guionista (diálogo); "
+        "Q&A (responde preguntas).\n"
+        "4. **Salidas**: gráficos · podcast a 2 voces sintéticas · transcripción y subtítulos.\n"
+        "5. **Entrega**: app web (email y Telegram en desarrollo).\n\n"
         "Cada briefing incluye la pestaña **«Cómo se hizo»** con el grafo real de modelos, latencia y coste."
     )
     diagram = ROOT_DIR / "docs" / "assets" / "arquitectura_mvp_podcast_financiero.png"

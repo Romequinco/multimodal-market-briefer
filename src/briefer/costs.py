@@ -12,9 +12,19 @@ Estado de verificación (05-oct-2026):
   páginas oficiales antes de la entrega (anotar la fecha en ``docs/04``).
 
 El coste de una llamada LLM/visión se calcula con ``provider.last_usage``
-(``{"input_tokens", "output_tokens"}``): ``estimate_cost_eur(provider, model, **last_usage)``.
-Los tokens de razonamiento (Sonnet 5.5 adaptativo, Gemini *thinking*) se facturan como salida y
-ya vienen incluidos en ``output_tokens``.
+(``{"input_tokens", "output_tokens"}`` y, si hubo caché de prompt,
+``cache_read_input_tokens`` / ``cache_creation_input_tokens``):
+``estimate_cost_eur(provider, model, **last_usage)``. Los tokens de razonamiento (Sonnet 5.5
+adaptativo, Gemini *thinking*) se facturan como salida y ya vienen incluidos en
+``output_tokens``. Las imágenes de visión se facturan como tokens de entrada y ya vienen en
+``input_tokens`` de la respuesta (no hay que estimarlas aparte).
+
+Qué cuenta en el coste de un paso (``pipeline._MeteredLLM`` / ``_MeteredVision``): **todas**
+las llamadas que devuelven respuesta, incluidas las de reintento (JSON inválido, *grounding*,
+reescritura del guion) y las que luego se descartan (rechazo, cortada por ``max_tokens``). Los
+reintentos internos del SDK ante 429/5xx/red no se facturan (no hubo respuesta) y no se suman.
+
+Caché de prompt (Anthropic): lectura 0,1x y escritura (5 min) 1,25x la tarifa de entrada.
 """
 
 from __future__ import annotations
@@ -87,10 +97,31 @@ def llm_price_usd_per_mtok(model: str) -> tuple[float, float] | None:
     return LLM_PRICES_USD_PER_MTOK[max(matches, key=len)] if matches else None
 
 
-def estimate_llm_cost_eur(model: str, input_tokens: int = 0, output_tokens: int = 0) -> float:
-    """Coste en EUR de una llamada LLM/visión. Modelo desconocido -> 0.0."""
+#: Multiplicadores de la tarifa de entrada para la caché de prompt de Anthropic
+#: (documentación oficial de precios: lectura 0,1x; escritura con TTL de 5 min 1,25x).
+CACHE_READ_MULTIPLIER = 0.10
+CACHE_WRITE_MULTIPLIER = 1.25
+
+
+def estimate_llm_cost_eur(
+    model: str,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cache_read_input_tokens: int = 0,
+    cache_creation_input_tokens: int = 0,
+) -> float:
+    """Coste en EUR de una llamada LLM/visión. Modelo desconocido -> 0.0.
+
+    ``input_tokens`` son los tokens de entrada sin caché; los de caché se facturan con
+    ``CACHE_READ_MULTIPLIER`` / ``CACHE_WRITE_MULTIPLIER``.
+    """
     price_in, price_out = llm_price_usd_per_mtok(model) or (0.0, 0.0)
-    usd = (input_tokens * price_in + output_tokens * price_out) / 1_000_000
+    effective_in = (
+        input_tokens
+        + cache_read_input_tokens * CACHE_READ_MULTIPLIER
+        + cache_creation_input_tokens * CACHE_WRITE_MULTIPLIER
+    )
+    usd = (effective_in * price_in + output_tokens * price_out) / 1_000_000
     return round(usd * USD_TO_EUR, 6)
 
 
@@ -111,6 +142,9 @@ def estimate_image_cost_eur(provider: str, n_images: int = 1) -> float:
     return round(IMAGE_GEN_PRICES_USD_PER_IMAGE.get(provider, 0.0) * n_images * USD_TO_EUR, 6)
 
 
+_TOKEN_KEYS = ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+
+
 def estimate_cost_eur(provider: str, model: str, **usage: float) -> float:
     """Despachador genérico usado por el pipeline.
 
@@ -120,10 +154,8 @@ def estimate_cost_eur(provider: str, model: str, **usage: float) -> float:
     """
     if provider in LOCAL_PROVIDERS:
         return 0.0
-    if "input_tokens" in usage or "output_tokens" in usage:
-        return estimate_llm_cost_eur(
-            model, int(usage.get("input_tokens", 0)), int(usage.get("output_tokens", 0))
-        )
+    if any(k in usage for k in _TOKEN_KEYS):
+        return estimate_llm_cost_eur(model, **{k: int(usage.get(k, 0)) for k in _TOKEN_KEYS})
     if "duration_s" in usage:
         return estimate_stt_cost_eur(model, float(usage["duration_s"]))
     if "n_chars" in usage:
@@ -134,10 +166,41 @@ def estimate_cost_eur(provider: str, model: str, **usage: float) -> float:
 
 
 def summarize_metrics(metrics: Iterable[StepMetric]) -> dict[str, float]:
-    """Totales para la UI y el pitch: latencia total (s), coste total (EUR) y nº de pasos."""
+    """Totales para la UI y el pitch: latencia total (s), coste total (EUR) y nº de pasos.
+
+    ``total_latency_s`` es la **suma** de latencias de los pasos (los pasos en paralelo
+    cuentan por separado: es mayor que el tiempo de pared).
+    """
     items = list(metrics)
     return {
         "steps": float(len(items)),
         "total_latency_s": round(sum(m.latency_s for m in items), 3),
         "total_cost_eur": round(sum(m.est_cost_eur for m in items), 6),
     }
+
+
+def cost_breakdown(metrics: Iterable[StepMetric]) -> list[tuple[str, float, float]]:
+    """``[(paso, coste €, % del total)]`` de los pasos con coste > 0, de mayor a menor."""
+    items = [(m.step, m.est_cost_eur) for m in metrics if m.est_cost_eur > 0]
+    total = sum(c for _, c in items)
+    items.sort(key=lambda x: x[1], reverse=True)
+    return [(step, round(cost, 6), round(100 * cost / total, 1) if total else 0.0) for step, cost in items]
+
+
+def format_cost_summary(metrics: Iterable[StepMetric], *, label: str = "briefing") -> str:
+    """Resumen legible del coste, p. ej. para el log, el CLI o la UI::
+
+        Coste estimado del briefing: 0,0652 € (≈ 0,0758 $) · agents.analyst 0,0248 € (38 %) · …
+
+    Usa coma decimal (es-ES). Si todo es gratuito (mock, demo) lo dice.
+    """
+    items = list(metrics)
+    total = sum(m.est_cost_eur for m in items)
+    if total <= 0:
+        return f"Coste estimado del {label}: 0 € (proveedores gratuitos, locales o mock)"
+    def num(value: float) -> str:
+        return f"{value:.4f}".replace(".", ",")
+
+    parts = [f"{step} {num(cost)} € ({pct:.0f} %)" for step, cost, pct in cost_breakdown(items)]
+    head = f"Coste estimado del {label}: {num(total)} € (≈ {num(total / USD_TO_EUR)} $)"
+    return " · ".join([head, *parts])

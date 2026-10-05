@@ -105,16 +105,16 @@ Fuente: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | 4 · Salidas | Gráficos del día | `media/charts.py` | `make_charts(prices, out_dir, portfolio)` | matplotlib |
 | | Audio podcast (2 voces) | `media/podcast.py` | `synthesize_podcast(script, tts, out_dir, voice_a, voice_b)` | `TTSProvider` |
 | | Transcripción | `media/transcript.py` | `build_transcript(script, segments, out_dir, speaker_names)` | — (tiempos del TTS) |
-| | Vídeo corto | `media/video.py` | `make_video(audio, images, out_path, transcript)` | moviepy + ffmpeg |
+| | Vídeo corto | `media/video.py` | `make_video(audio, images, out_path, transcript)` | ffmpeg (`imageio-ffmpeg`) |
 | | Portada *(opcional)* | `media/cover.py` | `make_cover(analysis, image_gen, out_dir)` | `ImageGenProvider` |
 | 5 · Entrega | App web | `app/` | — | Streamlit |
 | | Email | `delivery/email_sender.py` | `send_briefing_email(briefing, to, settings)` | SMTP |
 | | Telegram | `delivery/telegram_sender.py` | `send_briefing_telegram(briefing, chat_id, settings)` | Telegram Bot API |
 
-Firmas exactas en [03_contratos_modulos.md](03_contratos_modulos.md) (v0.2). Al cierre de la Fase 0 todas las
-funciones de esta tabla están implementadas y probadas con proveedores mock, salvo `make_video`, `make_cover` y
-los envíos (`send_briefing_email`, `send_briefing_telegram`), que son *stubs*; lo que requiere red (noticias,
-precios, proveedores reales) también. Ver [06](06_estado_actual.md).
+Firmas exactas en [03_contratos_modulos.md](03_contratos_modulos.md) (v0.3.1). Al cierre de la revisión de las
+Fases 0 y 1 todas las funciones de esta tabla están implementadas y probadas (con mocks y en real), salvo
+`make_video`, `make_cover` y los envíos (`send_briefing_email`, `send_briefing_telegram`), que son *stubs* con el
+control desactivado en la UI. Ver [06](06_estado_actual.md).
 
 ## Secuencia · generación del briefing
 
@@ -227,7 +227,7 @@ disclaimer.
 | 5 | `PodcastScript` | edge-tts, 2 voces es-ES (`BRIEFER_VOICE_A` / `BRIEFER_VOICE_B`) | `AudioAsset` | 6, 8 |
 | 6 | `AudioAsset` | — (tiempos del TTS) / Whisper opcional | `Transcript` + SRT | 8 |
 | 7 | Precios (+ cartera) | matplotlib | `ChartAsset[]` | 8 |
-| 8 | Audio + gráficos + SRT (+ portada SDXL-Turbo) | moviepy + ffmpeg | `VideoAsset` | entrega |
+| 8 | Audio + gráficos + SRT (+ portada generada) | ffmpeg (`imageio-ffmpeg`) | `VideoAsset` | entrega |
 | Q&A | Audio de pregunta | Whisper → Claude Haiku (`BRIEFER_LLM_MODEL_CHEAP`) → edge-tts | `QAAnswer` | UI |
 
 Son hasta **6 modelos distintos** encadenados (CLIP, visión, LLM analista, LLM guionista, TTS, texto-a-imagen)
@@ -264,15 +264,16 @@ Sin base de datos: ficheros en disco, suficiente para el MVP.
 ```text
 data/
 ├── samples/                      # versionado: CSV, JSON, grafico_ejemplo.png, resultados_ejemplo.pdf,
-│                                 #   generar_muestras.py (previsto: demo_briefing/ pregenerado)
-├── cache/                        # ignorado: respuestas de yfinance/RSS (previsto, p. ej. news_<fecha>.json)
+│                                 #   generar_muestras.py, demo_briefing/ (briefing real pregenerado)
+├── cache/                        # ignorado: noticias/precios del día, URL finales, extractos y robots.txt
+│                                 #   (<fuente>_<clave>_<YYYYMMDD>.json; purga automática a 7 días)
 └── outputs/                      # ignorado (BRIEFER_OUTPUT_DIR)
     ├── <briefing_id>/            # YYYYMMDD-HHMMSS-xxxxxx (new_briefing_id): orden alfabético = cronológico
     │   ├── briefing.json         # Briefing serializado; rutas internas relativas a esta carpeta
     │   ├── podcast.<ext>         # .mp3 con edge-tts, .wav con MockTTS
     │   ├── parts/                # audio por línea (000_A, 001_B…); se borra al terminar salvo keep_parts
     │   ├── podcast.srt
-    │   ├── charts/               # <TICKER>_price.png, overview_change.png, portfolio_weights.png
+    │   ├── charts/               # <TICKER>_price.png, overview_change.png (el de cartera NO se guarda aquí)
     │   ├── cover.png             # opcional
     │   ├── briefing.mp4          # opcional
     │   └── qa/respuesta_<id>.<ext>
@@ -283,4 +284,6 @@ Rutas tomadas de `pipeline.py`, `media/*` y `storage.py`. `storage` (`briefing_d
 `load_briefing`, `list_briefings`) es la puerta para guardar y leer `briefing.json`; al guardar escribe las rutas
 de dentro de la carpeta como relativas (portables entre máquinas y Docker) y al cargar las resuelve de nuevo; el
 pipeline crea la carpeta `<briefing_id>/` y los módulos de `media/` escriben en ella. El histórico de la UI lee
-de aquí.
+de aquí. **La cartera no se persiste** ([ADR-005](decisiones/ADR-005-privacidad-cartera-no-persistida.md)):
+`briefing.json` lleva `portfolio: null` y el gráfico de cartera se dibuja en `<tmp>/briefer_cartera/`, que se
+borra a las 12 h. Las subidas de la UI van a una carpeta temporal única por ejecución que se borra al terminar.

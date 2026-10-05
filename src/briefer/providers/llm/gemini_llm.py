@@ -24,7 +24,7 @@ from pydantic import BaseModel
 from briefer.config import Settings
 from briefer.providers.base import LLMProvider
 from briefer.providers.llm._anthropic_common import LLMResponseError
-from briefer.providers.llm._structured import complete_structured
+from briefer.providers.llm._structured import complete_structured, dict_fields, encode_dict_fields
 
 TIMEOUT_MS = 120_000
 RETRY_ATTEMPTS = 4  # 1 intento + 3 reintentos
@@ -97,7 +97,11 @@ class GeminiLLM(LLMProvider):
             kwargs["system_instruction"] = system
         if response_model is not None:
             kwargs["response_mime_type"] = "application/json"
-            kwargs["response_json_schema"] = response_model.model_json_schema()
+            # Igual que en Anthropic: los dict libres (``DocumentInsight.key_figures``) viajan como
+            # lista de pares ``{label, value}`` y se reconvierten al validar (``pair_fields``).
+            kwargs["response_json_schema"] = encode_dict_fields(
+                response_model.model_json_schema(), dict_fields(response_model)
+            )
         if self.cheap:
             if self.model.startswith("gemini-2.5"):
                 kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
@@ -140,4 +144,4 @@ class GeminiLLM(LLMProvider):
         def call(history: list[dict]) -> tuple[str, dict[str, int]]:
             return self._generate(system, history, response_model), {}
 
-        return complete_structured(call, messages, response_model)
+        return complete_structured(call, messages, response_model, pair_fields=dict_fields(response_model))

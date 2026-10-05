@@ -145,7 +145,7 @@ def test_full_line() -> None:
 @pytest.mark.parametrize(
     "text",
     [
-        "Buenos días, esto es Market Briefer.",
+        "Buenos días, esto es el briefing del lunes.",
         "Hola, ¿qué tal? ¡Bien!",
         "San Sebastián y el sector de la banca.",
         "Meta de ventas y el santander de siempre.",

@@ -3,14 +3,25 @@ services:
     build: .
     image: multimodal-market-briefer:latest
     ports:
-      - "8501:8501"
+      # Solo en este equipo. Para exponerlo en la red local: "8501:8501".
+      - "127.0.0.1:8501:8501"
     # Copia .env.example a .env y rellena las claves antes de arrancar.
-    # Si no existe .env, arranca igualmente en modo mock (requiere Docker Compose >= 2.24).
+    # Si no existe .env, arranca igualmente en modo demo/mock (requiere Docker Compose >= 2.24).
     env_file:
       - path: .env
         required: false
+    environment:
+      TZ: Europe/Madrid
     volumes:
-      # Briefings generados y caché persistentes fuera del contenedor.
+      # Briefings generados y cache persistentes fuera del contenedor.
+      # El contenedor corre con UID 1000: en Linux, si tu usuario no es el 1000, da permisos de
+      # escritura a estas carpetas (p. ej. chmod -R a+rwX data/outputs data/cache).
       - ./data/outputs:/app/data/outputs
       - ./data/cache:/app/data/cache
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
     restart: unless-stopped

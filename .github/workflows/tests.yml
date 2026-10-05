@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,11 +15,18 @@ concurrency:
 
 jobs:
   pytest:
+    name: pytest (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 = minimo soportado (y el de la imagen Docker); 3.13 = el de los equipos del grupo.
+        python-version: ["3.11", "3.13"]
     env:
-      # Sin claves: todos los proveedores en mock (los tests "live" se excluyen en pyproject).
+      # Sin claves ni secretos: todos los proveedores en mock (los tests "live" se excluyen en pyproject).
       PYTHONDONTWRITEBYTECODE: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
       BRIEFER_LLM_PROVIDER: mock
       BRIEFER_VISION_PROVIDER: mock
       BRIEFER_STT_PROVIDER: mock
@@ -26,14 +34,17 @@ jobs:
       BRIEFER_IMAGE_GEN_PROVIDER: none
       BRIEFER_IMAGE_CLASSIFIER_PROVIDER: none
       MPLBACKEND: Agg
+      TZ: Europe/Madrid
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: requirements.txt
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
 
       - name: Instalar ffmpeg
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
@@ -41,7 +52,8 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt && pip install -e .
+          pip install -r requirements.txt
+          pip install -e .
 
       - name: Tests (mock, sin red)
-        run: pytest -q
+        run: pytest -q -p no:cacheprovider

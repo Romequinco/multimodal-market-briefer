@@ -77,11 +77,14 @@ class Settings(BaseSettings):
     # ── Modelos ─────────────────────────────────────────────────────────────────
     briefer_llm_model: str = "claude-sonnet-5-5"
     briefer_llm_model_cheap: str = "claude-haiku-4-5-20251001"
+    # Modelo del Agente Guionista (vacío = el barato). Evaluación del 06-oct: Haiku basta con
+    # las puertas de calidad; Sonnet 5.5 escribe mejor pero cuesta ~2,7x (ver pipeline).
+    briefer_scriptwriter_model: str = ""
     briefer_gemini_model: str = "gemini-2.5-flash"
     briefer_openai_model: str = "gpt-4o-mini"
     briefer_vision_model: str = "claude-sonnet-5-5"
     briefer_qwen_vl_model: str = "Qwen/Qwen2.5-VL-3B-Instruct"
-    briefer_whisper_api_model: str = "whisper-1"
+    briefer_whisper_api_model: str = "gpt-4o-mini-transcribe"
     briefer_whisper_local_model: str = "base"
     briefer_sdxl_model: str = "stabilityai/sdxl-turbo"
     briefer_clip_model: str = "openai/clip-vit-base-patch32"

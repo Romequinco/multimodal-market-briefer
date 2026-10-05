@@ -88,7 +88,9 @@ def test_featured_falls_back_to_demo(sample_briefing: Briefing, tmp_path: Path) 
 def test_featured_prefers_latest_saved_and_skips_corrupt(sample_briefing: Briefing, tmp_path: Path) -> None:
     outputs, samples = tmp_path / "outputs", tmp_path / "samples"
     storage.export_briefing(_with_files(sample_briefing, tmp_path / "gen"), storage.demo_briefing_dir(samples))
-    older = sample_briefing.model_copy(update={"id": "20261005-080000-aaaaaa"})
+    # Briefing real (las métricas mock del fixture lo harían «simulado» y la portada lo saltaría).
+    real_metric = sample_briefing.metrics[0].model_copy(update={"provider": "anthropic"})
+    older = sample_briefing.model_copy(update={"id": "20261005-080000-aaaaaa", "metrics": [real_metric]})
     storage.save_briefing(older, outputs)
     corrupt = outputs / "20261006-090000-bbbbbb"
     corrupt.mkdir(parents=True)

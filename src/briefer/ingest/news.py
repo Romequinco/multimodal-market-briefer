@@ -1,4 +1,4 @@
-"""Ingesta de noticias de mercado: yfinance/Yahoo, Google News RSS y prensa económica, u offline.
+"""Ingesta de noticias de mercado: yfinance/Yahoo, Google News y Bing News RSS y prensa económica, u offline.
 
 Carril A. Salida: ``list[NewsItem]`` deduplicada y ordenada por fecha (más reciente primero).
 El filtrado final por tickers lo hace ``ingest.tickers.filter_by_tickers``.
@@ -11,11 +11,21 @@ Fuentes (todas sin clave):
   siempre con el **RSS de titulares de Yahoo Finance** del ticker.
 - **Google News RSS en español** por nombre de empresa (``TICKER_UNIVERSE``) más términos de
   mercado, para que los valores ``.MC`` tengan cobertura en español.
+- **Bing News RSS en español** con la misma consulta: trae extracto y enlace directo al medio
+  (dentro de su redirección ``apiclick``), así que complementa a Google News, que no trae ninguno.
 - **Feeds generalistas de mercados** en español (``DEFAULT_MARKET_FEEDS`` o ``BRIEFER_NEWS_RSS_FEEDS``).
 
-``fetch_news`` combina las fuentes en paralelo, tolera que fallen algunas, filtra por ventana
-temporal (48 h ampliable a 72 h / 7 días si hay pocas) y reparte el cupo por ticker. Cada respuesta
-de red se cachea por día en ``settings.cache_path`` (ver ``ingest.cache``).
+``fetch_news`` combina las fuentes en paralelo, tolera que fallen algunas, deduplica (también
+titulares casi idénticos entre medios), filtra por ventana temporal (48 h ampliable a 72 h / 7 días
+si hay pocas) y reparte el cupo por ticker priorizando por **relevancia** (``relevance_score``:
+mención en el titular > en el resumen, frescura, español). Después **enriquece** las seleccionadas
+(``enrich_news``): URL final del medio en lugar de la redirección de Google News y extracto breve de
+``og:description`` si el feed no trae resumen (``ingest.article_meta``: solo metadatos, respeta
+``robots.txt``, con presupuesto de tiempo). Cada respuesta de red se cachea por día en
+``settings.cache_path`` (ver ``ingest.cache``).
+
+Derechos de autor: de cada noticia solo se guarda titular + extracto breve (``SUMMARY_MAX_CHARS``)
++ fuente + enlace; nunca el cuerpo del artículo.
 """
 
 from __future__ import annotations
@@ -29,14 +39,15 @@ import re
 import threading
 import time
 import unicodedata
-from concurrent.futures import ThreadPoolExecutor, wait
+from collections import Counter
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from briefer.config import get_settings
-from briefer.ingest import cache
+from briefer.ingest import article_meta, cache
 from briefer.ingest.tickers import TICKER_UNIVERSE, extract_tickers, normalize_ticker
 from briefer.logging_utils import get_logger
 from briefer.schemas import NewsItem
@@ -60,6 +71,9 @@ YAHOO_HEADLINES_RSS = "https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticke
 GOOGLE_MARKET_TERMS = '(acciones OR bolsa OR resultados OR mercado OR Ibex OR "Wall Street" OR inversores)'
 #: Días hacia atrás que se piden a Google News (``when:Nd``): cubre la ventana más amplia.
 GOOGLE_NEWS_DAYS = 7
+#: RSS de búsqueda de Bing News (es-ES): trae extracto (``description``) y el enlace real del medio
+#: dentro del parámetro ``url`` de su redirección, así que no hace falta visitar el artículo.
+BING_NEWS_RSS = "https://www.bing.com/news/search"
 
 #: Feeds generalistas de mercados en español (verificados el 05-oct-2026). Se usan si
 #: ``BRIEFER_NEWS_RSS_FEEDS`` está vacío.
@@ -72,12 +86,33 @@ DEFAULT_MARKET_FEEDS: tuple[str, ...] = (
 WINDOWS_HOURS: tuple[int, ...] = (48, 72, 168)
 #: Mínimo de noticias por ticker para no ampliar la ventana.
 MIN_PER_TICKER = 3
-#: Longitud máxima del resumen limpio.
-SUMMARY_MAX_CHARS = 600
+#: Longitud máxima del resumen limpio (derechos de autor: extracto breve, ver docs/04 §5).
+SUMMARY_MAX_CHARS = 200
+#: Máximo de bytes que se leen de un feed (un servidor roto no llena la memoria).
+MAX_FEED_BYTES = 5_000_000
+#: Margen tolerado para fechas en el futuro (zonas horarias mal declaradas); más allá, se usa «ahora».
+FUTURE_TOLERANCE = timedelta(minutes=15)
+#: Similitud (Jaccard de palabras del titular) a partir de la cual dos titulares son la misma noticia.
+NEAR_DUP_THRESHOLD = 0.75
+#: Hilos para descargar fuentes (E/S de red: más hilos que núcleos).
+FETCH_WORKERS = 32
+#: Presupuesto total (s) y paralelismo del enriquecimiento (URL final + ``og:description``).
+ENRICH_BUDGET_S = 3.0
+ENRICH_WORKERS = 12
 
 #: Estadísticas de la última llamada a ``fetch_news`` (por fuente): ``items``, ``latency_s``,
 #: ``cached`` y ``error``. Solo informativo (trazas, UI, informe de latencias).
 last_fetch_stats: dict[str, dict[str, Any]] = {}
+#: Calidad de la última selección: ``sources_latency_s`` (descarga de fuentes), ``landing_pages``
+#: descartadas, ``near_duplicates`` fusionados, ``selected``, ``with_summary``, ``google_urls`` (sin resolver), ``enrich`` (``candidates``, ``done``, ``resolved``, ``summaries``,
+#: ``timed_out``, ``latency_s``) y ``scores`` (``id -> relevancia`` de las elegidas). Informativo.
+last_quality_stats: dict[str, Any] = {}
+
+#: Parámetros de URL de seguimiento que no identifican el artículo (se ignoran al deduplicar).
+_TRACKING_PARAMS = {
+    "oc", "ocid", "guccounter", "guce_referrer", "guce_referrer_sig", "tsrc", ".tsrc", "ref", "ref_src",
+    "fbclid", "gclid", "mc_cid", "mc_eid", "cmpid", "smid", "ito", "src", "source", "rss", "feed",
+}
 
 
 class NewsFetchError(RuntimeError):
@@ -88,12 +123,23 @@ class NewsFetchError(RuntimeError):
 
 
 def _http_get(url: str, timeout: float = HTTP_TIMEOUT) -> bytes:
-    """GET con User-Agent de navegador y timeout corto. Lanza si el estado no es 2xx."""
+    """GET con User-Agent de navegador y timeout corto. Lanza si el estado no es 2xx.
+
+    Lee como mucho ``MAX_FEED_BYTES`` (un feed más grande se trunca y feedparser lo marcará roto).
+    """
     import requests
 
-    resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=timeout)
-    resp.raise_for_status()
-    return resp.content
+    with requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=timeout, stream=True) as resp:
+        resp.raise_for_status()
+        chunks: list[bytes] = []
+        size = 0
+        for chunk in resp.iter_content(chunk_size=65_536):
+            chunks.append(chunk)
+            size += len(chunk)
+            if size >= MAX_FEED_BYTES:
+                log.warning("Respuesta de %s truncada a %d bytes", urlsplit(url).netloc, MAX_FEED_BYTES)
+                break
+        return b"".join(chunks)
 
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -137,6 +183,12 @@ def _parse_datetime(value: Any) -> datetime | None:
         return None
 
 
+def _not_future(dt: datetime, now: datetime | None = None) -> datetime:
+    """Fechas en el futuro (zona horaria mal declarada en el feed) -> ahora, para no colarse primeras."""
+    now = now or datetime.now(timezone.utc)
+    return now if dt > now + FUTURE_TOLERANCE else dt
+
+
 def _language(code: str | None, default: str) -> str:
     """``"es-ES"`` -> ``"es"``; vacío -> ``default``."""
     code = (code or "").strip().lower()
@@ -175,7 +227,7 @@ def parse_yfinance_item(raw: dict, ticker: str) -> NewsItem | None:
     summary = clean_html(content.get("summary") or content.get("description") or raw.get("summary"))
     provider = _as_dict(content.get("provider"))
     source = provider.get("displayName") or content.get("publisher") or raw.get("publisher") or "Yahoo Finance"
-    published = (
+    published = _not_future(
         _parse_datetime(content.get("pubDate"))
         or _parse_datetime(content.get("displayTime"))
         or _parse_datetime(raw.get("providerPublishTime"))
@@ -212,10 +264,12 @@ def _yf_news_disabled() -> bool:
     """True si hoy ya se comprobó que la API de noticias de yfinance no responde (memoria o caché)."""
     if _yf_news["day"] != date.today():
         _reset_yf_news_state()
-    if _yf_news["off"]:
-        return True
+    with _yf_lock:
+        if _yf_news["off"]:
+            return True
     if cache.read_cache("news-yfinance", "disabled"):
-        _yf_news["off"] = True
+        with _yf_lock:
+            _yf_news["off"] = True
         return True
     return False
 
@@ -303,33 +357,43 @@ def parse_feed(
 
     - Título sin el sufijo «- Medio» de Google News; ``source`` = medio de la entrada
       (``<source>`` en Google News) o título del feed.
-    - Resumen sin HTML; si solo repite el título (caso Google News) queda vacío.
-    - Fecha ``published``/``updated`` en UTC; si no hay, ahora.
+    - Resumen sin HTML y recortado a ``SUMMARY_MAX_CHARS``; si solo repite el título queda vacío.
+      En Google News siempre queda vacío (su «resumen» es el enlace o una lista de titulares de
+      otros medios); lo rellena después ``enrich_news``.
+    - Fecha ``published``/``updated`` en UTC; si no hay, ahora; si está en el futuro, ahora.
 
     Raises:
-        ValueError: si el contenido no es un feed legible (sin entradas y con error de parseo).
+        ValueError: si el contenido no es un feed legible: sin entradas y con error de parseo, o
+            sin entradas y sin formato RSS/Atom reconocido (p. ej. una página HTML de error,
+            de cookies o de *captcha* servida con estado 200). Así no se cachea como «sin noticias».
     """
     import feedparser
 
     parsed = feedparser.parse(content)
-    if parsed.bozo and not parsed.entries:
-        raise ValueError(f"Feed no legible ({feed_url or 'contenido'}): {parsed.get('bozo_exception')}")
+    if not parsed.entries and (parsed.bozo or not parsed.get("version")):
+        reason = parsed.get("bozo_exception") or "no es RSS/Atom (¿página HTML de error?)"
+        raise ValueError(f"Feed no legible ({feed_url or 'contenido'}): {reason}")
     feed_title = clean_html(parsed.feed.get("title"), max_chars=120)
     lang = _language(parsed.feed.get("language"), default_language)
     items: list[NewsItem] = []
     for entry in parsed.entries:
         title = clean_html(entry.get("title"), max_chars=300)
-        url = (entry.get("link") or "").strip()
+        url = unwrap_redirect((entry.get("link") or "").strip())
         if not title or not url:
             continue
-        source = clean_html(_as_dict(entry.get("source")).get("title"), max_chars=120)
+        source = clean_html(
+            _as_dict(entry.get("source")).get("title") or entry.get("news_source"), max_chars=120
+        )
+        source = re.sub(r"\s+on MSN$", "", source)  # Bing: «Medio on MSN»
         if source and title.endswith(f" - {source}"):
             title = title[: -len(source) - 3].rstrip()
         source = source or default_source or feed_title or urlsplit(url).netloc
         summary = clean_html(entry.get("summary") or entry.get("description"))
-        if summary and _title_key(summary).startswith(_title_key(title)) and len(summary) < len(title) + 80:
-            summary = ""  # Google News: el «resumen» es el enlace con el título y el medio
-        published = (
+        if article_meta.is_google_news_url(url):
+            summary = ""  # Google News: el «resumen» es el enlace o una lista de titulares de otros medios
+        elif summary and _title_key(summary).startswith(_title_key(title)) and len(summary) < len(title) + 80:
+            summary = ""  # el «resumen» solo repite el título
+        published = _not_future(
             _parse_datetime(entry.get("published_parsed"))
             or _parse_datetime(entry.get("updated_parsed"))
             or datetime.now(timezone.utc)
@@ -349,6 +413,21 @@ def parse_feed(
         if len(items) >= max_items:
             break
     return items
+
+
+def unwrap_redirect(url: str) -> str:
+    """Enlace real de una redirección de agregador que lo lleva en la query (Bing News ``apiclick``).
+
+    ``http://www.bing.com/news/apiclick.aspx?…&url=https%3a%2f%2fmedio.es%2fnoticia`` ->
+    ``https://medio.es/noticia``. Cualquier otro enlace se devuelve igual (Google News no lleva la
+    URL en claro: la resuelve ``enrich_news``).
+    """
+    parts = urlsplit(url)
+    if parts.netloc.lower().endswith("bing.com") and parts.path.lower().endswith("/apiclick.aspx"):
+        target = dict(parse_qsl(parts.query)).get("url", "")
+        if target.startswith(("http://", "https://")):
+            return target
+    return url
 
 
 def _fetch_feed(
@@ -398,6 +477,31 @@ def _google_news(ticker: str, max_items: int, days: int = GOOGLE_NEWS_DAYS) -> l
     return [i.model_copy(update={"tickers": [ticker]}) for i in items[:max_items]]
 
 
+def bing_news_url(query: str) -> str:
+    """URL del RSS de búsqueda de Bing News en español de España."""
+    return f"{BING_NEWS_RSS}?{urlencode({'q': query, 'format': 'rss', 'setlang': 'es', 'cc': 'ES', 'mkt': 'es-ES'})}"
+
+
+def _bing_news(ticker: str, max_items: int) -> list[NewsItem]:
+    """Bing News RSS para un ticker (lanza si falla), etiquetado con el ticker."""
+    items = _fetch_feed(bing_news_url(google_news_query(ticker)), 100, "es", "Bing News")
+    items.sort(key=_sort_key, reverse=True)  # Bing también ordena por relevancia
+    return [i.model_copy(update={"tickers": [ticker]}) for i in items[:max_items]]
+
+
+def fetch_bing_news(ticker: str, max_items: int = 15) -> list[NewsItem]:
+    """Noticias en español de Bing News para un ticker, con extracto y enlace directo al medio.
+
+    Misma consulta que Google News (``google_news_query``). Nunca lanza: ``[]`` y aviso en el log.
+    """
+    ticker = normalize_ticker(ticker)
+    try:
+        return _bing_news(ticker, max_items)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Bing News falló para %s: %s", ticker, exc)
+        return []
+
+
 def fetch_google_news(ticker: str, max_items: int = 15, days: int = GOOGLE_NEWS_DAYS) -> list[NewsItem]:
     """Noticias en español de Google News para un ticker (por nombre de empresa).
 
@@ -411,13 +515,24 @@ def fetch_google_news(ticker: str, max_items: int = 15, days: int = GOOGLE_NEWS_
         return []
 
 
-# ── deduplicado (ya implementado en F0) ───────────────────────────────────────────
+# ── deduplicado y relevancia ──────────────────────────────────────────────────────
 
 
 def _url_key(url: str) -> str:
-    """URL sin query, fragmento ni barra final, en minúsculas (clave de duplicado)."""
+    """URL normalizada (clave de duplicado): sin fragmento, barra final ni parámetros de seguimiento.
+
+    Se conservan los parámetros que identifican el artículo (``?id=123``), ordenados; se quitan
+    ``utm_*`` y los de ``_TRACKING_PARAMS``. Host y esquema en minúsculas.
+    """
     parts = urlsplit(url.strip())
-    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), "", "")).lower()
+    query = sorted(
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if not k.lower().startswith("utm_") and k.lower() not in _TRACKING_PARAMS
+    )
+    return urlunsplit(
+        (parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), urlencode(query), "")
+    ).lower()
 
 
 def _title_key(title: str) -> str:
@@ -427,35 +542,132 @@ def _title_key(title: str) -> str:
     return " ".join(re.sub(r"[^\w\s]", " ", folded).split())
 
 
+_STOPWORDS = frozenset(
+    "de la el en y a los las del por con para un una al se su sus lo que es o e the of to and in on for "
+    "is at as by with from its after".split()
+)
+
+
+def _title_tokens(title: str) -> frozenset[str]:
+    """Palabras significativas del titular (sin tildes ni palabras vacías)."""
+    return frozenset(w for w in _title_key(title).split() if w not in _STOPWORDS and len(w) > 1)
+
+
+def titles_similar(a: str, b: str, threshold: float = NEAR_DUP_THRESHOLD) -> bool:
+    """True si dos titulares son casi idénticos (misma noticia en dos medios).
+
+    Jaccard de palabras significativas ≥ ``threshold`` (con ≥ 4 palabras en ambos), o el más
+    corto contenido casi entero (≥ 90 %) en el otro con ≥ 6 palabras.
+    """
+    return _tokens_similar(_title_tokens(a), _title_tokens(b), threshold)
+
+
+def _tokens_similar(ta: frozenset[str], tb: frozenset[str], threshold: float) -> bool:
+    small = min(len(ta), len(tb))
+    if small < 4:
+        return False
+    inter = len(ta & tb)
+    return inter / len(ta | tb) >= threshold or (small >= 6 and inter / small >= 0.9)
+
+
 def _sort_key(item: NewsItem) -> datetime:
     """Fecha comparable aunque se mezclen datetimes con y sin zona horaria (naive = UTC)."""
     dt = item.published_at
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
-def dedupe_news(items: list[NewsItem]) -> list[NewsItem]:
-    """Elimina duplicados por URL y por título normalizado; fusiona listas de tickers.
+def dedupe_news(items: list[NewsItem], near_threshold: float | None = NEAR_DUP_THRESHOLD) -> list[NewsItem]:
+    """Elimina duplicados por URL, por título normalizado y por titular casi idéntico.
 
     Se conserva la primera aparición (posición y ``id``), uniendo los tickers de los duplicados y
-    quedándose con el resumen más largo. No muta la entrada.
+    quedándose con el resumen más largo y con el enlace directo del medio si el conservado era de
+    Google News (el ``id`` no cambia). ``near_threshold=None`` desactiva la comparación
+    aproximada (``titles_similar``). No muta la entrada.
     """
     result: list[NewsItem] = []
+    tokens: list[frozenset[str]] = []
     index_by_key: dict[str, int] = {}
     for item in items:
         keys = [k for k in (f"url:{_url_key(item.url)}", f"title:{_title_key(item.title)}") if k.split(":", 1)[1]]
         pos = next((index_by_key[k] for k in keys if k in index_by_key), None)
+        item_tokens = _title_tokens(item.title)
+        if pos is None and near_threshold is not None and len(item_tokens) >= 4:
+            pos = next(
+                (
+                    n for n, kept_tokens in enumerate(tokens)
+                    if _tokens_similar(kept_tokens, item_tokens, near_threshold)
+                ),
+                None,
+            )
         if pos is None:
             pos = len(result)
             result.append(item.model_copy())
+            tokens.append(item_tokens)
         else:
             kept = result[pos]
             update: dict[str, object] = {"tickers": list(dict.fromkeys([*kept.tickers, *item.tickers]))}
             if len(item.summary) > len(kept.summary):
                 update["summary"] = item.summary
+            if article_meta.is_google_news_url(kept.url) and not article_meta.is_google_news_url(item.url):
+                update["url"] = item.url  # mejor el enlace directo del medio que la redirección de Google
             result[pos] = kept.model_copy(update=update)
         for k in keys:
             index_by_key.setdefault(k, pos)
     return result
+
+
+#: Tramos de ruta de fichas de cotización (no son noticias): Investing, Bolsamanía, Yahoo…
+_LANDING_SEGMENTS = frozenset({"equities", "indices", "accion", "quote"})
+
+
+def is_landing_page(item: NewsItem) -> bool:
+    """True si parece una ficha de cotización o portada de sección, no una noticia.
+
+    Criterios: titular con < 3 palabras significativas («Inditex (ITX)», «Cotización Iberdrola»),
+    ruta de ficha (un tramo de ``_LANDING_SEGMENTS``, p. ej. ``/equities/inditex-ratios``) o ruta
+    corta sin *slug* de artículo (≤ 3 tramos y el último sin extensión, sin cifras y con < 2
+    guiones, p. ej. ``/empresas/banco-santander/``). Los enlaces de Google
+    News solo se juzgan por el titular.
+    """
+    if len(_title_tokens(item.title)) < 3:
+        return True
+    if article_meta.is_google_news_url(item.url):
+        return False
+    segments = [seg for seg in urlsplit(item.url).path.lower().split("/") if seg]
+    if not segments or _LANDING_SEGMENTS & set(segments):
+        return True
+    last = segments[-1]
+    if "." in last:  # «noticia.html», «.htm», «.shtml»: es un documento, no una portada de sección
+        return False
+    return len(segments) <= 3 and not any(c.isdigit() for c in last) and last.count("-") < 2
+
+
+def relevance_score(item: NewsItem, ticker: str, now: datetime | None = None) -> float:
+    """Relevancia de una noticia para un ticker (mayor = más relevante). Heurística simple:
+
+    - Mención del ticker (símbolo, nombre o alias) en el **titular**: +3; solo en el resumen: +1;
+      ninguna (llegó por la búsqueda de la fuente): +0.
+    - **Frescura**: hasta +2, decae con la edad (``2·e^(-horas/24)``).
+    - **Español**: +1 (el podcast es en español). **Con extracto**: +0,5 (más útil para el Analista).
+    - Lista de ≥ 3 valores más (mención de pasada, «Análisis de BBVA, CaixaBank, …»): -1.
+    """
+    now = now or datetime.now(timezone.utc)
+    if ticker in extract_tickers(item.title, [ticker]):
+        score = 3.0
+    elif item.summary and ticker in extract_tickers(item.summary, [ticker]):
+        score = 1.0
+    else:
+        score = 0.0
+    age_h = max(0.0, (now - _sort_key(item)).total_seconds() / 3600)
+    score += 2.0 * math.exp(-age_h / 24)
+    if item.language == "es":
+        score += 1.0
+    if item.summary.strip():
+        score += 0.5
+    others = [t for t in item.tickers if t != ticker and not t.startswith("^")]
+    if len(others) >= 3:
+        score -= 1.0
+    return round(score, 3)
 
 
 # ── combinación ───────────────────────────────────────────────────────────────────
@@ -483,14 +695,19 @@ def _cached_source(
 
 
 def _select(
-    items: list[NewsItem], wanted: list[str], max_items: int, per_ticker: int
+    items: list[NewsItem], wanted: list[str], max_items: int, per_ticker: int,
+    scores: dict[str, float] | None = None,
 ) -> list[NewsItem]:
-    """Reparte el cupo: ronda por ticker (español primero, luego más reciente) y rellena con generales."""
+    """Reparte el cupo: ronda por ticker (por ``relevance_score``; empate, más reciente) y rellena con generales.
+
+    Si se pasa ``scores``, se anota ahí la relevancia de cada noticia elegida para su ticker.
+    """
+    now = datetime.now(timezone.utc)
     by_recency = sorted(items, key=_sort_key, reverse=True)
-    queues = {
-        t: sorted((i for i in by_recency if t in i.tickers), key=lambda i: i.language != "es")
-        for t in wanted
-    }
+    queues: dict[str, list[tuple[float, NewsItem]]] = {}
+    for t in wanted:
+        scored = [(relevance_score(i, t, now), i) for i in by_recency if t in i.tickers]
+        queues[t] = sorted(scored, key=lambda pair: pair[0], reverse=True)  # estable: empate -> más reciente
     chosen: dict[str, NewsItem] = {}
     counts = dict.fromkeys(wanted, 0)
     progress = True
@@ -500,12 +717,14 @@ def _select(
             if len(chosen) >= max_items or counts[t] >= per_ticker:
                 continue
             queue = queues[t]
-            while queue and queue[0].id in chosen:
+            while queue and queue[0][1].id in chosen:
                 queue.pop(0)
             if not queue:
                 continue
-            item = queue.pop(0)
+            score, item = queue.pop(0)
             chosen[item.id] = item
+            if scores is not None:
+                scores[item.id] = score
             for tk in item.tickers:
                 if tk in counts:
                     counts[tk] += 1
@@ -518,6 +737,139 @@ def _select(
     return sorted(chosen.values(), key=_sort_key, reverse=True)
 
 
+def _useful_description(description: str, title: str) -> bool:
+    """Descarta descripciones vacías, muy cortas o que solo repiten el titular."""
+    if len(description) < article_meta.MIN_DESCRIPTION_CHARS:
+        return False
+    d, t = _title_key(description), _title_key(title)
+    return not (d == t or (d.startswith(t) and len(d) < len(t) + 20))
+
+
+def _empty_enrich_stats() -> dict[str, Any]:
+    return {"candidates": 0, "done": 0, "resolved": 0, "summaries": 0, "timed_out": 0, "latency_s": 0.0}
+
+
+_meta_slots: dict[int, threading.BoundedSemaphore] = {}
+_meta_slots_lock = threading.Lock()
+
+
+def _start_meta_fetch(url: str, use_cache: bool, max_workers: int) -> Future:
+    """Lanza ``article_meta.fetch_article_meta`` en un hilo *daemon* y devuelve su ``Future``.
+
+    Hilos *daemon* (no un ``ThreadPoolExecutor``): las peticiones que no llegan al presupuesto
+    siguen y dejan su resultado en la caché, pero no retienen la salida de un proceso de CLI
+    (``concurrent.futures`` espera a sus hilos al terminar el intérprete). ``max_workers``
+    peticiones a la vez como mucho (semáforo compartido).
+    """
+    with _meta_slots_lock:
+        slots = _meta_slots.setdefault(max(1, max_workers), threading.BoundedSemaphore(max(1, max_workers)))
+    fut: Future = Future()
+
+    def work() -> None:
+        with slots:
+            if not fut.set_running_or_notify_cancel():
+                return
+            try:
+                fut.set_result(article_meta.fetch_article_meta(url, use_cache=use_cache))
+            except BaseException as exc:  # noqa: BLE001 - se entrega al que espera
+                fut.set_exception(exc)
+
+    threading.Thread(target=work, name="news-meta", daemon=True).start()
+    return fut
+
+
+def enrich_news(
+    items: list[NewsItem],
+    *,
+    use_cache: bool = True,
+    budget_s: float = ENRICH_BUDGET_S,
+    max_workers: int = ENRICH_WORKERS,
+    stats_out: dict[str, Any] | None = None,
+) -> list[NewsItem]:
+    """Completa las noticias con la URL final del medio y un extracto breve (``og:description``).
+
+    Solo trabaja con las que lo necesitan (enlace de Google News o resumen vacío), en paralelo
+    (``max_workers``) y con un presupuesto total de ``budget_s`` segundos: lo que no llegue a
+    tiempo se queda como estaba (las peticiones ya en curso terminan y dejan su resultado en la
+    caché para la siguiente ejecución). Nunca lanza ni retrasa la ingesta más de ``budget_s``.
+
+    - ``summary``: solo se rellena si estaba vacío, con la descripción limpia y recortada a
+      ``SUMMARY_MAX_CHARS``; se descartan las genéricas (la misma en ≥ 2 artículos del mismo
+      medio) y las que solo repiten el titular.
+    - ``url``: la del medio si se pudo resolver; si no, la original. ``id`` no cambia (se calculó
+      con la URL de origen).
+
+    Deja el resumen en ``last_quality_stats["enrich"]`` y, si se pasa, en ``stats_out`` (propio
+    de esta llamada: sin carreras entre briefings simultáneos). Conserva el orden de ``items``.
+    """
+    start = time.perf_counter()
+    todo = [i for i in items if article_meta.is_google_news_url(i.url) or not i.summary.strip()]
+    stats = {**_empty_enrich_stats(), "candidates": len(todo)}
+    if not todo or budget_s <= 0:
+        last_quality_stats["enrich"] = stats
+        if stats_out is not None:
+            stats_out.update(stats)
+        return list(items)
+
+    metas: dict[str, dict[str, Any]] = {}
+    futures = {_start_meta_fetch(i.url, use_cache, max_workers): i.id for i in todo}
+    done, pending = wait(futures, timeout=budget_s)
+    stats["timed_out"] = len(pending)
+    for fut in done:
+        try:
+            metas[futures[fut]] = fut.result()
+        except Exception as exc:  # noqa: BLE001 - fetch_article_meta no debería lanzar
+            log.debug("Metadatos: fallo inesperado: %s", exc)
+    stats["done"] = len(metas)
+
+    def _host(u: str) -> str:
+        return urlsplit(u).netloc.lower()
+
+    cleaned = {k: clean_html(m.get("description") or "") for k, m in metas.items()}
+    repeated = Counter((_host(str(metas[k].get("url") or "")), _title_key(d)) for k, d in cleaned.items() if d)
+
+    out: list[NewsItem] = []
+    for item in items:
+        meta = metas.get(item.id)
+        if not meta:
+            out.append(item)
+            continue
+        update: dict[str, Any] = {}
+        new_url = str(meta.get("url") or "")
+        if new_url and new_url != item.url and not article_meta.is_google_news_url(new_url):
+            update["url"] = new_url
+            if article_meta.is_google_news_url(item.url):
+                stats["resolved"] += 1
+        desc = cleaned[item.id]
+        generic = repeated[(_host(new_url or item.url), _title_key(desc))] > 1
+        if desc and not item.summary.strip() and not generic and _useful_description(desc, item.title):
+            update["summary"] = desc
+            stats["summaries"] += 1
+        out.append(item.model_copy(update=update) if update else item)
+    stats["latency_s"] = round(time.perf_counter() - start, 3)
+    last_quality_stats["enrich"] = stats
+    if stats_out is not None:
+        stats_out.update(stats)
+    log.info(
+        "Enriquecimiento de noticias: %d candidatas, %d URL resueltas, %d extractos, %d sin tiempo (%.1f s)",
+        stats["candidates"], stats["resolved"], stats["summaries"], stats["timed_out"], stats["latency_s"],
+    )
+    return out
+
+
+def _valid_tickers(tickers: list[str]) -> list[str]:
+    """Normaliza y quita repetidos; descarta entradas vacías o inválidas (``"$"``) con aviso."""
+    out: list[str] = []
+    for raw in tickers:
+        if not str(raw).strip():
+            continue
+        try:
+            out.append(normalize_ticker(raw))
+        except (ValueError, TypeError):
+            log.warning("Ticker inválido ignorado: %r", raw)
+    return list(dict.fromkeys(out))
+
+
 def fetch_news(
     tickers: list[str],
     max_items: int = 20,
@@ -526,14 +878,19 @@ def fetch_news(
     *,
     max_per_ticker: int | None = None,
     use_cache: bool = True,
+    enrich: bool = True,
+    stats_out: dict[str, Any] | None = None,
 ) -> list[NewsItem]:
-    """Punto de entrada: yfinance/Yahoo + Google News por ticker + feeds de mercado.
+    """Punto de entrada: Google News + Bing News + yfinance/Yahoo por ticker + feeds de mercado.
 
     Pasos: descarga en paralelo (timeouts cortos, caché diaria por fuente y ticker) -> etiqueta
-    tickers con ``extract_tickers`` -> ``dedupe_news`` -> ventana temporal -> cupo por ticker y total.
+    tickers con ``extract_tickers`` -> descarta fichas de cotización (``is_landing_page``) ->
+    ``dedupe_news`` (URL, título y titulares casi idénticos) ->
+    ventana temporal -> cupo por ticker y total priorizando por ``relevance_score`` ->
+    ``enrich_news`` (URL final y extracto breve, con presupuesto ``ENRICH_BUDGET_S``).
 
     Args:
-        tickers: tickers de interés (se normalizan con ``normalize_ticker``).
+        tickers: tickers de interés (se normalizan con ``normalize_ticker``; los inválidos se ignoran).
         max_items: máximo de noticias devueltas.
         since: descartar noticias anteriores. Por defecto se prueban las ventanas de
             ``WINDOWS_HOURS`` (48 h, 72 h, 7 días) hasta que cada ticker tenga ``MIN_PER_TICKER``.
@@ -541,6 +898,11 @@ def fetch_news(
             defecto, ``DEFAULT_MARKET_FEEDS``.
         max_per_ticker: cupo por ticker (por defecto ``max(MIN_PER_TICKER, ceil(max_items / n))``).
         use_cache: ``False`` ignora la caché del día (vuelve a llamar a red y la refresca).
+        enrich: ``False`` no busca URL final ni ``og:description`` (más rápido, sin extractos).
+        stats_out: si se pasa, recibe las estadísticas **de esta llamada**: ``{"fetch": {fuente:
+            {...}}, "quality": {..., "enrich": {...}}}`` (lo mismo que ``last_fetch_stats`` /
+            ``last_quality_stats``, pero sin la carrera de los globales entre briefings simultáneos).
+            ``format_news_stats`` lo resume en una línea para ``StepMetric.detail``.
 
     Returns:
         Noticias más recientes primero. Puede ser ``[]`` si las fuentes responden sin noticias.
@@ -548,17 +910,21 @@ def fetch_news(
     Raises:
         NewsFetchError: si fallan todas las fuentes (sin red, bloqueos…).
     """
-    wanted = list(dict.fromkeys(normalize_ticker(t) for t in tickers if str(t).strip()))
+    wanted = _valid_tickers(tickers)
     feeds = list(rss_feeds or get_settings().rss_feeds or DEFAULT_MARKET_FEEDS)
     per_source = max(10, max_items)
 
+    # Orden de envío = prioridad: las fuentes rápidas primero y yfinance (lenta: 3-5 s por ticker
+    # cuando su API no responde) al final, para que no acapare los hilos.
     tasks: dict[str, tuple[str, str, Any]] = {}
     for t in wanted:
-        tasks[f"yfinance:{t}"] = ("yfinance", t, lambda t=t: _yfinance_lib_news(t, per_source))
-        tasks[f"yahoo_rss:{t}"] = ("yahoo_rss", t, lambda t=t: _yahoo_rss_news(t, per_source))
         tasks[f"google:{t}"] = ("google", t, lambda t=t: _google_news(t, per_source))
+        tasks[f"bing:{t}"] = ("bing", t, lambda t=t: _bing_news(t, per_source))
+        tasks[f"yahoo_rss:{t}"] = ("yahoo_rss", t, lambda t=t: _yahoo_rss_news(t, per_source))
     for url in feeds:
         tasks[f"rss:{urlsplit(url).netloc or url}"] = ("rss", url, lambda u=url: _fetch_feed(u, per_source))
+    for t in wanted:
+        tasks[f"yfinance:{t}"] = ("yfinance", t, lambda t=t: _yfinance_lib_news(t, per_source))
 
     def run(label: str) -> tuple[list[NewsItem], bool, float]:
         source, key, fetch = tasks[label]
@@ -566,10 +932,11 @@ def fetch_news(
         items, cached = _cached_source(source, key, fetch, use_cache)
         return items, cached, time.perf_counter() - start
 
-    last_fetch_stats.clear()
+    stats: dict[str, dict[str, Any]] = {}
     collected: list[NewsItem] = []
     failures = 0
-    pool = ThreadPoolExecutor(max_workers=min(8, max(1, len(tasks))), thread_name_prefix="news")
+    fetch_start = time.perf_counter()
+    pool = ThreadPoolExecutor(max_workers=min(FETCH_WORKERS, max(1, len(tasks))), thread_name_prefix="news")
     try:
         futures = {pool.submit(run, label): label for label in tasks}
         done, pending = wait(futures, timeout=TOTAL_TIMEOUT)
@@ -577,24 +944,30 @@ def fetch_news(
             label = futures[fut]
             if fut in pending:
                 failures += 1
-                last_fetch_stats[label] = {"items": 0, "latency_s": TOTAL_TIMEOUT, "cached": False, "error": "timeout"}
+                stats[label] = {"items": 0, "latency_s": TOTAL_TIMEOUT, "cached": False, "error": "timeout"}
                 log.warning("Fuente de noticias %s: sin respuesta en %.0f s", label, TOTAL_TIMEOUT)
                 continue
             try:
                 items, cached, latency = fut.result()
             except Exception as exc:  # noqa: BLE001 - una fuente caída no rompe el resto
                 failures += 1
-                last_fetch_stats[label] = {"items": 0, "latency_s": None, "cached": False, "error": f"{type(exc).__name__}: {exc}"[:160]}
+                stats[label] = {"items": 0, "latency_s": None, "cached": False, "error": f"{type(exc).__name__}: {exc}"[:160]}
                 log.warning("Fuente de noticias %s falló: %s", label, exc)
                 continue
-            last_fetch_stats[label] = {"items": len(items), "latency_s": round(latency, 3), "cached": cached, "error": None}
+            stats[label] = {"items": len(items), "latency_s": round(latency, 3), "cached": cached, "error": None}
             collected.extend(items)
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
+    sources_latency = time.perf_counter() - fetch_start
+    # Se publica de una vez (otro briefing simultáneo no ve el dict a medio rellenar).
+    last_fetch_stats.clear()
+    last_fetch_stats.update(stats)
+    if stats_out is not None:
+        stats_out["fetch"] = dict(stats)
 
     # yfinance es auxiliar: sin red puede devolver [] sin lanzar, así que no cuenta como «viva».
     essential = [k for k in tasks if not k.startswith("yfinance:")]
-    if essential and all(last_fetch_stats[k]["error"] for k in essential):
+    if essential and all(stats[k]["error"] for k in essential):
         raise NewsFetchError(
             f"No se pudo obtener ninguna noticia: fallaron las {len(tasks)} fuentes "
             "(¿sin conexión o bloqueo temporal?). Usa el modo de ejemplo o reinténtalo."
@@ -607,7 +980,9 @@ def fetch_news(
         )
         for item in collected
     ]
-    unique = dedupe_news(sorted(tagged, key=_sort_key, reverse=True))
+    articles = [i for i in tagged if not is_landing_page(i)]
+    exact = dedupe_news(sorted(articles, key=_sort_key, reverse=True), near_threshold=None)
+    unique = dedupe_news(exact)
 
     now = datetime.now(timezone.utc)
     if since is not None:
@@ -623,12 +998,71 @@ def fetch_news(
             log.info("Pocas noticias en %d h (%s); se amplía la ventana", hours, counts)
 
     per_ticker = max_per_ticker or (max(MIN_PER_TICKER, math.ceil(max_items / len(wanted))) if wanted else max_items)
-    selected = _select(in_window, wanted, max_items, per_ticker)
+    scores: dict[str, float] = {}
+    selected = _select(in_window, wanted, max_items, per_ticker, scores)
+    quality: dict[str, Any] = {
+        "sources_latency_s": round(sources_latency, 3),
+        "landing_pages": len(tagged) - len(articles), "near_duplicates": len(exact) - len(unique), "scores": scores,
+    }
+    last_quality_stats.clear()
+    enrich_stats: dict[str, Any] = _empty_enrich_stats()
+    if enrich and selected:
+        # 2 enlaces -> mismo artículo
+        selected = dedupe_news(enrich_news(selected, use_cache=use_cache, stats_out=enrich_stats))
+    else:
+        last_quality_stats["enrich"] = _empty_enrich_stats()
+    quality["enrich"] = enrich_stats
+    selected.sort(key=_sort_key, reverse=True)
+    quality.update(
+        selected=len(selected),
+        with_summary=sum(1 for i in selected if i.summary.strip()),
+        google_urls=sum(1 for i in selected if article_meta.is_google_news_url(i.url)),
+    )
+    last_quality_stats.update(quality)
+    if stats_out is not None:
+        stats_out["quality"] = {k: v for k, v in quality.items() if k != "scores"}
     log.info(
-        "Noticias: %d obtenidas, %d únicas, %d en ventana, %d seleccionadas (%d fuentes, %d fallidas)",
-        len(collected), len(unique), len(in_window), len(selected), len(tasks), failures,
+        "Noticias: %d obtenidas, %d únicas (%d casi duplicadas), %d en ventana, %d seleccionadas "
+        "(%d con extracto; %d fuentes, %d fallidas)",
+        len(collected), len(unique), quality["near_duplicates"], len(in_window), len(selected),
+        quality["with_summary"], len(tasks), failures,
     )
     return selected
+
+
+def format_news_stats(stats: dict[str, Any]) -> str | None:
+    """Resumen de una línea de ``fetch_news(stats_out=...)`` para ``StepMetric.detail``.
+
+    Ej.: ``"32 fuentes (2 fallidas, 30 de caché) en 1.2 s · 20 seleccionadas (17 con extracto) ·
+    3 casi duplicadas · 5 fichas de cotización descartadas · extractos: 6 URL resueltas, 4 nuevos
+    (0 sin tiempo)"``. ``None`` si no hay estadísticas.
+    """
+    fetch = stats.get("fetch") or {}
+    quality = stats.get("quality") or {}
+    if not fetch and not quality:
+        return None
+    parts: list[str] = []
+    if fetch:
+        failed = sum(1 for v in fetch.values() if v.get("error"))
+        cached = sum(1 for v in fetch.values() if v.get("cached"))
+        lat = quality.get("sources_latency_s")
+        parts.append(
+            f"{len(fetch)} fuentes ({failed} fallidas, {cached} de caché)"
+            + (f" en {float(lat):.1f} s" if lat is not None else "")
+        )
+    if quality:
+        parts.append(f"{quality.get('selected', 0)} seleccionadas ({quality.get('with_summary', 0)} con extracto)")
+        if quality.get("near_duplicates"):
+            parts.append(f"{quality['near_duplicates']} casi duplicadas")
+        if quality.get("landing_pages"):
+            parts.append(f"{quality['landing_pages']} fichas de cotización descartadas")
+        enrich = quality.get("enrich") or {}
+        if enrich.get("candidates"):
+            parts.append(
+                f"extractos: {enrich.get('resolved', 0)} URL resueltas, {enrich.get('summaries', 0)} nuevos "
+                f"({enrich.get('timed_out', 0)} sin tiempo)"
+            )
+    return " · ".join(parts)
 
 
 def load_sample_news(path: Path | None = None) -> list[NewsItem]:

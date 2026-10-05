@@ -85,9 +85,16 @@ class ClaudeVision(VisionProvider):
         self._client: Any = None
 
     def _get_client(self) -> Any:
+        """Cliente compartido con ``AnthropicLLM`` (``common.get_client``)."""
         if self._client is None:
-            self._client = common.make_client(self.settings)
+            self._client = common.get_client(self.settings)
         return self._client
+
+    def warmup(self) -> float:
+        """Precalienta el SDK y la conexión (llamada gratuita). Ver ``AnthropicLLM.warmup``."""
+        if self._client is not None:
+            return 0.0
+        return common.warmup_client(self.settings, self.model)
 
     def describe(self, image: bytes, prompt: str) -> str:
         """Envía la imagen + prompt a Claude y devuelve el texto de respuesta.
@@ -96,6 +103,7 @@ class ClaudeVision(VisionProvider):
             ValueError: imagen vacía o formato no soportado.
             anthropic.APIError / LLMResponseError: fallo de la API o respuesta inutilizable.
         """
+        self.last_usage = {"input_tokens": 0, "output_tokens": 0}  # no arrastrar la llamada anterior
         data, media_type = prepare_image(image)
         content = [
             {

@@ -1,7 +1,9 @@
 """Tests del camino real del carril A (noticias y precios) SIN red.
 
-Se sustituyen ``news._http_get`` (RSS de Google News, Yahoo y prensa) y el módulo ``yfinance``
-por dobles con respuestas realistas (formatos antiguo y nuevo de yfinance). La caché va a un
+Se sustituyen ``news._http_get`` (RSS de Google News, Bing News, Yahoo y prensa) y el módulo
+``yfinance`` por dobles con respuestas realistas (formatos antiguo y nuevo de yfinance). La red de
+``ingest.article_meta`` (enriquecimiento con ``og:description``) queda cortada por defecto: sus
+tests con páginas de *fixture* están en ``tests/test_ingest_news_quality.py``. La caché va a un
 directorio temporal (``conftest._mock_env`` fija ``BRIEFER_CACHE_DIR``).
 """
 
@@ -16,7 +18,7 @@ from urllib.parse import parse_qs, urlsplit
 import pandas as pd
 import pytest
 
-from briefer.ingest import news, prices
+from briefer.ingest import article_meta, news, prices
 
 NOW = datetime.now(timezone.utc)
 
@@ -84,6 +86,8 @@ MARKET_RSS = f"""<?xml version="1.0" encoding="UTF-8"?>
 <pubDate>{_rfc822(6)}</pubDate></item>
 </channel></rss>""".encode()
 
+BING_EMPTY = b"""<?xml version="1.0" encoding="utf-8"?><rss version="2.0"><channel><title>Bing</title></channel></rss>"""
+
 YF_NEWS_OLD = [
     {
         "uuid": "a1",
@@ -132,6 +136,8 @@ class FakeHTTP:
                 if f'"{name}"' in q:
                     return body
             return google_rss([])
+        if host == "www.bing.com":
+            return BING_EMPTY
         if host == "feeds.finance.yahoo.com":
             return YAHOO_RSS if "AAPL" in url else YAHOO_RSS.replace(b"<item>", b"<x>").replace(b"</item>", b"</x>")
         if "expansion" in host:
@@ -179,10 +185,19 @@ def fake_yfinance(
     return mod
 
 
+def _no_network(*_a, **_k):
+    raise ConnectionError("sin red en tests")
+
+
 @pytest.fixture(autouse=True)
 def _reset_news_state(monkeypatch: pytest.MonkeyPatch):
     news._reset_yf_news_state()
+    article_meta._reset_robots_state()
+    article_meta._reset_google_state()
     monkeypatch.setenv("BRIEFER_NEWS_RSS_FEEDS", "")
+    # El enriquecimiento (URL final + og:description) nunca sale a la red en estos tests.
+    monkeypatch.setattr(article_meta, "_http_fetch", _no_network)
+    monkeypatch.setattr(article_meta, "_http_post", _no_network)
     yield
 
 
@@ -377,7 +392,9 @@ def test_fetch_news_uses_daily_cache(http: FakeHTTP, yf_news) -> None:
 
 def test_fetch_news_widens_window_and_respects_since(monkeypatch, http: FakeHTTP) -> None:
     monkeypatch.setitem(sys.modules, "yfinance", fake_yfinance())
-    old_only = google_rss([(f"Inditex noticia {n}", "Medio", f"w{n}", 50 + n) for n in range(3)])
+    # titulares distintos (si solo cambiara un número, dedupe_news los fusionaría como casi idénticos)
+    titles = ["Inditex abre su mayor tienda en Tokio", "Inditex sube un 2 % en bolsa", "Inditex reparte dividendo en noviembre"]
+    old_only = google_rss([(title, "Medio", f"w{n}", 50 + n) for n, title in enumerate(titles)])
     monkeypatch.setitem(GOOGLE_BY_NAME, "Inditex", old_only)
     out = news.fetch_news(["ITX.MC"], rss_feeds=FEEDS)
     assert sum("ITX.MC" in i.tickers for i in out) == 3  # 48 h no basta -> se amplía a 72 h

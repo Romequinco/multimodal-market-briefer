@@ -49,9 +49,10 @@ precios y noticias junto a los del usuario, pero no cuentan como tickers del usu
 
 from __future__ import annotations
 
+import importlib
 import time
 from collections.abc import Callable, Iterator, Sequence
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date
@@ -64,10 +65,15 @@ from briefer import costs, storage
 from briefer.agents import analyst, qa, scriptwriter
 from briefer.config import Settings, get_settings
 from briefer.delivery import email_sender, telegram_sender
-from briefer.ingest import chart_reader, news as news_mod, pdf_reader, prices as prices_mod
-from briefer.ingest import tickers as tickers_mod, voice
-from briefer.logging_utils import StepHandle, fallback_error, get_logger, step_error, track_step
-from briefer.media import charts as charts_mod, cover as cover_mod, podcast, transcript as transcript_mod
+from briefer.ingest import chart_reader, pdf_reader, voice
+from briefer.ingest import news as news_mod
+from briefer.ingest import prices as prices_mod
+from briefer.ingest import tickers as tickers_mod
+from briefer.logging_utils import StepHandle, error_text, fallback_error, get_logger, step_error, track_step
+from briefer.media import charts as charts_mod
+from briefer.media import cover as cover_mod
+from briefer.media import podcast
+from briefer.media import transcript as transcript_mod
 from briefer.media import video as video_mod
 from briefer.media.speech import normalize_for_speech
 from briefer.providers import registry
@@ -137,7 +143,11 @@ class PipelineStepError(RuntimeError):
 
     def __init__(self, step: str, cause: BaseException) -> None:
         self.step = step
-        super().__init__(f"Falló el paso «{step}»: {type(cause).__name__}: {cause}")
+        #: Pasos ejecutados hasta el fallo (latencia y coste ya gastado); lo rellenan
+        #: ``run_briefing`` / ``answer_question`` antes de propagar el error.
+        self.metrics: list[StepMetric] = []
+        # Mensaje redactado (``logging_utils.error_text``): nunca claves ni tokens en la UI.
+        super().__init__(f"Falló el paso «{step}»: {error_text(cause, 300)}")
 
 
 class StepNotImplementedError(PipelineStepError, NotImplementedError):
@@ -186,6 +196,22 @@ def get_providers(settings: Settings, use_mock: bool = False) -> Providers:
     )
 
 
+def scriptwriter_llm(settings: Settings, providers: Providers) -> LLMProvider:
+    """LLM del Guionista: el barato salvo que ``BRIEFER_SCRIPTWRITER_MODEL`` indique otro modelo
+    (p. ej. ``claude-sonnet-5-5``). En mock no cambia nada.
+
+    Decisión del 05-oct-2026 (2 guiones Haiku frente a 2 Sonnet sobre el mismo análisis real):
+    Haiku 4.5 ≈ 0,009 € y Sonnet 5.5 ≈ 0,024-0,026 € por guion con latencias parecidas
+    (15-20 s); con las puertas de calidad (cobertura de puntos clave, cifras trazables,
+    gramática, recomendaciones) Haiku cumple, así que se mantiene por defecto.
+    """
+    model = (settings.briefer_scriptwriter_model or "").strip()
+    cheap = providers.llm_cheap
+    if not model or cheap.provider_name == "mock" or model == cheap.model:
+        return cheap
+    return registry.get_llm(settings.model_copy(update={"briefer_llm_model_cheap": model}), cheap=True)
+
+
 class _UsageMeter:
     """Acumula el uso de tokens de TODAS las llamadas de un paso (reintentos incluidos).
 
@@ -194,17 +220,26 @@ class _UsageMeter:
     """
 
     def __init__(self) -> None:
-        self.input_tokens = 0
-        self.output_tokens = 0
+        #: Tokens acumulados por clave (``input_tokens``, ``output_tokens`` y, si hay caché de
+        #: prompt, ``cache_read_input_tokens`` / ``cache_creation_input_tokens``).
+        self.usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0}
+        self.calls = 0
+
+    @property
+    def input_tokens(self) -> int:
+        return self.usage.get("input_tokens", 0)
+
+    @property
+    def output_tokens(self) -> int:
+        return self.usage.get("output_tokens", 0)
 
     def add(self, usage: dict[str, int]) -> None:
-        self.input_tokens += int(usage.get("input_tokens", 0))
-        self.output_tokens += int(usage.get("output_tokens", 0))
+        self.calls += 1
+        for key, value in usage.items():
+            self.usage[key] = self.usage.get(key, 0) + int(value or 0)
 
     def cost_eur(self, provider: str, model: str) -> float:
-        return costs.estimate_cost_eur(
-            provider, model, input_tokens=self.input_tokens, output_tokens=self.output_tokens
-        )
+        return costs.estimate_cost_eur(provider, model, **self.usage)
 
 
 class _MeteredLLM(LLMProvider):
@@ -222,6 +257,9 @@ class _MeteredLLM(LLMProvider):
     def complete(
         self, system: str, messages: list[dict], response_model: type[BaseModel] | None = None
     ) -> str | BaseModel:
+        # Se pone a cero ANTES de llamar: un proveedor que falla antes de rellenar last_usage
+        # dejaría el uso de la llamada anterior y se contaría dos veces.
+        self.inner.last_usage = {"input_tokens": 0, "output_tokens": 0}
         try:
             return self.inner.complete(system, messages, response_model=response_model)
         except Exception as exc:
@@ -246,6 +284,7 @@ class _MeteredVision(VisionProvider):
         self.meter = _UsageMeter()
 
     def describe(self, image: bytes, prompt: str) -> str:
+        self.inner.last_usage = {"input_tokens": 0, "output_tokens": 0}  # ver _MeteredLLM.complete
         try:
             return self.inner.describe(image, prompt)
         finally:
@@ -354,6 +393,35 @@ def _run_core(
         )
     )
     return result  # type: ignore[return-value]
+
+
+#: Fuente rotulada en los gráficos cuando los precios son sintéticos (demo o fallback).
+SYNTHETIC_PRICES_SOURCE = "precios sintéticos (demo)"
+
+
+#: Horas que se conserva el gráfico temporal de una cartera (lo que dura una sesión de la app).
+PORTFOLIO_CHART_TTL_H = 12
+
+
+def _portfolio_chart_dir(briefing_id: str) -> Path:
+    """Carpeta temporal del sistema (fuera de ``data/``) para el gráfico de la cartera.
+
+    Vive en ``<tmp>/briefer_cartera/`` y, en cada uso, se borran las de más de
+    ``PORTFOLIO_CHART_TTL_H`` horas: los pesos de una cartera no se acumulan en disco.
+    """
+    import shutil
+    import tempfile
+
+    base = Path(tempfile.gettempdir()) / "briefer_cartera"
+    base.mkdir(parents=True, exist_ok=True)
+    limit = time.time() - PORTFOLIO_CHART_TTL_H * 3600
+    for old in base.iterdir():
+        try:
+            if old.stat().st_mtime < limit:
+                shutil.rmtree(old, ignore_errors=True)
+        except OSError:
+            continue
+    return Path(tempfile.mkdtemp(prefix=f"{briefing_id}_", dir=base))
 
 
 def _optional_step(
@@ -507,7 +575,37 @@ def run_briefing(
     Raises:
         ValueError: sin tickers ni cartera, o canal de entrega desconocido (antes de empezar).
         PipelineStepError: falló un paso núcleo (``StepNotImplementedError`` si está pendiente).
+            Su atributo ``metrics`` lleva los pasos ejecutados hasta el fallo (coste ya gastado).
     """
+    metrics: list[StepMetric] = []
+    try:
+        return _run_briefing(
+            tickers, portfolio, uploads, make_video, deliver, metrics,
+            make_cover=make_cover, use_mock=use_mock, mode=mode, use_cache=use_cache,
+            settings=settings, progress=progress,
+        )
+    except PipelineStepError as exc:
+        exc.metrics = list(metrics)
+        log.error("Briefing abortado en «%s». %s", exc.step, costs.format_cost_summary(metrics))
+        raise
+
+
+def _run_briefing(
+    tickers: Sequence[str],
+    portfolio: Portfolio | None,
+    uploads: Sequence[Path] | None,
+    make_video: bool,
+    deliver: Sequence[str] | None,
+    metrics: list[StepMetric],
+    *,
+    make_cover: bool,
+    use_mock: bool,
+    mode: RunMode | None,
+    use_cache: bool,
+    settings: Settings | None,
+    progress: ProgressFn | None,
+) -> Briefing:
+    """Cuerpo de ``run_briefing``; va añadiendo un ``StepMetric`` por paso a ``metrics``."""
     s = settings or get_settings()
     run_mode = resolve_mode(mode, use_mock)
     offline_data = run_mode != "real"  # noticias de data/samples y precios sintéticos
@@ -524,7 +622,6 @@ def run_briefing(
     upload_paths = [Path(u) for u in uploads or []]
 
     providers = _providers_for_mode(s, run_mode)
-    metrics: list[StepMetric] = []
     briefing_id = new_briefing_id()
     out_dir = s.output_path / briefing_id
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -544,7 +641,7 @@ def run_briefing(
         ThreadPoolExecutor(max_workers=min(UPLOAD_WORKERS, len(upload_paths)), thread_name_prefix="upload")
         if upload_paths else None
     )
-    upload_jobs: list[tuple[Path, list[StepMetric], object]] = []
+    upload_jobs: list[tuple[Path, list[StepMetric], Future[DocumentInsight]]] = []
     for upload in upload_paths:
         notify(f"Leyendo {upload.name}…")
         own_metrics: list[StepMetric] = []
@@ -562,12 +659,17 @@ def run_briefing(
         "synthetic", "-", lambda _h: prices_mod.synthetic_snapshots(fetch_tickers), "precios sintéticos"
     )
 
-    def _news(_h: StepHandle) -> list:
+    def _news(handle: StepHandle) -> list:
         if offline_data:
             return news_mod.load_sample_news()
-        return news_mod.fetch_news(
-            fetch_tickers, max_items=s.briefer_news_max_items, rss_feeds=s.rss_feeds, use_cache=use_cache
-        )
+        stats: dict = {}  # estadísticas de ESTA llamada (sin la carrera de los globales de news)
+        try:
+            return news_mod.fetch_news(
+                fetch_tickers, max_items=s.briefer_news_max_items, rss_feeds=s.rss_feeds,
+                use_cache=use_cache, stats_out=stats,
+            )
+        finally:
+            handle.detail = news_mod.format_news_stats(stats)
 
     def _prices(_h: StepHandle) -> list:
         if offline_data:
@@ -576,48 +678,64 @@ def run_briefing(
 
     news_metrics: list[StepMetric] = []
     prices_metrics: list[StepMetric] = []
-    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="ingest") as pool:
-        news_future = pool.submit(
-            _run_core, "ingest.news", "samples" if offline_data else "yfinance+rss", "-", news_metrics,
-            _news, news_fallback if can_fallback else None,
-        )
-        prices_future = pool.submit(
-            _run_core, "ingest.prices", "synthetic" if offline_data else "yfinance", "-", prices_metrics,
-            _prices, prices_fallback if can_fallback else None,
-        )
-        news_exc, prices_exc = news_future.exception(), prices_future.exception()
-    metrics.extend(news_metrics + prices_metrics)
-    if news_exc or prices_exc:
-        raise news_exc or prices_exc  # type: ignore[misc]
-    raw_news = news_future.result()
-    prices = prices_future.result()
-    sample_news = offline_data or any(m.provider == "samples" for m in news_metrics)
-
-    with _core_step("ingest.tickers", "local", "-", metrics) as tickers_step:
-        # Noticias de los tickers del usuario + las de los índices de contexto que pasen el filtro.
-        relevant_news = tickers_mod.filter_by_tickers(raw_news, fetch_tickers)
-        n_index = sum(1 for n in relevant_news if not set(n.tickers) & set(all_tickers))
-        tickers_step.detail = (
-            f"{len(relevant_news)} de {len(raw_news)} noticias relevantes"
-            + (f" ({n_index} de índices de contexto)" if n_index else "")
-        )
-        if sample_news and not relevant_news:
-            # Con noticias de ejemplo (modo demo o fallback), si los tickers elegidos no salen
-            # en ellas, se usan todas para que el briefing no quede vacío (son ficticias y lo indican).
-            log.info("Noticias de ejemplo: ninguna para %s; se usan todas", all_tickers)
-            relevant_news = list(raw_news)
-
-    # 2. Documentos del usuario (opcional: una subida fallida no rompe el briefing). Se recogen
-    #    en el orden de subida; sus métricas, también.
     insights: list[DocumentInsight] = []
-    for upload, own_metrics, future in upload_jobs:
-        try:
-            insights.append(future.result())  # type: ignore[attr-defined]
-        except Exception:
-            log.exception("No se pudo procesar la subida %s; se continúa sin ella", upload.name)
-        metrics.extend(own_metrics)
-    if upload_pool is not None:
-        upload_pool.shutdown(wait=True)
+    uploads_collected = False
+    try:
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="ingest") as pool:
+            news_future = pool.submit(
+                _run_core, "ingest.news", "samples" if offline_data else "yfinance+rss", "-", news_metrics,
+                _news, news_fallback if can_fallback else None,
+            )
+            prices_future = pool.submit(
+                _run_core, "ingest.prices", "synthetic" if offline_data else "yfinance", "-", prices_metrics,
+                _prices, prices_fallback if can_fallback else None,
+            )
+            news_exc, prices_exc = news_future.exception(), prices_future.exception()
+        metrics.extend(news_metrics + prices_metrics)
+        if news_exc or prices_exc:
+            raise news_exc or prices_exc  # type: ignore[misc]
+        raw_news = news_future.result()
+        prices = prices_future.result()
+        sample_news = offline_data or any(m.provider == "samples" for m in news_metrics)
+
+        with _core_step("ingest.tickers", "local", "-", metrics) as tickers_step:
+            # Noticias de los tickers del usuario + las de los índices de contexto que pasen el filtro.
+            relevant_news = tickers_mod.filter_by_tickers(raw_news, fetch_tickers)
+            n_index = sum(1 for n in relevant_news if not set(n.tickers) & set(all_tickers))
+            priced = {p.ticker.upper() for p in prices}
+            no_price = [t for t in all_tickers if t.upper() not in priced]
+            tickers_step.detail = _join_details(
+                f"{len(relevant_news)} de {len(raw_news)} noticias relevantes"
+                + (f" ({n_index} de índices de contexto)" if n_index else ""),
+                # Ticker inexistente o sin cotización hoy: se avisa (el Analista también lo ve).
+                f"sin precio: {', '.join(no_price)}" if no_price else None,
+            )
+            if sample_news and not relevant_news:
+                # Con noticias de ejemplo (modo demo o fallback), si los tickers elegidos no salen
+                # en ellas, se usan todas para que el briefing no quede vacío (son ficticias y lo indican).
+                log.info("Noticias de ejemplo: ninguna para %s; se usan todas", all_tickers)
+                relevant_news = list(raw_news)
+
+        # 2. Documentos del usuario (opcional: una subida fallida no rompe el briefing). Se recogen
+        #    en el orden de subida; sus métricas, también.
+        for upload, own_metrics, future in upload_jobs:
+            try:
+                insights.append(future.result())
+            except Exception:
+                log.exception("No se pudo procesar la subida %s; se continúa sin ella", upload.name)
+            metrics.extend(own_metrics)
+        uploads_collected = True
+    finally:
+        if upload_pool is not None:
+            # Si un paso núcleo de la ingesta falla, las subidas que aún no han empezado se
+            # cancelan (no se paga visión para un briefing que ya no va a salir); las que están
+            # en curso terminan antes de propagar el error (sin hilos huérfanos).
+            upload_pool.shutdown(wait=True, cancel_futures=True)
+            if not uploads_collected:
+                # Lo ya gastado en subidas terminadas también cuenta (PipelineStepError.metrics).
+                for _upload, own_metrics, future in upload_jobs:
+                    if future.done() and not future.cancelled():
+                        metrics.extend(own_metrics)
 
     # 3. Agente Analista (núcleo; LLM principal). Fallback: LLM mock.
     context = MarketContext(
@@ -669,6 +787,7 @@ def run_briefing(
                     # El MockLLM devuelve un guion fijo corto: no tiene sentido pedirle que lo alargue.
                     length_tolerance=None if inner.provider_name == "mock" else scriptwriter.LENGTH_TOLERANCE,
                     trace=trace,
+                    check_figures=inner.provider_name != "mock",
                 )
             finally:
                 step.est_cost_eur = metered.cost_eur()
@@ -682,12 +801,12 @@ def run_briefing(
 
         return run
 
-    llm_cheap = providers.llm_cheap
+    llm_script = scriptwriter_llm(s, providers)
     script = _run_core(
-        "agents.scriptwriter", llm_cheap.provider_name, llm_cheap.model, metrics,
-        _write_with(llm_cheap),
+        "agents.scriptwriter", llm_script.provider_name, llm_script.model, metrics,
+        _write_with(llm_script),
         _llm_fallback(s, cheap=True, fn_factory=_write_with)
-        if s.briefer_fallback_to_mock and llm_cheap.provider_name != "mock" else None,
+        if s.briefer_fallback_to_mock and llm_script.provider_name != "mock" else None,
     )
 
     # 5. Audio a 2 voces + transcripción (núcleo). Fallback del TTS: TTS mock (marcado).
@@ -699,6 +818,9 @@ def run_briefing(
             asset = podcast.synthesize_podcast(
                 script, tts, out_dir, voice_a=s.briefer_voice_a, voice_b=s.briefer_voice_b,
                 max_workers=PODCAST_TTS_WORKERS,
+                # EdgeTTS ya reintenta por dentro (con espera): sin reintentos anidados (3×3 por
+                # línea) el paso cae antes al sustituto si el servicio está caído.
+                retries=0 if tts.provider_name == "edge" else 2,
             )
             step.est_cost_eur = costs.estimate_cost_eur(tts.provider_name, tts.model, n_chars=n_chars)
             return asset
@@ -723,10 +845,22 @@ def run_briefing(
 
     # 6. Gráficos (núcleo) y portada (opcional)
     notify("Dibujando los gráficos del día…")
+    # Precios sintéticos (modo demo o caída de yfinance): el pie de los gráficos lo dice.
+    synthetic_prices = offline_data or any(m.provider == "synthetic" for m in prices_metrics)
+    chart_source = SYNTHETIC_PRICES_SOURCE if synthetic_prices else charts_mod.DEFAULT_SOURCE
     with _core_step("media.charts", "matplotlib", "-", metrics):
         chart_assets = charts_mod.make_charts(
-            prices, out_dir / "charts", portfolio=portfolio, line_tickers=all_tickers
+            prices, out_dir / "charts", line_tickers=all_tickers, source=chart_source
         )
+        if portfolio is not None and portfolio.positions:
+            # RGPD: el reparto de la cartera (pesos) NO va a data/outputs: se dibuja en una carpeta
+            # temporal del sistema solo para esta sesión y ``storage`` no lo persiste.
+            try:
+                chart_assets.append(
+                    charts_mod.make_portfolio_chart(portfolio, _portfolio_chart_dir(briefing_id), prices=prices)
+                )
+            except Exception as exc:
+                log.warning("Gráfico de la cartera omitido: %s", exc)
     cover_path: Path | None = None
     if want_cover:
         notify("Generando la portada…")
@@ -813,11 +947,66 @@ def run_briefing(
 
     summary = costs.summarize_metrics(briefing.metrics)
     log.info("Briefing %s listo: %s", briefing.id, summary)
+    log.info(costs.format_cost_summary(briefing.metrics))
     notify("Briefing listo.", advance=False)
     return briefing
 
 
 # ── Preguntas ─────────────────────────────────────────────────────────────────────
+
+
+def warmup(settings: Settings | None = None, *, mode: RunMode | None = None) -> dict[str, float]:
+    """Precalienta lo que hace lenta la **primera** pregunta del proceso (Q&A en frío).
+
+    Medido el 05-oct-2026 en Windows: la 1.ª pregunta tardaba 16-17 s frente a 5-6 s las
+    siguientes; ~4,7 s eran importar el SDK ``anthropic``, ~1,4 s importar ``edge_tts`` y el
+    resto, crear el cliente y abrir la conexión TLS. Esta función hace todo eso por adelantado:
+
+    - LLM barato (el del Q&A) y visión: ``provider.warmup()`` si existe (Anthropic: importa el
+      SDK, crea el cliente **compartido** del proceso y hace una llamada gratuita
+      ``models.retrieve``; no consume tokens).
+    - TTS: importa el módulo del proveedor (``edge_tts``) para que la síntesis no pague el import.
+
+    Pensada para que la UI la llame al cargar la página Preguntar (p. ej. en un hilo o con
+    ``st.cache_resource``) mientras el usuario escribe o graba. **Nunca lanza**: un fallo se
+    registra y la pregunta funcionará igual (solo que en frío). En modo mock no hace nada.
+
+    Returns:
+        ``{"llm": s, "vision": s, "tts": s, "total": s}`` (solo las piezas calentadas).
+    """
+    start = time.perf_counter()
+    timings: dict[str, float] = {}
+    try:
+        s = settings or get_settings()
+        providers = _providers_for_mode(s, resolve_mode(mode))
+    except Exception as exc:  # configuración inválida: la pregunta dará el error claro
+        log.warning("warmup: no se pudieron resolver los proveedores (%s)", exc)
+        return {"total": round(time.perf_counter() - start, 3)}
+    for name, provider in (("llm", providers.llm_cheap), ("vision", providers.vision)):
+        fn = getattr(provider, "warmup", None)
+        if fn is None or provider.provider_name == "mock":
+            continue
+        try:
+            t = time.perf_counter()
+            fn()
+            timings[name] = round(time.perf_counter() - t, 3)
+        except Exception as exc:
+            log.warning("warmup de %s (%s) fallido: %s", name, provider.provider_name, exc)
+    tts_module = _TTS_MODULES.get(providers.tts.provider_name)
+    if tts_module:
+        try:
+            t = time.perf_counter()
+            importlib.import_module(tts_module)
+            timings["tts"] = round(time.perf_counter() - t, 3)
+        except Exception as exc:
+            log.warning("warmup del TTS (%s) fallido: %s", tts_module, exc)
+    timings["total"] = round(time.perf_counter() - start, 3)
+    log.info("warmup: %s", timings)
+    return timings
+
+
+#: Módulo del SDK de cada TTS real que ``warmup`` importa por adelantado.
+_TTS_MODULES = {"edge": "edge_tts", "elevenlabs": "elevenlabs"}
 
 
 def answer_question(
@@ -839,64 +1028,106 @@ def answer_question(
             respuesta en texto con ``audio_path=None`` (paso opcional; el fallo queda en
             ``QAAnswer.metrics`` con ``error``). El texto pasa antes por
             ``media.speech.normalize_for_speech`` (cifras, tickers y siglas como las diría un locutor).
+            **Para pintar el texto cuanto antes**, la UI puede llamar con ``speak=False``,
+            mostrar ``answer_text`` y después llamar a ``speak_answer(answer, briefing)``.
+        history: turnos previos de la conversación (``[{"role", "content"}]``).
         use_mock / mode: como en ``run_briefing`` (``"demo_voices"``: LLM mock + edge-tts real).
 
     Returns:
         ``QAAnswer`` con ``metrics`` (``qa.stt`` si es voz, ``agents.qa``, ``qa.tts``) para medir
         la latencia de extremo a extremo (objetivo < 10 s).
-        history: turnos previos de la conversación (``[{"role", "content"}]``).
 
     Raises:
-        PipelineStepError: falló la transcripción o el agente Q&A (pasos núcleo).
+        PipelineStepError: falló la transcripción o el agente Q&A (pasos núcleo); su atributo
+            ``metrics`` lleva los pasos ejecutados.
         ValueError: la pregunta está vacía.
     """
     s = settings or get_settings()
     providers = _providers_for_mode(s, resolve_mode(mode, use_mock))
     metrics: list[StepMetric] = []
 
-    if isinstance(question, Path):
-        with _core_step("qa.stt", providers.stt.provider_name, providers.stt.model, metrics):
-            question_text = voice.transcribe_question(question, providers.stt, s.briefer_language)
-    else:
-        question_text = question.strip()
-    if not question_text.strip():
-        raise ValueError("La pregunta está vacía (o no se ha entendido el audio).")
+    try:
+        if isinstance(question, Path):
+            stt = providers.stt
+            with _core_step("qa.stt", stt.provider_name, stt.model, metrics) as stt_step:
+                question_text = voice.transcribe_question(question, stt, s.briefer_language)
+                stt_step.est_cost_eur = costs.estimate_cost_eur(
+                    stt.provider_name, stt.model, duration_s=float(getattr(stt, "last_duration_s", 0.0) or 0.0)
+                )
+        else:
+            question_text = question.strip()
+        if not question_text.strip():
+            raise ValueError("La pregunta está vacía (o no se ha entendido el audio).")
 
-    def _qa_with(inner: LLMProvider) -> Callable[[StepHandle], QAAnswer]:
-        def run(step: StepHandle) -> QAAnswer:
-            metered = _MeteredLLM(inner)
-            try:
-                return qa.answer(question_text, briefing, metered, history=history)
-            finally:
-                step.est_cost_eur = metered.cost_eur()
+        def _qa_with(inner: LLMProvider) -> Callable[[StepHandle], QAAnswer]:
+            def run(step: StepHandle) -> QAAnswer:
+                metered = _MeteredLLM(inner)
+                trace: list[str] = []
+                try:
+                    return qa.answer(question_text, briefing, metered, history=history, trace=trace)
+                finally:
+                    step.est_cost_eur = metered.cost_eur()
+                    step.detail = _join_details(*trace)
 
-        return run
+            return run
 
-    llm_cheap = providers.llm_cheap
-    result = _run_core(
-        "agents.qa", llm_cheap.provider_name, llm_cheap.model, metrics, _qa_with(llm_cheap),
-        _llm_fallback(s, cheap=True, fn_factory=_qa_with)
-        if s.briefer_fallback_to_mock and llm_cheap.provider_name != "mock" else None,
-    )
-
-    if speak:
-        qa_dir = s.output_path / (briefing.id if briefing else "sin_briefing") / "qa"
-
-        def _speak(step: StepHandle) -> Path:
-            qa_dir.mkdir(parents=True, exist_ok=True)
-            spoken = normalize_for_speech(result.answer_text) or result.answer_text
-            step.est_cost_eur = costs.estimate_cost_eur(
-                providers.tts.provider_name, providers.tts.model, n_chars=len(spoken)
-            )
-            return providers.tts.synthesize(spoken, s.briefer_voice_b, qa_dir / f"respuesta_{new_briefing_id()}")
-
-        audio_path = _optional_step(
-            "qa.tts", providers.tts.provider_name, providers.tts.model, metrics, _speak
+        llm_cheap = providers.llm_cheap
+        result = _run_core(
+            "agents.qa", llm_cheap.provider_name, llm_cheap.model, metrics, _qa_with(llm_cheap),
+            _llm_fallback(s, cheap=True, fn_factory=_qa_with)
+            if s.briefer_fallback_to_mock and llm_cheap.provider_name != "mock" else None,
         )
-        if audio_path is not None:
-            result = result.model_copy(update={"audio_path": audio_path})
+    except PipelineStepError as exc:
+        exc.metrics = list(metrics)
+        raise
+
     result = result.model_copy(update={"metrics": list(metrics)})
-    log.info("Q&A: %s", costs.summarize_metrics(metrics))
+    if speak:
+        result = _speak(result, briefing, providers.tts, s)
+    log.info("Q&A: %s", costs.summarize_metrics(result.metrics))
+    return result
+
+
+def _speak(answer: QAAnswer, briefing: Briefing | None, tts: TTSProvider, s: Settings) -> QAAnswer:
+    """Paso opcional ``qa.tts``: añade ``audio_path`` y su ``StepMetric`` a ``answer.metrics``."""
+    metrics = list(answer.metrics)
+    qa_dir = s.output_path / (briefing.id if briefing else "sin_briefing") / "qa"
+
+    def _synth(step: StepHandle) -> Path:
+        qa_dir.mkdir(parents=True, exist_ok=True)
+        spoken = normalize_for_speech(answer.answer_text) or answer.answer_text
+        step.est_cost_eur = costs.estimate_cost_eur(tts.provider_name, tts.model, n_chars=len(spoken))
+        return tts.synthesize(spoken, s.briefer_voice_b, qa_dir / f"respuesta_{new_briefing_id()}")
+
+    audio_path = _optional_step("qa.tts", tts.provider_name, tts.model, metrics, _synth)
+    update: dict[str, object] = {"metrics": metrics}
+    if audio_path is not None:
+        update["audio_path"] = audio_path
+    return answer.model_copy(update=update)
+
+
+def speak_answer(
+    answer: QAAnswer,
+    briefing: Briefing | None = None,
+    *,
+    use_mock: bool = False,
+    mode: RunMode | None = None,
+    settings: Settings | None = None,
+) -> QAAnswer:
+    """Sintetiza en audio una respuesta obtenida con ``answer_question(..., speak=False)``.
+
+    Permite a la UI mostrar el texto en cuanto llega (~2-3 s en caliente) y reproducir el
+    audio después. Mismo comportamiento que ``speak=True``: paso opcional ``qa.tts`` añadido a
+    ``metrics`` (si falla, ``audio_path`` queda ``None`` y el ``StepMetric`` lleva ``error``).
+    Si la respuesta ya tiene audio, se devuelve tal cual. ``mode`` debe ser el mismo de la
+    pregunta.
+    """
+    if answer.audio_path is not None:
+        return answer
+    s = settings or get_settings()
+    providers = _providers_for_mode(s, resolve_mode(mode, use_mock))
+    result = _speak(answer, briefing, providers.tts, s)
+    log.info("Q&A (audio): %s", costs.summarize_metrics(result.metrics))
     return result
 
 
@@ -915,4 +1146,7 @@ __all__ = [
     "process_upload",
     "resolve_mode",
     "run_briefing",
+    "scriptwriter_llm",
+    "speak_answer",
+    "warmup",
 ]

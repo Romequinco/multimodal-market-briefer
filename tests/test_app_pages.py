@@ -70,20 +70,44 @@ def test_home_shows_pregenerated_briefing(empty_samples: Path) -> None:
     _make_demo(empty_samples)
     at = _app("main.py").run()
     assert not at.exception
-    assert any("pregenerado" in c.value for c in at.caption)
+    assert "pregenerado" in _texts(at.markdown)  # insignia de origen
     assert at.get("audio"), "la portada debe tener el reproductor del podcast"
-    assert at.get("graphviz_chart"), "la franja «Cómo se hizo» debe dibujar la traza"
-    assert "sintéticas" in _texts(at.info)
+    assert at.get("graphviz_chart"), "la pestaña «Cómo se hizo» debe dibujar la traza"
+    assert "sintéticas" in _texts(at.caption)
+    assert any("Cómo se hizo:" in c.value for c in at.caption), "franja de traza visible sin pulsar nada"
     labels = [b.label for b in at.get("download_button")]
     assert any("audio" in label for label in labels) and any(".srt" in label for label in labels)
 
 
-def test_home_prefers_latest_saved_briefing(empty_samples: Path) -> None:
+def _as_real(briefing):
+    """Copia del briefing con métricas de proveedores reales (simula un briefing 100 % real)."""
+    real = {"ingest.news": "yfinance+rss", "ingest.prices": "yfinance", "agents.analyst": "anthropic",
+            "agents.scriptwriter": "anthropic", "media.podcast": "edge"}
+    metrics = [m.model_copy(update={"provider": real.get(m.step, m.provider), "model": "x"})
+               if m.step in real else m for m in briefing.metrics]
+    return briefing.model_copy(update={"metrics": metrics})
+
+
+def test_home_skips_saved_mock_briefing_and_keeps_pregenerated(empty_samples: Path) -> None:
+    """M5: un ensayo en «Demo offline» no tapa el pregenerado real de la portada."""
     _make_demo(empty_samples)
+    demo_id = storage.load_demo_briefing().id
     saved = pipeline.run_briefing(["ITX.MC"], use_mock=True)  # se guarda en data/outputs (tmp)
+    assert storage.is_simulated_briefing(saved)
     at = _app("main.py").run()
     assert not at.exception
-    assert any("Último briefing guardado" in c.value and saved.id in c.value for c in at.caption)
+    assert "pregenerado" in _texts(at.markdown)
+    assert at.session_state["briefing"].id == demo_id != saved.id
+
+
+def test_home_prefers_latest_saved_real_briefing(empty_samples: Path) -> None:
+    _make_demo(empty_samples)
+    saved = _as_real(pipeline.run_briefing(["ITX.MC"], use_mock=True))
+    storage.save_briefing(saved)
+    at = _app("main.py").run()
+    assert not at.exception
+    assert "Último briefing guardado" in _texts(at.markdown)
+    assert at.session_state["briefing"].id == saved.id
 
 
 # ── Briefing ───────────────────────────────────────────────────────────────────────
@@ -170,9 +194,7 @@ def test_history_page_opens_saved_briefing() -> None:
     saved = pipeline.run_briefing(["SAN.MC"], use_mock=True)
     at = _app("pages/4_Historico.py").run()
     assert not at.exception
-    assert at.selectbox[0].value is not None
-    at.button[0].click().run()  # «Abrir»
-    assert not at.exception
+    assert at.selectbox[0].value == saved.id  # se abre el más reciente sin pulsar nada
     assert at.session_state["briefing"].id == saved.id
     assert at.get("graphviz_chart")
 
@@ -180,7 +202,7 @@ def test_history_page_opens_saved_briefing() -> None:
 def test_history_page_empty() -> None:
     at = _app("pages/4_Historico.py").run()
     assert not at.exception
-    assert "Todavía no hay briefings guardados" in _texts(at.markdown)
+    assert "Todavía no hay briefings guardados" in _texts(at.info)
 
 
 # ── Integración F1: modos, refresco de caché e insignias de sustituto ─────────────

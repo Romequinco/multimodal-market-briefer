@@ -307,7 +307,9 @@ class MockSTT(STTProvider):
         self.model = model
 
     def transcribe(self, audio_path: Path, language: str = "es") -> str:
-        return "¿Por qué ha subido hoy el Santander?"
+        # Marcado como simulado: la UI y la demo no deben presentar como real una transcripción
+        # inventada (el usuario puede haber preguntado por otro valor).
+        return "[MOCK] ¿Por qué ha subido hoy el Santander?"
 
 
 class MockTTS(TTSProvider):

@@ -1,8 +1,13 @@
 # OPCIONAL: modelos locales (Qwen2.5-VL, Whisper local, SDXL-Turbo, CLIP). Pesado (varios GB).
 # Instalar solo si se usan BRIEFER_*_PROVIDER=qwen_local|whisper_local|sdxl_turbo|clip.
-# Para GPU NVIDIA, instalar antes torch con el índice CUDA adecuado (ver pytorch.org).
-# Uso: pip install -r requirements.txt -r requirements-local.txt   (o: pip install -e .[local])
-# (Sin "-r" aquí: pyproject.toml lee este fichero como lista plana de dependencias.)
+# Ojo: a 05-oct-2026 esos proveedores son todavia esqueletos (ver src/briefer/providers/).
+#
+# torch: instalarlo ANTES y desde el indice adecuado, o pip bajara la build por defecto
+# (en Linux, la de CUDA: ~2-3 GB mas):
+#   Solo CPU:    pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   GPU NVIDIA:  ver https://pytorch.org/get-started/locally/ (indice cu12x que toque)
+# Despues: pip install -r requirements.txt -r requirements-local.txt   (o: pip install -e .[local])
+# (Sin "-r" ni "--index-url" aqui: pyproject.toml lee este fichero como lista plana de requisitos.)
 torch>=2.3
 transformers>=4.49
 accelerate>=0.30

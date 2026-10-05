@@ -10,22 +10,34 @@ Imprime una línea por comprobación: ``OK`` / ``FAIL`` / ``SKIP`` / ``PEND`` (p
 implementar), latencia, tokens y coste estimado (``costs.py``). **Nunca imprime claves**: solo
 si están presentes. Coste total esperado < 0,01 € (entradas mínimas; Haiku para el JSON).
 
+Código de salida: 0 si todo lo comprobado está OK (SKIP/PEND no cuentan como fallo) · 1 si
+alguna comprobación da FAIL · 2 si no se ha podido comprobar nada (sin claves ni proveedores).
+Los mensajes de error se filtran: cualquier valor de una clave de ``.env`` se sustituye por
+``***`` antes de imprimirse.
+
 Comprobaciones:
+- ``anthropic.warmup``: importar el SDK + crear el cliente + ``models.retrieve`` (gratis); valida
+  la clave y el id del modelo barato y mide el arranque en frío del Q&A.
 - ``anthropic.text``: Claude principal (``BRIEFER_LLM_MODEL``), texto libre.
 - ``anthropic.structured``: Claude barato (``BRIEFER_LLM_MODEL_CHEAP``) con ``response_model``.
 - ``anthropic.vision``: ``ClaudeVision`` sobre ``data/samples/grafico_ejemplo.png``.
 - ``gemini.structured``: ``GeminiLLM`` con ``response_model``.
 - ``tts`` / ``stt``: proveedores de los carriles C / A según ``.env`` (si están implementados);
-  el STT transcribe el audio que acaba de generar el TTS (ida y vuelta).
+  el STT transcribe el audio que acaba de generar el TTS (ida y vuelta) y se compara con la frase
+  conocida: ``OK`` si la tasa de error por palabra (WER, sin tildes ni signos) es ≤ ``MAX_STT_WER``.
 
-Carril B. Las salidas (audio) van a ``BRIEFER_OUTPUT_DIR/smoke/``.
+Carril B. Las salidas (audio) van a una carpeta temporal que se borra al terminar (no ensucia
+``data/``).
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
+import tempfile
 import time
+import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,12 +45,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from pydantic import BaseModel  # noqa: E402
+from pydantic import BaseModel
 
-from briefer import costs  # noqa: E402
-from briefer.config import Settings, get_settings  # noqa: E402
+from briefer import costs
+from briefer.config import Settings, get_settings
 
 SAMPLE_CHART = ROOT / "data" / "samples" / "grafico_ejemplo.png"
+#: Frase de la ida y vuelta TTS -> STT (vocabulario del dominio) y WER máximo aceptado.
+STT_PHRASE = "¿Por qué ha caído hoy Inditex en el IBEX 35?"
+MAX_STT_WER = 0.2
+
+
+def _words(text: str) -> list[str]:
+    text = unicodedata.normalize("NFKD", text.lower())
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9& ]", " ", text).split()
+
+
+def word_error_rate(reference: str, hypothesis: str) -> float:
+    """WER = distancia de edición entre palabras / nº de palabras de la referencia."""
+    ref, hyp = _words(reference), _words(hypothesis)
+    prev = list(range(len(hyp) + 1))
+    for i, r in enumerate(ref, 1):
+        cur = [i] + [0] * len(hyp)
+        for j, h in enumerate(hyp, 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (r != h))
+        prev = cur
+    return prev[-1] / max(1, len(ref))
 
 
 class _City(BaseModel):
@@ -58,8 +91,28 @@ class Result:
     detail: str = ""
 
 
+_SECRETS: list[str] = []
+
+
+def _register_secrets(s: Settings) -> None:
+    """Valores de todos los ``SecretStr`` de la configuración, para filtrarlos de la salida."""
+    for name in type(s).model_fields:
+        value = getattr(s, name, None)
+        getter = getattr(value, "get_secret_value", None)
+        if getter is not None:
+            secret = getter()
+            if secret and len(secret) >= 6:
+                _SECRETS.append(secret)
+
+
+def _redact(text: str) -> str:
+    for secret in _SECRETS:
+        text = text.replace(secret, "***")
+    return text
+
+
 def _clip(text: str, n: int = 110) -> str:
-    text = " ".join(str(text).split())
+    text = _redact(" ".join(str(text).split()))
     return text if len(text) <= n else text[: n - 1] + "…"
 
 
@@ -88,6 +141,10 @@ def check_anthropic(s: Settings) -> list[Result]:
 
     main, cheap, vision = AnthropicLLM(s), AnthropicLLM(s, cheap=True), ClaudeVision(s)
 
+    def warm() -> tuple[str, None, float]:
+        seconds = cheap.warmup()
+        return f"SDK + cliente + conexión listos en {seconds:.2f} s (sin coste)", None, 0.0
+
     def text() -> tuple[str, dict, float]:
         out = main.complete("Responde en una sola frase corta en español.", [{"role": "user", "content": "¿Qué es el IBEX 35?"}])
         return str(out), main.last_usage, 0.0
@@ -105,6 +162,7 @@ def check_anthropic(s: Settings) -> list[Result]:
         return out, vision.last_usage, 0.0
 
     return [
+        _run("anthropic.warmup", cheap.model, warm),
         _run("anthropic.text", main.model, text),
         _run("anthropic.structured", cheap.model, structured),
         _run("anthropic.vision", vision.model, describe),
@@ -137,7 +195,7 @@ def check_tts_stt(s: Settings, out_dir: Path) -> list[Result]:
 
     results: list[Result] = []
     audio: Path | None = None
-    text = "Hola, esto es una prueba de Market Briefer."
+    text = STT_PHRASE
     tts = registry.get_tts(s)
     if tts.provider_name == "mock":
         results.append(Result("tts", "SKIP", detail=f"TTS en mock (BRIEFER_TTS_PROVIDER={s.briefer_tts_provider})"))
@@ -159,7 +217,12 @@ def check_tts_stt(s: Settings, out_dir: Path) -> list[Result]:
     else:
         def transcribe() -> tuple[str, None, float]:
             out = stt.transcribe(audio, s.briefer_language)  # type: ignore[arg-type]
-            return out, None, costs.estimate_cost_eur(stt.provider_name, stt.model, duration_s=4.0)
+            wer = word_error_rate(STT_PHRASE, out)
+            if wer > MAX_STT_WER:
+                raise AssertionError(f"WER {wer:.2f} > {MAX_STT_WER}: «{out}»")
+            seconds = float(getattr(stt, "last_duration_s", 0.0) or 4.0)
+            cost = costs.estimate_cost_eur(stt.provider_name, stt.model, duration_s=seconds)
+            return f"WER {wer:.2f} · «{out}»", None, cost
 
         results.append(_run(f"stt.{stt.provider_name}", stt.model, transcribe))
     return results
@@ -176,6 +239,7 @@ def main(argv: list[str] | None = None) -> int:
         except (AttributeError, ValueError):
             pass
     s = get_settings()
+    _register_secrets(s)
     only = set(args.only or ["anthropic", "gemini", "audio"])
 
     print("Claves presentes:", ", ".join(
@@ -188,14 +252,24 @@ def main(argv: list[str] | None = None) -> int:
     if "gemini" in only:
         results += check_gemini(s, args.gemini_model)
     if "audio" in only:
-        results += check_tts_stt(s, s.output_path / "smoke")
+        with tempfile.TemporaryDirectory(prefix="briefer_smoke_") as tmp:
+            results += check_tts_stt(s, Path(tmp))
 
     print(f"\n{'comprobación':<22} {'estado':<5} {'modelo':<28} {'lat.(s)':>7} {'tok in/out':>11} {'coste €':>9}  detalle")
     for r in results:
         print(f"{r.name:<22} {r.status:<5} {r.model:<28} {r.latency_s:>7.2f} {r.tokens:>11} {r.cost_eur:>9.5f}  {r.detail}")
     total = sum(r.cost_eur for r in results)
     print(f"\nCoste total estimado: {total:.5f} € (tarifas de costs.py; ver docs/04)")
-    return 1 if any(r.status == "FAIL" for r in results) else 0
+    print("Leyenda: OK funciona · FAIL falla (ver detalle) · SKIP sin clave o en mock · PEND sin implementar")
+    failed = [r.name for r in results if r.status == "FAIL"]
+    if failed:
+        print(f"RESULTADO: FALLO en {', '.join(failed)}", file=sys.stderr)
+        return 1
+    if not any(r.status == "OK" for r in results):
+        print("RESULTADO: nada comprobado (faltan claves o todo está en mock; revisa .env)", file=sys.stderr)
+        return 2
+    print("RESULTADO: OK")
+    return 0
 
 
 if __name__ == "__main__":

@@ -1,28 +1,31 @@
 # Dependencias del MVP (Python 3.11+). Modelos locales pesados: requirements-local.txt
+# Minimos = versiones probadas (o anteriores verificadas); techo en la siguiente version mayor
+# para que una instalacion limpia el dia de la demo no traiga un cambio incompatible.
+# Probado el 05-oct-2026 con Python 3.13 (CI: 3.11 y 3.13).
+# pyproject.toml lee este fichero como lista plana: solo requisitos, sin opciones de pip.
+
 # UI
-streamlit>=1.40
-# Núcleo
-pydantic>=2.7
-pydantic-settings>=2.3
-python-dotenv>=1.0
-requests>=2.31
+streamlit>=1.50,<2            # probada 1.65 (st.badge, st.audio_input, width="stretch")
+# Nucleo
+pydantic>=2.7,<3
+pydantic-settings>=2.3,<3
+python-dotenv>=1.0            # la usa pydantic-settings para leer .env
+requests>=2.32
 pandas>=2.1
 # Proveedores de IA (API)
-anthropic>=0.40
-openai>=1.50
+anthropic>=1.11,<2            # probada 1.11 (transform_schema, salidas estructuradas)
+openai>=1.50                  # LLM alternativo y Whisper API
 google-genai>=1.0
 # Datos de mercado
-yfinance>=0.2.50
+yfinance>=0.2.54,<2           # probada 1.7
 feedparser>=6.0
-# Documentos e imágenes
-pypdf>=5.0
-Pillow>=10.0
-# Gráficos
+# Documentos e imagenes
+pypdf>=6.0                    # probada 6.19 (protecciones contra bombas de descompresion)
+Pillow>=12.3                  # < 12.3 tiene avisos PYSEC (procesa imagenes subidas por el usuario)
+# Graficos
 matplotlib>=3.8
-plotly>=5.20
-# Audio y vídeo
-edge-tts==7.2.8  # fijada: probada el 06-oct-2026 (servicio no oficial; ver providers/tts/edge_tts_provider.py)
-moviepy>=2.0
+# Audio y video (ffmpeg directo via el binario de imageio-ffmpeg; sin moviepy)
+edge-tts==7.2.8               # fijada: servicio no oficial (ver providers/tts/edge_tts_provider.py)
 imageio-ffmpeg>=0.5
 # Tests
 pytest>=8.0

@@ -317,6 +317,23 @@ def test_gemini_retry_and_text_mode() -> None:
     assert cheap._client.models.calls[0]["config"].thinking_config.thinking_budget == 0
 
 
+def test_gemini_dict_fields_travel_as_pairs() -> None:
+    """Como en Anthropic: ``key_figures`` (dict libre) viaja como lista de pares y se reconvierte."""
+    import json as _json
+
+    from briefer.schemas import DocumentInsight
+
+    payload = {
+        "source_type": "pdf", "source_name": "r.pdf", "extracted_text": "t", "summary": "s",
+        "key_figures": [{"label": "Ingresos", "value": "100 M€"}, {"label": "Margen", "value": "12 %"}],
+    }
+    llm = _gemini([_json.dumps(payload)])
+    result = llm.complete("s", [{"role": "user", "content": "x"}], response_model=DocumentInsight)
+    assert result.key_figures == {"Ingresos": "100 M€", "Margen": "12 %"}
+    schema = llm._client.models.calls[0]["config"].response_json_schema
+    assert schema["properties"]["key_figures"]["type"] == "array"
+
+
 def test_gemini_empty_response_raises() -> None:
     llm = _gemini([""])
     with pytest.raises(common.LLMResponseError):

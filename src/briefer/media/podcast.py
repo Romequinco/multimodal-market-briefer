@@ -18,15 +18,24 @@ Decisiones:
 - Cada línea pasa por ``normalize_for_speech`` (``media.speech``) **antes** del TTS: tickers,
   cifras, porcentajes, periodos y siglas se leen como lo diría un locutor. Los ``segments`` (y por
   tanto la transcripción y el SRT) conservan el texto **original** del guion.
+- Volumen homogéneo: el MP3 final pasa por ``loudnorm`` de ffmpeg (EBU R128) a
+  ``PODCAST_LOUDNESS_LUFS`` (-16 LUFS integrados, el estándar habitual de podcast; pico real
+  <= -1,5 dBTP). edge-tts entrega las voces a unos -23 LUFS: sin normalizar, el episodio suena
+  bajo en el móvil frente a otros podcasts. Medido con ``volumedetect`` por locutor.
+- Ficheros temporales: ``out_dir/parts`` se borra también si la síntesis falla a medias; ffmpeg
+  se lanza sin ventana de consola en Windows y con un tiempo máximo (``FFMPEG_TIMEOUT_S``).
 - Transparencia (AI Act art. 50): el MP3 final lleva metadatos ID3 que lo identifican como voz
   sintética generada por IA (``AI_AUDIO_METADATA``), además del aviso hablado del cierre del guion.
 """
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
+import sys
+import threading
 import time
 import wave
 from concurrent.futures import ThreadPoolExecutor
@@ -35,7 +44,7 @@ from pathlib import Path
 from briefer.logging_utils import get_logger
 from briefer.media.speech import normalize_for_speech
 from briefer.providers.base import TTSProvider
-from briefer.schemas import AudioAsset, AudioSegment, PodcastScript
+from briefer.schemas import AudioAsset, AudioSegment, PodcastScript, ScriptLine
 
 log = get_logger("media.podcast")
 
@@ -43,6 +52,11 @@ log = get_logger("media.podcast")
 OUTPUT_SAMPLE_RATE = 24_000
 OUTPUT_MP3_BITRATE = "64k"
 DEFAULT_MAX_WORKERS = 4
+# Sonoridad objetivo del episodio (EBU R128 / recomendación habitual de podcast) y pico real máximo.
+PODCAST_LOUDNESS_LUFS = -16.0
+TRUE_PEAK_DB = -1.5
+LOUDNESS_RANGE_LU = 11.0
+FFMPEG_TIMEOUT_S = 300
 
 # Metadatos del audio final (AI Act art. 50: contenido sintético marcado de forma detectable).
 SYNTHETIC_VOICE_NOTICE = "Voces sintéticas generadas por IA. No constituye asesoramiento financiero."
@@ -76,7 +90,13 @@ def ffmpeg_exe() -> str:
 def _run_ffmpeg(args: list[str]) -> subprocess.CompletedProcess[str]:
     """Ejecuta ffmpeg sin ventana ni stdin; lanza ``RuntimeError`` con el final del log si falla."""
     cmd = [ffmpeg_exe(), "-hide_banner", "-nostdin", *args]
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    # En Windows, sin ventana de consola que parpadee al lanzarlo desde Streamlit.
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                              timeout=FFMPEG_TIMEOUT_S, creationflags=flags)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"ffmpeg no terminó en {FFMPEG_TIMEOUT_S} s") from exc
     if proc.returncode != 0:
         tail = "\n".join(proc.stderr.strip().splitlines()[-8:])
         raise RuntimeError(f"ffmpeg falló (código {proc.returncode}):\n{tail}")
@@ -138,17 +158,20 @@ def _concat_wav_stdlib(paths: list[Path], out_path: Path, pause_s: float) -> Pat
         params = first.getparams()
     frame_bytes = params.nchannels * params.sampwidth
     silence = b"\x00" * (int(round(pause_s * params.framerate)) * frame_bytes)
-    tmp = out_path.with_name(out_path.stem + ".tmp" + out_path.suffix)
-    with wave.open(str(tmp), "wb") as out:
-        out.setnchannels(params.nchannels)
-        out.setsampwidth(params.sampwidth)
-        out.setframerate(params.framerate)
-        for i, p in enumerate(paths):
-            with wave.open(str(p), "rb") as part:
-                out.writeframes(part.readframes(part.getnframes()))
-            if i < len(paths) - 1 and silence:
-                out.writeframes(silence)
-    tmp.replace(out_path)
+    tmp = out_path.with_name(f"{out_path.stem}.{os.getpid()}.{threading.get_ident()}.tmp{out_path.suffix}")
+    try:
+        with wave.open(str(tmp), "wb") as out:
+            out.setnchannels(params.nchannels)
+            out.setsampwidth(params.sampwidth)
+            out.setframerate(params.framerate)
+            for i, p in enumerate(paths):
+                with wave.open(str(p), "rb") as part:
+                    out.writeframes(part.readframes(part.getnframes()))
+                if i < len(paths) - 1 and silence:
+                    out.writeframes(silence)
+        tmp.replace(out_path)
+    finally:
+        tmp.unlink(missing_ok=True)
     return out_path
 
 
@@ -161,8 +184,21 @@ def _metadata_args(metadata: dict[str, str] | None) -> list[str]:
     return args
 
 
+def loudnorm_filter(lufs: float, true_peak_db: float = TRUE_PEAK_DB, lra: float = LOUDNESS_RANGE_LU) -> str:
+    """Filtro ``loudnorm`` de ffmpeg (una pasada, EBU R128) seguido del remuestreo de salida.
+
+    ``loudnorm`` trabaja internamente a 192 kHz: se vuelve a ``OUTPUT_SAMPLE_RATE`` al final.
+    """
+    return (f"loudnorm=I={lufs:.1f}:TP={true_peak_db:.1f}:LRA={lra:.1f},"
+            f"aresample={OUTPUT_SAMPLE_RATE},aformat=sample_fmts=s16:channel_layouts=mono")
+
+
 def _concat_ffmpeg(
-    paths: list[Path], out_path: Path, pause_s: float, metadata: dict[str, str] | None = None
+    paths: list[Path],
+    out_path: Path,
+    pause_s: float,
+    metadata: dict[str, str] | None = None,
+    loudness_lufs: float | None = None,
 ) -> Path:
     """Concatena cualquier mezcla de formatos con ffmpeg re-codificando a ``out_path``.
 
@@ -177,7 +213,12 @@ def _concat_ffmpeg(
         if i < n - 1 and pause_s > 0:
             chain += f",apad=pad_dur={pause_s:.3f}"
         chains.append(chain + f"[a{i}]")
-    graph = ";".join(chains) + ";" + "".join(f"[a{i}]" for i in range(n)) + f"concat=n={n}:v=0:a=1[out]"
+    joined = "".join(f"[a{i}]" for i in range(n))
+    if loudness_lufs is None:
+        graph = ";".join(chains) + ";" + joined + f"concat=n={n}:v=0:a=1[out]"
+    else:
+        graph = (";".join(chains) + ";" + joined + f"concat=n={n}:v=0:a=1[cat];"
+                 + f"[cat]{loudnorm_filter(loudness_lufs)}[out]")
 
     ext = out_path.suffix.lower()
     if ext == ".mp3":
@@ -187,8 +228,9 @@ def _concat_ffmpeg(
     else:
         codec = []  # que ffmpeg elija por extensión (.m4a, .ogg…)
 
-    tmp = out_path.with_name(out_path.stem + ".tmp" + out_path.suffix)
-    graph_file = out_path.with_name(out_path.stem + ".filtergraph.txt")
+    unique = f"{os.getpid()}.{threading.get_ident()}"
+    tmp = out_path.with_name(f"{out_path.stem}.{unique}.tmp{out_path.suffix}")
+    graph_file = out_path.with_name(f"{out_path.stem}.{unique}.filtergraph.txt")
     graph_file.write_text(graph, encoding="utf-8")
     try:
         inputs: list[str] = []
@@ -211,6 +253,7 @@ def concat_audio(
     pause_s: float = 0.35,
     *,
     metadata: dict[str, str] | None = None,
+    loudness_lufs: float | None = None,
 ) -> Path:
     """Concatena audios con una pausa corta entre intervenciones; devuelve ``out_path``.
 
@@ -218,6 +261,8 @@ def concat_audio(
     ffmpeg en el resto de casos (MP3, mezclas de formatos o frecuencias distintas).
     ``metadata`` (p. ej. ``AI_AUDIO_METADATA``) se escribe como etiquetas del fichero cuando se
     usa ffmpeg (ID3 en MP3); la vía WAV de la stdlib no admite etiquetas.
+    ``loudness_lufs`` (p. ej. ``PODCAST_LOUDNESS_LUFS``) normaliza la sonoridad del resultado con
+    ``loudnorm``; fuerza la vía ffmpeg (``None`` = sin normalizar).
     """
     paths = [Path(p) for p in paths]
     if not paths:
@@ -229,19 +274,32 @@ def concat_audio(
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pause_s = max(0.0, float(pause_s))
 
-    if out_path.suffix.lower() == ".wav":
+    if out_path.suffix.lower() == ".wav" and loudness_lufs is None:
         params = [_wav_params(p) for p in paths]
         if all(params) and len(set(params)) == 1 and params[0][3] == "NONE":  # type: ignore[index]
             return _concat_wav_stdlib(paths, out_path, pause_s)
-    return _concat_ffmpeg(paths, out_path, pause_s, metadata)
+    return _concat_ffmpeg(paths, out_path, pause_s, metadata, loudness_lufs)
 
 
 # ── Podcast ────────────────────────────────────────────────────────────────────────
 
 
-def _synthesize_with_retry(tts: TTSProvider, text: str, voice: str, out_path: Path, retries: int) -> Path:
-    """Llama a ``tts.synthesize`` con reintentos y espera creciente (fallos de red de edge-tts)."""
+class PodcastAborted(RuntimeError):
+    """Otra línea del episodio ya falló sin remedio: esta no se sintetiza (falla rápido)."""
+
+
+def _synthesize_with_retry(
+    tts: TTSProvider, text: str, voice: str, out_path: Path, retries: int,
+    abort: threading.Event | None = None,
+) -> Path:
+    """Llama a ``tts.synthesize`` con reintentos y espera creciente (fallos de red de edge-tts).
+
+    Si ``abort`` se activa (otra línea agotó sus reintentos), deja de intentarlo: el episodio ya no
+    se puede completar y el pipeline debe pasar cuanto antes al sustituto.
+    """
     for attempt in range(retries + 1):
+        if abort is not None and abort.is_set():
+            raise PodcastAborted("síntesis cancelada: otra intervención falló")
         try:
             written = Path(tts.synthesize(text, voice, out_path))
             if not written.exists() or written.stat().st_size == 0:
@@ -268,6 +326,7 @@ def synthesize_podcast(
     keep_parts: bool = False,
     normalize: bool = True,
     metadata: dict[str, str] | None = None,
+    loudness_lufs: float | None = PODCAST_LOUDNESS_LUFS,
 ) -> AudioAsset:
     """Genera el audio completo del episodio.
 
@@ -284,6 +343,8 @@ def synthesize_podcast(
         normalize: pasar cada línea por ``normalize_for_speech`` antes del TTS (los segmentos
             guardan siempre el texto original).
         metadata: etiquetas del fichero final; por defecto ``AI_AUDIO_METADATA`` + el título.
+        loudness_lufs: sonoridad objetivo del episodio (``loudnorm``) cuando la salida no es WAV;
+            ``None`` la desactiva. Con ``MockTTS`` (WAV de silencio) no se aplica.
     """
     lines = [line for line in script.lines if line.text.strip()]
     if not lines:
@@ -300,15 +361,51 @@ def synthesize_podcast(
         text = line.text.strip()
         if normalize:
             text = normalize_for_speech(text) or text
-        written = _synthesize_with_retry(tts, text, voices[line.speaker], target, retries)
-        return written, audio_duration_s(written)
+        try:
+            written = _synthesize_with_retry(tts, text, voices[line.speaker], target, retries, abort)
+            return written, audio_duration_s(written)
+        except Exception as exc:
+            if not isinstance(exc, PodcastAborted):
+                first_error.setdefault("exc", exc)
+            abort.set()  # el resto de líneas deja de reintentar: fallo rápido
+            raise
 
-    workers = max(1, min(int(max_workers), len(lines)))
-    if workers == 1:
-        results = [_job(i) for i in range(len(lines))]
-    else:
-        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="tts") as pool:
-            results = list(pool.map(_job, range(len(lines))))  # map conserva el orden
+    abort = threading.Event()
+    first_error: dict[str, BaseException] = {}
+    try:
+        workers = max(1, min(int(max_workers), len(lines)))
+        if workers == 1:
+            results = [_job(i) for i in range(len(lines))]
+        else:
+            pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="tts")
+            try:
+                results = list(pool.map(_job, range(len(lines))))  # map conserva el orden
+            finally:
+                # Si una línea falla, no se esperan las pendientes (cancel_futures) ni sus reintentos.
+                pool.shutdown(wait=True, cancel_futures=True)
+        return _assemble(script, lines, results, out_dir, tts, pause_s, metadata, loudness_lufs)
+    except PodcastAborted:
+        # Se propaga la causa real (la de la línea que falló), no la cancelación de las demás.
+        if "exc" in first_error:
+            raise first_error["exc"] from None
+        raise
+    finally:
+        # También si una línea falla tras sus reintentos: no dejar partes huérfanas en disco.
+        if not keep_parts:
+            shutil.rmtree(parts_dir, ignore_errors=True)
+
+
+def _assemble(
+    script: PodcastScript,
+    lines: list[ScriptLine],
+    results: list[tuple[Path, float]],
+    out_dir: Path,
+    tts: TTSProvider,
+    pause_s: float,
+    metadata: dict[str, str] | None,
+    loudness_lufs: float | None,
+) -> AudioAsset:
+    """Calcula los segmentos con las duraciones reales y concatena las partes en el episodio."""
     parts = [path for path, _ in results]
     durations = [dur for _, dur in results]
 
@@ -324,19 +421,20 @@ def synthesize_podcast(
     tags = dict(AI_AUDIO_METADATA if metadata is None else metadata)
     if metadata is None and script.title:
         tags["title"] = script.title
-    final = concat_audio(parts, out_dir / f"podcast{ext}", pause_s, metadata=tags)
+    loud = loudness_lufs if ext.lower() != ".wav" else None  # MockTTS: silencio, nada que normalizar
+    final = concat_audio(parts, out_dir / f"podcast{ext}", pause_s, metadata=tags, loudness_lufs=loud)
     try:
         total = audio_duration_s(final)
     except Exception:  # medir es secundario: usar la suma teórica
         total = cursor
-    if not keep_parts:
-        shutil.rmtree(parts_dir, ignore_errors=True)
     log.info("Podcast: %d líneas, %.1f s -> %s", len(lines), total, final.name)
     return AudioAsset(path=final, duration_s=round(total, 3), segments=segments)
 
 
 __all__ = [
     "AI_AUDIO_METADATA",
+    "PODCAST_LOUDNESS_LUFS",
+    "loudnorm_filter",
     "SYNTHETIC_VOICE_NOTICE",
     "audio_duration_s",
     "concat_audio",

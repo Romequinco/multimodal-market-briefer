@@ -9,8 +9,8 @@ cabeceras en inglés o español (``symbol``/``ticker``/``valor``, ``peso``/``wei
 ``cantidad``/``quantity``/``acciones``). Las columnas extra (p. ej. ``name``) se ignoran.
 
 RGPD: la cartera es un dato personal/financiero. Se procesa en memoria durante la sesión;
-no se guarda en disco ni se envía a terceros salvo los tickers necesarios para el briefing
-(TODO: documentar en docs/04 y pedir consentimiento explícito si se persiste).
+no se guarda en disco (ver ADR-005). Los tickers van a las fuentes de noticias y precios, y los
+tickers con sus pesos al LLM del Analista; nada más sale del proceso.
 """
 
 from __future__ import annotations
@@ -26,6 +26,8 @@ from briefer.schemas import Portfolio, Position
 
 # Tolerancia para la suma de pesos (en tanto por uno).
 WEIGHT_TOLERANCE = 0.02
+# Filas de totales que exportan los brokers (se ignoran: duplicarían la suma de pesos).
+_TOTAL_ROWS = {"total", "totales", "suma", "sum", "total cartera"}
 
 _COLUMN_ALIASES: dict[str, set[str]] = {
     "ticker": {"ticker", "tickers", "symbol", "simbolo", "valor", "codigo", "isin_ticker"},
@@ -66,8 +68,10 @@ def _read_text(source: Path | BinaryIO | str) -> str:
 
 
 def _parse_number(value: str | None, column: str, row_no: int) -> float | None:
-    """``"12,5"``, ``"12.5"``, ``"20 %"``, ``"1.234,5"`` -> float; vacío -> ``None``."""
-    text = (value or "").strip().replace("%", "").replace(" ", "")
+    """``"12,5"``, ``"12.5"``, ``"20 %"``, ``"1.234,5"``, ``"1.234,5 €"`` -> float; vacío -> ``None``."""
+    text = (value or "").strip()
+    for symbol in ("%", " ", "\u00a0", "€", "$", "£", "EUR", "USD"):
+        text = text.replace(symbol, "")
     if not text:
         return None
     if "," in text and "." in text:  # 1.234,5 (es) o 1,234.5 (en)
@@ -87,7 +91,8 @@ def load_portfolio_csv(source: Path | BinaryIO | str, name: str = "Mi cartera") 
     """Lee un CSV (ruta o fichero subido por Streamlit) y devuelve un ``Portfolio`` validado.
 
     - Tickers normalizados con ``normalize_ticker`` (``"santander"`` -> ``"SAN.MC"``).
-    - Tickers duplicados se fusionan sumando peso y cantidad.
+    - Tickers duplicados se fusionan sumando peso y cantidad; las filas «Total»/«Suma» se ignoran.
+    - Se aceptan números con símbolo de divisa (``"1.234,5 €"``).
     - Pesos en porcentaje (suman ~100) se pasan a tanto por uno; si hay pesos, deben sumar ~1
       (tolerancia ``WEIGHT_TOLERANCE``).
 
@@ -128,7 +133,7 @@ def load_portfolio_csv(source: Path | BinaryIO | str, name: str = "Mi cartera") 
     for row_no, row in enumerate(rows[1:], start=2):
         cells = row + [""] * (len(headers) - len(row))
         raw_ticker = cells[columns["ticker"]].strip()
-        if not raw_ticker:
+        if not raw_ticker or _norm_header(raw_ticker).replace("_", " ") in _TOTAL_ROWS:
             continue
         ticker = normalize_ticker(raw_ticker)
         weight = _parse_number(cells[columns["weight"]], "weight", row_no) if "weight" in columns else None

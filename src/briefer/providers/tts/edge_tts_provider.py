@@ -37,6 +37,11 @@ log = get_logger("providers.tts.edge")
 # Versión probada (fijada en requirements.txt). Si edge-tts cambia el protocolo, actualizar ambas.
 TESTED_EDGE_TTS_VERSION = "7.2.8"
 
+# Errores locales de sistema de ficheros (subclases de OSError) que no merecen reintento.
+_LOCAL_FS_ERRORS: tuple[type[BaseException], ...] = (
+    PermissionError, FileNotFoundError, IsADirectoryError, NotADirectoryError,
+)
+
 _RATE_RE = re.compile(r"^[+-]\d{1,3}%$")
 _PITCH_RE = re.compile(r"^[+-]\d{1,3}Hz$")
 
@@ -188,6 +193,8 @@ class EdgeTTS(TTSProvider):
                         raise edge_tts.exceptions.NoAudioReceived("edge-tts no escribió audio")
                     os.replace(tmp, out)
                     return out
+                except _LOCAL_FS_ERRORS:
+                    raise  # disco/permiso local: reintentar no lo arregla (OSError no es siempre red)
                 except transient as exc:
                     last_exc = exc
                     if attempt >= self.retries:

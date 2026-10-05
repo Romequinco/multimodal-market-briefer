@@ -24,6 +24,11 @@ def _inside(briefing: Briefing, folder: Path) -> Briefing:
     )
 
 
+def _persisted(briefing: Briefing) -> Briefing:
+    """Lo que ``save_briefing`` guarda: igual salvo la cartera (RGPD: ``context.portfolio=None``)."""
+    return briefing.model_copy(update={"context": briefing.context.model_copy(update={"portfolio": None})})
+
+
 def test_briefing_dir_creates_and_validates(tmp_path: Path) -> None:
     d = storage.briefing_dir("20261005-090000-abcdef", base_dir=tmp_path)
     assert d == tmp_path / "20261005-090000-abcdef" and d.is_dir()
@@ -38,15 +43,15 @@ def test_round_trip_exact(sample_briefing: Briefing, tmp_path: Path) -> None:
     path = storage.save_briefing(briefing, base_dir=base)
 
     assert path == base / briefing.id / "briefing.json"
-    assert storage.load_briefing(path) == briefing
-    assert storage.load_briefing(briefing.id, base_dir=base) == briefing
-    assert storage.load_briefing(path.parent) == briefing
+    assert storage.load_briefing(path) == _persisted(briefing)
+    assert storage.load_briefing(briefing.id, base_dir=base) == _persisted(briefing)
+    assert storage.load_briefing(path.parent) == _persisted(briefing)
 
 
 def test_round_trip_paths_outside_folder_stay_absolute(sample_briefing: Briefing, tmp_path: Path) -> None:
     # El fixture apunta a ficheros en tmp_path (fuera de la carpeta del briefing).
     path = storage.save_briefing(sample_briefing, base_dir=tmp_path / "outputs")
-    assert storage.load_briefing(path) == sample_briefing
+    assert storage.load_briefing(path) == _persisted(sample_briefing)
 
 
 def test_saved_paths_are_relative_and_portable(sample_briefing: Briefing, tmp_path: Path) -> None:
@@ -64,9 +69,9 @@ def test_saved_paths_are_relative_and_portable(sample_briefing: Briefing, tmp_pa
     loaded = storage.load_briefing(moved / "briefing.json")
     assert loaded.audio.path == moved / "podcast.mp3"
     assert loaded.charts[0].path == moved / "charts" / "SAN_MC_price.png"
-    assert loaded.model_dump(exclude={"audio", "transcript", "charts", "cover_path"}) == briefing.model_dump(
-        exclude={"audio", "transcript", "charts", "cover_path"}
-    )
+    assert loaded.model_dump(exclude={"audio", "transcript", "charts", "cover_path"}) == _persisted(
+        briefing
+    ).model_dump(exclude={"audio", "transcript", "charts", "cover_path"})
 
 
 def test_save_does_not_mutate_and_leaves_no_tmp(sample_briefing: Briefing, tmp_path: Path) -> None:
