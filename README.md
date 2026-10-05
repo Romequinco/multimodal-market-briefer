@@ -10,14 +10,15 @@ recoge las noticias de mercado relevantes para los tickers que sigue el usuario,
 corto**. El usuario puede además subir una captura de gráfico o un PDF de resultados para que entren en el
 análisis, y **preguntar por voz** sobre el briefing a un agente que le responde también por voz.
 
-> **Estado (05-oct-2026 · Fases 0 y 1 cerradas y revisadas):** el producto funciona **de punta a punta con datos
+> **Estado (05-oct-2026 · Fases 0 y 1 cerradas, revisadas y reforzadas):** el producto funciona **de punta a punta con datos
 > y modelos reales**: noticias de Google News, Bing News, Yahoo Finance, Expansión y Europa Press (con enlace al
 > medio y extracto breve) + precios de yfinance, con caché → lectura de PDF y gráfico con Claude visión → Agente
 > Analista (Claude Sonnet 5.5, con puerta de *grounding* de cifras) → Agente Guionista (Claude Haiku 4.5, con
 > puertas de calidad deterministas) → podcast a dos voces con edge-tts → transcripción SRT → gráficos →
 > `briefing.json`, más el Agente Q&A **por texto o por voz** (Whisper API → Claude → respuesta hablada).
-> **Medido:** 0,066 € y 83 s por briefing con PDF + gráfico (sin caché); pregunta al Q&A ≈ 0,005 € y **5,2 s con
-> voz** incluso la primera del proceso. La app abre con un **briefing real pregenerado** y funciona también **sin
+> **Medido:** 0,066 € y 83 s por briefing con PDF + gráfico (sin caché); 0,053 € y 62 s sin subidas, con el
+> podcast **verificado por STT** (WER 1,1 %); pregunta al Q&A ≈ 0,001-0,006 € (caché de prompt) y **≈ 6 s con voz**
+> de punta a punta incluso la primera del proceso. 953 tests sin red, cobertura del 97 % y ruff + mypy en la CI. La app abre con un **briefing real pregenerado** y funciona también **sin
 > claves**. Pendiente: vídeo, portada generada, envíos por email/Telegram, captura de cartera (desactivados en la
 > UI) y probar Docker. Plan en [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md) (*feature freeze* mié 7 a las
 > 22:00 · **jue 8** capturas, demo grabada y pitch, entrega 16:30). Estado vivo en
@@ -153,7 +154,8 @@ todo mock. Lo que sale «No» tiene el control **desactivado** en la UI («en de
 | 7 | Audio → texto | Entrada | Pregunta por voz del usuario y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` (`BRIEFER_WHISPER_API_MODEL`) | `whisper-1`, `faster-whisper` local *(stub)*, `mock` | **Sí** (real, con `OPENAI_API_KEY`); en sin claves/offline la transcripción es simulada y lleva `[MOCK]` |
 | 8 | Texto → audio | Salida | Podcast a dos voces y respuesta hablada del Q&A | `edge-tts` (gratis, voces es-ES) + normalización para locución | ElevenLabs *(stub)*, `mock` | **Sí** (real y sin claves); silencio en offline |
 | 9 | Datos → imagen | Salida | Gráficos del día (variación con bloque «Índices de referencia», cotización por ticker, reparto de la cartera solo en la sesión) con fecha y fuente | matplotlib | — | **Sí** (todos los modos; «precios sintéticos (demo)» en la demo) |
-| 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS | Whisper sobre el audio final | **Sí** (todos los modos) |
+| 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS | — | **Sí** (todos los modos) |
+| 10b | Audio → texto (control de calidad) | Bucle | El STT escucha el podcast generado y mide el WER contra el guion (`media.verify`; peores líneas en la traza) | OpenAI `gpt-4o-mini-transcribe` / `whisper-1` | `BRIEFER_VERIFY_PODCAST=false` | **Sí** (real; medido WER 1,1 %) |
 | 11 | Texto → imagen | Salida | Portada del episodio *(opcional)* | API texto→imagen (Gemini image) prevista | `none`, `mock` | **No** (pendiente, D2; desactivado en la UI) |
 | 12 | Imagen + audio → vídeo | Salida | Vídeo corto con gráficos, audio y subtítulos *(opcional)* | ffmpeg | — | **No** (pendiente, D2; desactivado en la UI) |
 
@@ -219,7 +221,7 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 │   ├── agents/                  # analyst, scriptwriter, qa, guardrails + prompts/{analyst,scriptwriter,qa}.md
 │   ├── media/                   # charts, podcast, speech (normalización para TTS), transcript, video, cover
 │   └── delivery/                # email_sender, telegram_sender
-├── tests/                       # 617 tests sin red (mock y fixtures) + 9 «live» (-m live)
+├── tests/                       # 953 tests sin red (mock y fixtures; red bloqueada) + 11 «live» (-m live)
 ├── scripts/                     # run.ps1 · run.sh · demo.py · smoke_real.py
 ├── .github/workflows/tests.yml  # CI: pytest en modo mock (Python 3.11 y 3.13) en cada push a main y PR
 ├── .streamlit/config.toml       # tema, subida máxima 50 MB, sin telemetría
@@ -313,7 +315,10 @@ python scripts/demo.py --refresh                                  # real, ignora
 python scripts/demo.py --question "¿Qué dice el PDF?" --briefing pregenerado --warmup
 python scripts/demo.py --mock --strict                            # sale con 3 si algún paso usó un sustituto
 python scripts/smoke_real.py                                      # prueba de humo de cada proveedor con clave (< 0,01 €)
-python -m pytest -q                                               # 617 tests sin red (los «live» con -m live)
+python -m pytest -q                                               # 953 tests sin red (los «live» con -m live)
+python scripts/metrics_report.py --include-demo                   # p50/p95 de latencia y coste de los briefings guardados
+python scripts/measure_qa_voice.py                                # cadena de voz del Q&A (audio → STT → Q&A → voz), en frío y caliente
+ruff check src app scripts tests && mypy                          # estilo y tipos, como la CI (pip install -r requirements-dev.txt)
 ```
 
 Flags de `scripts/demo.py`: `--tickers T [T ...]` (por defecto `BRIEFER_DEFAULT_TICKERS`; admite nombres como
@@ -392,6 +397,7 @@ Los modelos locales requieren `requirements-local.txt`.
 | `ELEVENLABS_VOICE_A` · `ELEVENLABS_VOICE_B` | vacío | Ids de voz si `BRIEFER_TTS_PROVIDER=elevenlabs` |
 | `ELEVENLABS_MODEL` | `eleven_multilingual_v2` | Modelo de ElevenLabs |
 | `BRIEFER_TTS_RATE` · `BRIEFER_TTS_PITCH` | vacío (`+0%` · `+0Hz`) | Velocidad y tono de edge-tts (p. ej. `+8%`, `-2Hz`) |
+| `BRIEFER_VERIFY_PODCAST` | `true` | En modo real, el STT escucha el podcast y mide el WER contra el guion (≈ 0,01 € con `gpt-4o-mini-transcribe`) |
 | `BRIEFER_DEFAULT_TICKERS` | `SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA` | Tickers por defecto (formato Yahoo, separados por comas) |
 | `BRIEFER_CONTEXT_TICKERS` | `^IBEX,^GSPC` | Índices de referencia: precios y noticias de mercado en todo briefing, sin contar como tickers del usuario |
 | `BRIEFER_NEWS_RSS_FEEDS` | vacío | Feeds RSS generalistas; vacío = Expansión «Mercados» + Europa Press (además, por ticker: Google News es-ES, RSS de Yahoo y yfinance) |

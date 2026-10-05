@@ -99,5 +99,5 @@ Leyenda: **Hecho** · **Parcial** (existe, falta lo que se pide) · **Pendiente*
 | R13 | Diagrama de flujo multimodal | `README.md`, [02](02_arquitectura_y_flujo_datos.md), grafo «Cómo se hizo» generado por briefing | Hecho | Diagrama de **orquestación** con ramas y decisiones para el pitch (D3) |
 | R14 | Descripción de arquitectura | `README.md`, [02](02_arquitectura_y_flujo_datos.md), [ADRs](decisiones/README.md) (001-006) | Hecho | — |
 | R15 | Pitch deck técnico | `pitch/` | Pendiente | PDF de 10-12 diapositivas (D2 esqueleto, D3) |
-| R16 | Separación modelos / negocio / UI | `providers/` · `ingest/agents/media/delivery` · `app/`; inyección de dependencias; 617 tests sin red | Hecho | Retirar *stubs* no implementados del registry (D3) |
+| R16 | Separación modelos / negocio / UI | `providers/` · `ingest/agents/media/delivery` · `app/`; inyección de dependencias; 953 tests sin red, cobertura del 97 %, ruff + mypy en la CI | Hecho | Retirar *stubs* no implementados del registry (D3) |
 | R17 | Demo funcional | Briefing real pregenerado en la portada; vídeo enlazado en `README.md#demo` | Parcial | Demo grabada de 3-4 min (D3) |

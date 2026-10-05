@@ -23,6 +23,13 @@ cada uno marca la que coge escribiendo su nombre al lado. Contratos y firmas rea
 > 617 tests sin red. Lo que queda de D2 está abajo sin marcar; los caminos 3, 4 y 5 quedaron cubiertos en gran
 > parte y se recomiendan al equipo los caminos **1, 2 y 6**.
 
+> **Actualización lun 5-oct-2026 (tanda de refuerzo).** 21 mejoras sobre lo existente, sin funcionalidades nuevas
+> (detalle en [06](06_estado_actual.md#registro-de-jornadas)): tests aislados de la red, extracto en frío 90 %,
+> relevancia en la traza, Q&A con el contexto como dato y causas matizadas, pista de vocabulario en el STT,
+> verificación del podcast con STT (WER), ritmo calibrado y regionalismos, «Borrar mis datos», contraste WCAG,
+> estados de error, fallback y Gemini verificados en real, `metrics_report.py`, ruff + mypy en la CI y cobertura del
+> 97 % (953 tests sin red). Quedan sin marcar las tareas que no se han cerrado del todo.
+
 Formato: `- [ ] Tarea — ficheros / funciones — **Hecho cuando:** criterio verificable`. Solo se marca `[x]` lo
 que se ha ejecutado y visto funcionar; la nota en cursiva dice **cómo** se verificó. Etiqueta de prioridad entre
 corchetes: **[M]** Must · **[S]** Should · **[C]** Could (ver [MoSCoW](#moscow)). Una tarea marcada «(nueva)»
@@ -187,10 +194,10 @@ mode="real")` el 05-oct entre las 10:56 y las 11:15 (una sin caché y dos con ca
 
 - [x] **[M]** Agente Q&A real — `agents/qa.answer` con `AnthropicLLM` barato (Haiku 4.5), `prompts/qa.md` — **Hecho cuando:** responde con fuentes del briefing y reconduce las peticiones de recomendación *(4 preguntas reales sobre el pregenerado, ≈ 0,005 € cada una; respuesta hablada normalizada)*
 - [ ] **[S]** Anti-recomendación con reintento — `agents/guardrails.contains_advice` en el bucle del Analista/Guionista — **Hecho cuando:** una salida con recomendación provoca un reintento antes de recortar la frase *(Guionista: hecho, `script_problems` pide reescribir; Analista: solo se recorta)*
-- [ ] **[S]** Whisper sobre el podcast generado — `media/transcript.verify_podcast` (nueva; STT + WER contra el guion) — **Hecho cuando:** el briefing muestra el WER y las líneas con WER alto se re-sintetizan una vez *(depende del STT real)*
+- [x] **[S]** Whisper sobre el podcast generado — `media/transcript.verify_podcast` (nueva; STT + WER contra el guion) — **Hecho cuando:** el briefing muestra el WER y las líneas con WER alto se re-sintetizan una vez *(05-oct, tanda de refuerzo: paso opcional `media.verify` con el WER y las peores líneas en la traza; real: WER 1,2 % en el pregenerado y 1,1 % en un briefing nuevo. La re-síntesis de líneas no se hace: con WER ≈ 1 % no compensa)*
 - [x] **[M]** Contenido de documentos como datos — `pdf_reader.read_pdf`, `chart_reader.read_chart` (delimitadores en el prompt) — **Hecho cuando:** un PDF con «ignora las instrucciones» no altera el análisis *(`<documento>` / `<descripcion>` declarados dato; `analyst.suspicious_sources` + `INJECTION_NOTE`; red-team sin red y en real. El contexto del Q&A va ya en un mensaje `user` delimitado `<contexto_briefing>` y marcado como dato)*
 - [ ] **[M]** `docs/04` reforzado — costes fijos (datos, noticias licenciadas, TTS oficial Azure, hosting), punto de equilibrio B2C vs B2B2C, MAR (sentimiento = «impacto de la noticia»), AI Act art. 50, transferencias RGPD, tabla riesgo → control en código — **Hecho cuando:** cada control apunta a un fichero del repo *(revisión: tabla riesgo → control con ficheros, AI Act art. 50, RGPD de cartera, subidas, audio y secretos, derechos de autor con `robots.txt`. Faltan costes fijos, punto de equilibrio, MAR y transferencias)*
-- [ ] **[M]** Medición p50/p95 — `StepMetric` de 5 briefings y 5 Q&A (hoy 4 y 7) — **Hecho cuando:** columna «Medido» de `docs/04` con p50/p95 (cierre en D3) *(primera medición hecha: ver 04)*
+- [ ] **[M]** Medición p50/p95 — `StepMetric` de 5 briefings y 5 Q&A (hoy 4 y 7) — **Hecho cuando:** columna «Medido» de `docs/04` con p50/p95 (cierre en D3) *(primera medición hecha: ver 04. `scripts/metrics_report.py` calcula p50/p95 desde los briefings guardados y `scripts/measure_qa_voice.py` la cadena de voz; falta llegar a N ≥ 5)*
 - [x] **[C]** Un LLM alternativo — `providers/llm/gemini_llm.py` (`GeminiLLM.complete`, implementado) — **Hecho cuando:** `BRIEFER_LLM_PROVIDER=gemini` genera un briefing completo sin tocar código *(05-oct: briefing completo con `gemini-2.5-flash` sin tocar código, 0,021 €, 67,7 s, JSON válido a la primera, sin sustitutos)*
 
 ### Carril C
@@ -306,9 +313,10 @@ Reglas comunes:
 
 > *Hecho en la revisión:* `normalize_for_speech` ampliado (divisas, rangos, puntos básicos, horas, ordinales,
 > semestres…), `loudnorm` EBU R128 a −16 LUFS (medido −16,8 LUFS, pico −1,6 dBTP), puertas de texto hablable en el
-> Guionista (`odd_words`, `grammar_issues`, `fix_spoken_text`) y banda de duración 3-5 min. **Queda:** el
-> pregenerado dura 5:27 (objetivo 4 min) y tiene algún regionalismo («precificado», «allá»); escucha crítica de
-> 2 podcasts nuevos.
+> Guionista (`odd_words`, `grammar_issues`, `fix_spoken_text`) y banda de duración 3-5 min.
+> **Hecho (05-oct, tarde):** `WORDS_PER_MINUTE` calibrado a 143 con el pregenerado (un briefing nuevo dura 4:10),
+> `REGIONALISM_FIXES` («precificado», «allá», «ahorita»…), lecturas corregidas («Standard & Poor's», «Redeia»,
+> «Invezz») y verificación con STT. **Queda:** regenerar el pregenerado (D3) y escucha crítica.
 
 - [ ] **Qué:** escucha crítica de 3 podcasts reales (el pregenerado + 2 nuevos) con una plantilla: cifras mal
   leídas, tickers, siglas, ritmo, pausas, monotonía, duración. Corregir `normalize_for_speech` con cada caso
