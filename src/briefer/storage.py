@@ -27,6 +27,9 @@ Privacidad (RGPD): la cartera del usuario **no se persiste**. ``save_briefing`` 
 ``export_briefing`` escriben ``context.portfolio = null`` y omiten el gráfico ``portfolio_pie``
 (pesos); los tickers de la cartera sí quedan en ``context.tickers`` (son el filtro del briefing).
 El objeto en memoria no se toca: la sesión que lo generó sigue viendo su cartera.
+«Borrar mis datos» (derecho de supresión): ``delete_user_data`` vacía ``data/outputs`` y
+``data/cache`` y ``delete_briefing`` borra un briefing; ambos validan las rutas y nunca tocan
+``data/samples`` (el pregenerado de la portada).
 
 Portada: ``latest_briefing`` / ``load_featured_briefing`` solo destacan briefings **reales**; uno
 con algún paso simulado (``is_simulated_briefing``: mock, noticias de ejemplo, precios sintéticos o
@@ -473,10 +476,192 @@ def export_briefing_zip(briefing: Briefing) -> bytes:
     return buffer.getvalue()
 
 
+# ── Borrado de datos del usuario (RGPD, derecho de supresión) ──────────────────────
+
+
+@dataclass(frozen=True)
+class DeletionReport:
+    """Resultado de ``delete_user_data``: qué se ha borrado y qué no se pudo borrar."""
+
+    briefings: int = 0          # carpetas de briefing borradas de ``data/outputs``
+    output_files: int = 0       # ficheros borrados dentro de ``data/outputs`` (incluye los de las carpetas)
+    cache_files: int = 0        # ficheros borrados de ``data/cache`` (noticias, precios, subidas, voz)
+    failed: tuple[str, ...] = ()  # nombres de entradas que no se pudieron borrar (en uso, permisos…)
+
+    @property
+    def total_files(self) -> int:
+        return self.output_files + self.cache_files
+
+
+def _samples_root(samples_dir: Path | None) -> Path:
+    if samples_dir is None:
+        from briefer.config import get_settings
+
+        samples_dir = get_settings().samples_path
+    return Path(samples_dir).resolve()
+
+
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _safe_data_root(path: Path, samples: Path) -> Path:
+    """Valida que ``path`` sea una carpeta de datos borrable y la devuelve resuelta.
+
+    Rechaza (``ValueError``) la raíz de una unidad, la carpeta personal, la raíz del repo y
+    cualquier carpeta que sea, contenga o esté dentro de ``data/samples`` (el briefing pregenerado
+    de la demo tiene que sobrevivir).
+    """
+    from briefer.config import ROOT_DIR
+
+    root = Path(path).resolve()
+    forbidden = {Path(root.anchor).resolve(), Path.home().resolve(), ROOT_DIR.resolve(), ROOT_DIR.resolve() / "data"}
+    if root in forbidden or len(root.parts) < 2:
+        raise ValueError(f"Carpeta no válida para borrar datos: {root}")
+    if _is_within(root, samples) or _is_within(samples, root):
+        raise ValueError(f"No se borra nada que contenga o esté dentro de data/samples: {root}")
+    return root
+
+
+def _count_files(path: Path) -> int:
+    if path.is_symlink() or path.is_file():
+        return 1
+    total = 0
+    for _dirpath, _dirs, files in os.walk(path, followlinks=False):
+        total += len(files)
+    return total
+
+
+def _unlink_link(link: Path) -> bool:
+    """Quita un enlace (simbólico o junction) sin tocar su destino."""
+    try:
+        link.unlink()
+        return True
+    except OSError:
+        try:
+            os.rmdir(link)  # enlaces a carpeta en Windows
+            return True
+        except OSError:
+            return False
+
+
+def _remove_entry(entry: Path, root: Path) -> bool:
+    """Borra un hijo directo de ``root`` (sin seguir enlaces). ``True`` si se borró del todo."""
+    import shutil
+
+    # Un enlace simbólico (o junction) se quita como enlace: nunca se borra su destino.
+    if entry.is_symlink() or getattr(entry, "is_junction", lambda: False)():
+        return _unlink_link(entry)
+    if not _is_within(entry.resolve(), root):  # defensa extra: nada fuera de la carpeta raíz
+        return False
+    try:
+        if entry.is_dir():
+            shutil.rmtree(entry)
+        else:
+            entry.unlink()
+    except OSError:
+        return False
+    return True
+
+
+def _clear_dir(root: Path) -> tuple[int, int, list[str]]:
+    """Vacía ``root`` (deja la carpeta). Devuelve (carpetas borradas, ficheros borrados, fallos)."""
+    if not root.is_dir():
+        return 0, 0, []
+    dirs = files = 0
+    failed: list[str] = []
+    for entry in sorted(root.iterdir()):
+        n_files = _count_files(entry)
+        is_dir = entry.is_dir() and not entry.is_symlink()
+        if _remove_entry(entry, root):
+            files += n_files
+            dirs += int(is_dir)
+        else:
+            failed.append(entry.name)
+    return dirs, files, failed
+
+
+def delete_briefing(briefing_id: str, base_dir: Path | None = None,
+                    samples_dir: Path | None = None) -> bool:
+    """Borra la carpeta de un briefing guardado (``data/outputs/<id>``) con todos sus ficheros.
+
+    Returns:
+        ``True`` si existía y se ha borrado; ``False`` si no existía.
+
+    Raises:
+        ValueError: id no válido o carpeta fuera de ``data/outputs`` / dentro de ``data/samples``.
+        OSError: no se pudo borrar (fichero en uso…).
+    """
+    import shutil
+
+    root = _safe_data_root(_base(base_dir), _samples_root(samples_dir))
+    folder = root / _check_id(briefing_id)
+    if folder.is_symlink() or folder.is_junction():
+        if not _unlink_link(folder):
+            raise OSError(f"No se pudo quitar el enlace {folder}")
+        return True
+    if not folder.is_dir():
+        return False
+    if folder.resolve().parent != root:
+        raise ValueError(f"El briefing {briefing_id!r} no está dentro de la carpeta de salidas")
+    shutil.rmtree(folder)
+    return True
+
+
+def delete_user_data(
+    *,
+    outputs: bool = True,
+    cache: bool = True,
+    output_dir: Path | None = None,
+    cache_dir: Path | None = None,
+    samples_dir: Path | None = None,
+) -> DeletionReport:
+    """Borra los datos generados por el usuario: briefings (``data/outputs``) y cachés (``data/cache``).
+
+    Solo vacía el contenido de esas carpetas configuradas (``BRIEFER_OUTPUT_DIR`` /
+    ``BRIEFER_CACHE_DIR``), sin borrar las carpetas en sí. **Nunca** toca ``data/samples`` (el
+    briefing pregenerado de la portada): si una de las carpetas es, contiene o está dentro de
+    ``data/samples``, o es la raíz de la unidad, la carpeta personal o la raíz del repo, se lanza
+    ``ValueError`` antes de borrar nada. Los enlaces simbólicos se quitan sin seguirlos. Un fichero
+    que no se puede borrar (en uso por otra sesión) no aborta el resto: se anota en ``failed``.
+    """
+    from briefer.config import get_settings
+
+    samples = _samples_root(samples_dir)
+    roots: list[tuple[str, Path]] = []
+    if outputs:
+        roots.append(("outputs", _safe_data_root(_base(output_dir), samples)))
+    if cache:
+        roots.append(("cache", _safe_data_root(
+            Path(cache_dir) if cache_dir is not None else get_settings().cache_path, samples)))
+    if len(roots) == 2 and (_is_within(roots[0][1], roots[1][1]) or _is_within(roots[1][1], roots[0][1])):
+        log.info("Las carpetas de salidas y caché se solapan: se vacían igualmente")
+    briefings = output_files = cache_files = 0
+    failed: list[str] = []
+    for kind, root in roots:
+        dirs, files, bad = _clear_dir(root)
+        failed += [f"{kind}/{name}" for name in bad]
+        if kind == "outputs":
+            briefings, output_files = dirs, files
+        else:
+            cache_files = files
+    log.info("Datos del usuario borrados: %d briefing(s), %d fichero(s) de salidas, %d de caché, %d fallo(s)",
+             briefings, output_files, cache_files, len(failed))
+    return DeletionReport(briefings=briefings, output_files=output_files, cache_files=cache_files,
+                          failed=tuple(failed))
+
+
 __all__ = [
     "BRIEFING_FILE",
     "BriefingSummary",
+    "DeletionReport",
     "briefing_summaries",
+    "delete_briefing",
+    "delete_user_data",
     "export_briefing_zip",
     "prune_unknown_fields",
     "DEMO_BRIEFING_DIRNAME",
