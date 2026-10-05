@@ -29,21 +29,65 @@ from typing import Any
 import streamlit as st
 
 # ── Paleta (tokens fijos del diseño) ──────────────────────────────────────────────────
+# Accesibilidad (WCAG 2.1 AA, revisado con ``contrast_ratio``; ver ``CONTRAST_PAIRS`` y el test):
+# - ``text-muted`` era #888780 (4,48:1 sobre surface, 4,01:1 sobre surface-2): ahora #9A9992 (≥ 5:1).
+# - ``accent`` era #D85A30 (texto blanco del botón primario a 3,87:1): ahora #C0502A (4,75:1) y
+#   ``accent-hover`` #B84A26 (5,19:1); como relleno/borde sigue ≥ 3:1 sobre todos los fondos.
+# - ``border`` (#2A313B, 1,4:1) es decorativo (tarjetas, separadores); los **controles** (inputs,
+#   selects, botones secundarios) usan ``border-strong`` #6B7480 (≥ 3:1, WCAG 1.4.11).
 TOKENS: dict[str, str] = {
     "bg": "#12151B",
     "bg-sidebar": "#0E1116",
     "surface": "#1C2129",
     "surface-2": "#232A34",
     "border": "#2A313B",
+    "border-strong": "#6B7480",
     "text": "#D6DEE8",
     "text-strong": "#FFFFFF",
-    "text-muted": "#888780",
-    "accent": "#D85A30",
+    "text-muted": "#9A9992",
+    "accent": "#C0502A",
+    "accent-hover": "#B84A26",
     "accent-soft": "#F0997B",
     "up": "#5DCAA5",
     "down": "#F09595",
     "amber": "#EF9F27",
 }
+
+#: Pares (texto/primer plano, fondo, mínimo WCAG, uso) que el test comprueba. 4,5:1 para texto normal;
+#: 3:1 para componentes de interfaz y gráficos (bordes de controles, foco, rellenos de sentimiento).
+_BACKGROUNDS = ("bg", "bg-sidebar", "surface", "surface-2")
+CONTRAST_PAIRS: tuple[tuple[str, str, float, str], ...] = (
+    *((fg, bg, 4.5, "texto") for fg in ("text", "text-strong", "text-muted", "accent-soft", "up", "down", "amber")
+      for bg in _BACKGROUNDS),
+    ("#FFFFFF", "accent", 4.5, "texto del botón primario"),
+    ("#FFFFFF", "accent-hover", 4.5, "texto del botón primario (hover)"),
+    *(("accent", bg, 3.0, "relleno/borde accent (UI)") for bg in _BACKGROUNDS),
+    *(("border-strong", bg, 3.0, "borde de controles (UI)") for bg in ("bg", "bg-sidebar", "surface")),
+    *(("accent-soft", bg, 3.0, "anillo de foco") for bg in _BACKGROUNDS),
+    *((tone, "surface", 3.0, "borde de sentimiento") for tone in ("up", "down", "text-muted")),
+)
+
+
+def _hex(value: str) -> str:
+    return TOKENS.get(value, value)
+
+
+def relative_luminance(hex_color: str) -> float:
+    """Luminancia relativa WCAG 2.x de un color ``#RRGGBB`` (o nombre de token)."""
+    h = _hex(hex_color).lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    if len(h) != 6:
+        raise ValueError(f"Color no válido: {hex_color!r}")
+    channels = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def contrast_ratio(fg: str, bg: str) -> float:
+    """Contraste WCAG entre dos colores (``#RRGGBB`` o nombres de ``TOKENS``): de 1 a 21."""
+    hi, lo = sorted((relative_luminance(fg), relative_luminance(bg)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
 FONT_SERIF = "'Source Serif 4', Georgia, 'Times New Roman', serif"
 FONT_SANS = "Inter, 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif"
 FONT_MONO = "'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace"
@@ -61,8 +105,9 @@ _FONTS_IMPORT = (
 _CSS = """
 :root {
   --mb-bg: %(bg)s; --mb-bg-sidebar: %(bg-sidebar)s; --mb-surface: %(surface)s;
-  --mb-surface-2: %(surface-2)s; --mb-border: %(border)s; --mb-text: %(text)s;
-  --mb-text-strong: %(text-strong)s; --mb-muted: %(text-muted)s; --mb-accent: %(accent)s;
+  --mb-surface-2: %(surface-2)s; --mb-border: %(border)s; --mb-border-strong: %(border-strong)s;
+  --mb-text: %(text)s; --mb-text-strong: %(text-strong)s; --mb-muted: %(text-muted)s;
+  --mb-accent: %(accent)s; --mb-accent-hover: %(accent-hover)s;
   --mb-accent-soft: %(accent-soft)s; --mb-up: %(up)s; --mb-down: %(down)s; --mb-amber: %(amber)s;
   --mb-serif: %(serif)s; --mb-sans: %(sans)s; --mb-mono: %(mono)s;
 }
@@ -81,13 +126,19 @@ _CSS = """
 
 /* Botones: primario sólido accent; secundario con borde */
 [data-testid="stBaseButton-primary"] { background: var(--mb-accent); border-color: var(--mb-accent); color: #fff; }
-[data-testid="stBaseButton-primary"]:hover { background: #c24f29; border-color: #c24f29; color: #fff; }
-[data-testid="stBaseButton-secondary"] { background: transparent; border: 1px solid var(--mb-border); color: var(--mb-text); }
+[data-testid="stBaseButton-primary"]:hover { background: var(--mb-accent-hover); border-color: var(--mb-accent-hover); color: #fff; }
+[data-testid="stBaseButton-secondary"] { background: transparent; border: 1px solid var(--mb-border-strong); color: var(--mb-text); }
 [data-testid="stBaseButton-secondary"]:hover { border-color: var(--mb-accent-soft); color: var(--mb-text-strong); }
-button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, summary:focus-visible,
-input:focus-visible, textarea:focus-visible {
+/* Controles: borde ≥ 3:1 sobre el fondo (WCAG 1.4.11); el borde tenue --mb-border es solo decorativo */
+[data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"] > div,
+[data-testid="stFileUploaderDropzone"] { border-color: var(--mb-border-strong) !important; }
+/* Foco visible en todo lo enfocable con teclado (anillo accent-soft, ≥ 6:1 sobre cualquier fondo) */
+:focus-visible, button:focus-visible, a:focus-visible, [role="tab"]:focus-visible, summary:focus-visible,
+input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
   outline: 2px solid var(--mb-accent-soft) !important; outline-offset: 2px;
 }
+[data-baseweb="select"]:focus-within > div, [data-baseweb="input"]:focus-within,
+[data-baseweb="textarea"]:focus-within { border-color: var(--mb-accent-soft) !important; }
 
 /* Pestañas, desplegables, métricas */
 [data-testid="stTab"][aria-selected="true"] p { color: var(--mb-accent-soft); }
@@ -105,8 +156,9 @@ input:focus-visible, textarea:focus-visible {
 [class*="st-key-mb-card"], [class*="st-key-mb-player"] {
   background: var(--mb-surface); border: 1px solid var(--mb-border); border-radius: 10px; padding: 1rem 1.1rem;
 }
+.st-key-mb-danger { border-color: var(--mb-down) !important; }
 [class*="st-key-mb-cta"] [data-testid="stPageLink-NavLink"] {
-  border: 1px solid var(--mb-border); justify-content: center; padding: .38rem .9rem; min-height: 2.5rem;
+  border: 1px solid var(--mb-border-strong); justify-content: center; padding: .38rem .9rem; min-height: 2.5rem;
 }
 [class*="st-key-mb-cta"] [data-testid="stPageLink-NavLink"]:hover { border-color: var(--mb-accent-soft); background: var(--mb-surface-2); }
 

@@ -82,7 +82,7 @@ def test_other_helpers_escape() -> None:
 def test_fmt_date_and_css() -> None:
     assert theme.fmt_date(date(2026, 10, 5)) == "LUN · 05/10/2026"
     css = theme.theme_css()
-    assert "#D85A30" in css and "prefers-reduced-motion" in css and "%(" not in css
+    assert "#C0502A" in css and "prefers-reduced-motion" in css and "%(" not in css
 
 
 # ── apply_theme y páginas ──────────────────────────────────────────────────────────
