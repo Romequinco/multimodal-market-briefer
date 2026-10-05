@@ -312,14 +312,14 @@ class _Inner(BaseModel):
         (type(None), None),
         (typing.Literal["a", "b"], "a"),
         (typing.Annotated[int, "meta"], 1),
-        (typing.Optional[float], 1.0),  # forma typing.Union
+        (typing.Optional[float], 1.0),  # noqa: UP045 - forma typing.Union a propósito
         (int | None, 1),
         (tuple[int, ...], (1,)),
         (tuple[int, str], (1, "campo (mock)")),
         (dict[str, int], {"clave (mock)": 1}),
-        (typing.Dict, {}),  # dict sin parámetros
+        (typing.Dict, {}),  # noqa: UP006 - dict sin parámetros (forma typing) a propósito
         (set[bool], [False]),
-        (typing.List, []),  # lista sin parámetros
+        (typing.List, []),  # noqa: UP006 - lista sin parámetros (forma typing) a propósito
         (datetime, mock.FIXED_DATETIME),
         (date, mock.FIXED_DATE),
         (Path, Path("mock")),

@@ -1,2 +1,4 @@
 # Dependencias solo de desarrollo y CI (además de requirements.txt).
 pytest-cov>=5.0               # cobertura: pytest --cov=briefer --cov-report=term
+ruff==0.16.10
+mypy==2.4.0

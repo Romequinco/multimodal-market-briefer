@@ -396,14 +396,8 @@ def test_podcast_uses_theoretical_length_when_final_measure_fails(
     assert asset.segments[1].start_s == pytest.approx(asset.segments[0].end_s + 0.5, abs=1e-3)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=RuntimeError,
-    reason="BUG podcast.py:120-123/138-141: un WAV con un bloque de tamaño imposible hace que "
-    "wave.open lance RuntimeError (wave._Chunk.seek), que no se captura: _wav_params debería "
-    "devolver None y audio_duration_s pasar a ffmpeg, como documentan.",
-)
 def test_corrupt_wav_chunk_size_falls_back_instead_of_crashing(tmp_path: Path) -> None:
+    """Un WAV con un bloque de tamaño imposible (``wave`` lanza RuntimeError) no rompe el podcast."""
     corrupt = tmp_path / "corrupto.wav"
     huge = bytes([255, 255, 255, 127])  # tamaño de bloque mucho mayor que el fichero
     corrupt.write_bytes(b"RIFF" + bytes([255, 255, 0, 0]) + b"WAVEjunk" + huge + bytes(8))

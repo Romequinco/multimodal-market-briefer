@@ -8,7 +8,7 @@ import json
 import sys
 import time
 import types
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -66,10 +66,10 @@ def test_http_get_raises_on_http_error(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        (datetime(2026, 10, 5, 8, 0), datetime(2026, 10, 5, 8, 0, tzinfo=timezone.utc)),
-        ("1759651200000", datetime(2025, 10, 5, 8, 0, tzinfo=timezone.utc)),  # epoch en ms
-        ("2026-10-05T08:00:00Z", datetime(2026, 10, 5, 8, 0, tzinfo=timezone.utc)),
-        ("2026-10-05T08:00:00", datetime(2026, 10, 5, 8, 0, tzinfo=timezone.utc)),
+        (datetime(2026, 10, 5, 8, 0), datetime(2026, 10, 5, 8, 0, tzinfo=UTC)),
+        ("1759651200000", datetime(2025, 10, 5, 8, 0, tzinfo=UTC)),  # epoch en ms
+        ("2026-10-05T08:00:00Z", datetime(2026, 10, 5, 8, 0, tzinfo=UTC)),
+        ("2026-10-05T08:00:00", datetime(2026, 10, 5, 8, 0, tzinfo=UTC)),
         ("ayer por la tarde", None),
         (10**20, None),  # fuera de rango
         ([1, 2], None),
@@ -150,7 +150,7 @@ def test_cached_source_ignores_incompatible_cache() -> None:
     ck = cache.cache_key("bing", "SAN.MC")
     cache.write_cache("news-bing", ck, [{"titulo": "esquema antiguo"}])
     fresh = [NewsItem(id="n-1", title="T", summary="", source="M", url="https://m.es/1",
-                      published_at=datetime.now(timezone.utc), tickers=["SAN.MC"])]
+                      published_at=datetime.now(UTC), tickers=["SAN.MC"])]
     items, from_cache = news._cached_source("bing", "SAN.MC", lambda: fresh, use_cache=True)
     assert items == fresh and from_cache is False
     items, from_cache = news._cached_source("bing", "SAN.MC", lambda: [], use_cache=True)

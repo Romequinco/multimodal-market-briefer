@@ -119,7 +119,7 @@ def _wav_params(path: Path) -> tuple[int, int, int, str] | None:
     try:
         with wave.open(str(path), "rb") as wav:
             return wav.getnchannels(), wav.getsampwidth(), wav.getframerate(), wav.getcomptype()
-    except (wave.Error, EOFError, OSError):
+    except (wave.Error, EOFError, OSError, RuntimeError):  # RuntimeError: bloque de tamaño imposible
         return None
 
 
@@ -137,8 +137,8 @@ def audio_duration_s(path: Path) -> float:
         try:
             with wave.open(str(path), "rb") as wav:
                 return wav.getnframes() / float(wav.getframerate())
-        except (wave.Error, EOFError):
-            pass  # WAV no PCM (p. ej. float): se mide con ffmpeg
+        except (wave.Error, EOFError, RuntimeError):
+            pass  # WAV no PCM (p. ej. float) o dañado: se mide con ffmpeg
     proc = _run_ffmpeg(["-i", str(path), "-vn", "-f", "null", "-"])
     times = _TIME_RE.findall(proc.stderr)
     if times:
