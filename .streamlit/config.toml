@@ -5,7 +5,7 @@
 
 [theme]
 base = "dark"
-primaryColor = "#D85A30"             # accent «en antena»: botón primario, enlaces activos
+primaryColor = "#C0502A"             # accent «en antena» (texto blanco a 4,75:1; antes #D85A30, 3,87:1)
 backgroundColor = "#12151B"          # bg
 secondaryBackgroundColor = "#1C2129" # surface: tarjetas, expanders, inputs
 textColor = "#D6DEE8"
@@ -17,7 +17,7 @@ codeBackgroundColor = "#0E1116"
 greenColor = "#5DCAA5"               # up / OK
 redColor = "#F09595"                 # down / error
 orangeColor = "#EF9F27"              # amber: etiquetas técnicas, sustituto
-grayColor = "#888780"
+grayColor = "#9A9992"                # text-muted (≥ 5:1 sobre bg/surface; antes #888780)
 baseRadius = "8px"
 showWidgetBorder = true
 # Fuentes de Google Fonts (Streamlit >= 1.45 admite "<nombre>:<url>"; una familia por URL).
