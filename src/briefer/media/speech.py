@@ -20,6 +20,8 @@ compacta en lo que un locutor diría en voz alta, para que el TTS no lea «san p
 - Fechas con mes abreviado: «5 oct. 2026» → «cinco de octubre de dos mil veintiséis»; año fiscal
   «FY26» → «año fiscal dos mil veintiséis».
 - Marca: «Market Briefer» → «Márket Brífer» (pronunciación inglesa aproximada con voz es-ES).
+- Nombres que la voz pronuncia mal (verificado con STT sobre el pregenerado): «Redeia» →
+  «Redéia», «Invezz» → «Ínvez»; «Standard & Poor's» → «Standard and Poor's».
 - Decimales sueltos (``1,5`` o ``1.5``) → «uno coma cinco»; miles con punto (``10.000``) →
   ``10000`` (el TTS ya lee bien los enteros).
 
@@ -231,6 +233,14 @@ _PRE_RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\+\s?/\s?-|±"), "más o menos "),
     (re.compile(r"\bMarket Briefer\b"), "Márket Brífer"),
     (re.compile(r"(?<![\w.])(?:N\.?\s?º|n\.?\s?º|núm\.)\s?(?=\d)"), "número "),
+    # Nombre completo del índice: si no, el «&» suelto se leería «y» («Standard y Poor's»).
+    (re.compile(r"\bStandard\s?&\s?Poor'?s\b"), "Standard and Poor's"),
+    *[(re.compile(rf"\b{re.escape(k)}\b"), v) for k, v in {
+        # Pronunciación (comprobado con edge-tts + STT, 05-oct-2026): sin tilde, la voz lee
+        # «Re-de-i-a» (el STT oye «red y a») e «Invezz» como «Inbex».
+        "Redeia": "Redéia",
+        "Invezz": "Ínvez",
+    }.items()],
 ]
 
 
