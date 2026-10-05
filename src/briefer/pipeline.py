@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import functools
 import importlib
+import json
 import time
 from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
@@ -71,6 +72,7 @@ from briefer.delivery import email_sender, telegram_sender
 from briefer.ingest import chart_reader, pdf_reader, voice
 from briefer.ingest import news as news_mod
 from briefer.ingest import prices as prices_mod
+from briefer.ingest import sentiment as sentiment_mod
 from briefer.ingest import tickers as tickers_mod
 from briefer.logging_utils import StepHandle, error_text, fallback_error, get_logger, step_error, track_step
 from briefer.media import charts as charts_mod
@@ -806,6 +808,35 @@ def _run_briefing(
     )
     notify("Analizando el mercado…")
 
+    # 3b. «Impacto de la noticia» con FinBERT (opcional, BRIEFER_FINBERT; solo noticias reales).
+    #     Haiku traduce al inglés y FinBERT clasifica. Corre EN PARALELO con el Analista (no lo
+    #     necesita), así no alarga el briefing; su métrica se añade al terminar el Analista. El
+    #     resultado queda en la traza y en ``news_impact.json`` (fuera del contrato ``Briefing``).
+    impact_metrics: list[StepMetric] = []
+    impact_pool: ThreadPoolExecutor | None = None
+    if s.briefer_finbert and not sample_news and relevant_news:
+        impact_news = list(relevant_news)
+
+        def _impact(step: StepHandle) -> dict:
+            metered = _MeteredLLM(providers.llm_cheap)
+            stats: dict = {}
+            try:
+                impacts = sentiment_mod.news_impact(impact_news, metered, stats_out=stats)
+                if impacts:
+                    (out_dir / "news_impact.json").write_text(
+                        json.dumps([i.model_dump() for i in impacts.values()], ensure_ascii=False, indent=1),
+                        encoding="utf-8",
+                    )
+                return impacts
+            finally:
+                step.est_cost_eur = metered.cost_eur()
+                step.detail = sentiment_mod.impact_detail(stats)
+
+        impact_pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="impact")
+        impact_pool.submit(
+            _optional_step, "ingest.impact", "finbert+haiku", sentiment_mod.FINBERT_MODEL, impact_metrics, _impact
+        )
+
     def _analyze_with(inner: LLMProvider) -> Callable[[StepHandle], Analysis]:
         def run(step: StepHandle) -> Analysis:
             metered = _MeteredLLM(inner)
@@ -821,12 +852,17 @@ def _run_briefing(
         return run
 
     llm_main = providers.llm
-    analysis = _run_core(
-        "agents.analyst", llm_main.provider_name, llm_main.model, metrics,
-        _analyze_with(llm_main),
-        _llm_fallback(s, cheap=False, fn_factory=_analyze_with)
-        if s.briefer_fallback_to_mock and llm_main.provider_name != "mock" else None,
-    )
+    try:
+        analysis = _run_core(
+            "agents.analyst", llm_main.provider_name, llm_main.model, metrics,
+            _analyze_with(llm_main),
+            _llm_fallback(s, cheap=False, fn_factory=_analyze_with)
+            if s.briefer_fallback_to_mock and llm_main.provider_name != "mock" else None,
+        )
+    finally:
+        if impact_pool is not None:  # espera a FinBERT (3b) y añade su métrica tras la del Analista
+            impact_pool.shutdown(wait=True)
+            metrics.extend(impact_metrics)
 
     # 4. Agente Guionista (núcleo; LLM BARATO). Si el LLM falla, write_script usa su guion de
     #    respaldo determinista (marcado como fallback); si aun así lanza, LLM mock.

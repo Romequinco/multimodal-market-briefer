@@ -112,6 +112,8 @@ class Settings(BaseSettings):
     briefer_context_tickers: str = "^IBEX,^GSPC"
     briefer_news_rss_feeds: str = ""
     briefer_news_max_items: int = 20
+    # «Impacto de la noticia» con FinBERT (Haiku traduce + FinBERT clasifica). Requiere requirements-local.txt.
+    briefer_finbert: bool = False
     briefer_podcast_target_minutes: float = 4.0
     # Verificar el podcast final con el STT (WER frente al guion) en modo real
     # (≈0,015 € por episodio de 5 min con gpt-4o-mini-transcribe; 0,03 € con whisper-1).
