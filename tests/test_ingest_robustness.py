@@ -208,6 +208,39 @@ def test_render_page_without_pypdfium2(monkeypatch) -> None:
     assert isinstance(insight, DocumentInsight)
 
 
+def test_missing_pypdfium2_is_warned_and_noted_in_detail(monkeypatch, caplog) -> None:
+    """Sin pypdfium2 no se salta en silencio: aviso en el log y nota en ``StepMetric.detail``."""
+    monkeypatch.setitem(sys.modules, "pypdfium2", None)  # import -> ImportError
+    stats: dict = {}
+    with caplog.at_level("WARNING", logger="briefer.ingest.pdf"):
+        pdf_reader.read_pdf(SAMPLE_PDF, llm=MockLLM(), vision=MockVision(), stats_out=stats)
+    assert stats["render_missing"] and stats["vision_pages"] >= 1 and stats["rendered"] == 0
+    assert any("pypdfium2 no está instalado" in r.getMessage() for r in caplog.records)
+    detail = pdf_reader.format_pdf_stats(stats)
+    assert "a visión" in detail and "sin pypdfium2" in detail
+
+
+def test_pipeline_pdf_step_detail_mentions_missing_renderer(monkeypatch, settings, tmp_path: Path) -> None:
+    from briefer import pipeline
+
+    monkeypatch.setitem(sys.modules, "pypdfium2", None)
+    metrics: list = []
+    pipeline.process_upload(SAMPLE_PDF, pipeline.get_providers(settings, use_mock=True), metrics)
+    (step,) = metrics
+    assert step.step == "ingest.pdf" and step.detail and "sin pypdfium2" in step.detail
+
+
+def test_real_pypdfium2_renders_sample_pages() -> None:
+    """Con pypdfium2 instalado (requirements.txt) las páginas pobres en texto se renderizan enteras."""
+    pytest.importorskip("pypdfium2")
+    png = pdf_reader.render_page(SAMPLE_PDF, 0)
+    assert png.startswith(b"\x89PNG") and Image.open(io.BytesIO(png)).size[0] > 500
+    stats: dict = {}
+    pdf_reader.read_pdf(SAMPLE_PDF, llm=MockLLM(), vision=MockVision(), stats_out=stats)
+    assert not stats["render_missing"] and stats["rendered"] == stats["vision_pages"]
+    assert "sin pypdfium2" not in (pdf_reader.format_pdf_stats(stats) or "")
+
+
 # ── precios ───────────────────────────────────────────────────────────────────────
 
 

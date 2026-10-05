@@ -21,8 +21,12 @@ si hay pocas) y reparte el cupo por ticker priorizando por **relevancia** (``rel
 mención en el titular > en el resumen, frescura, español). Después **enriquece** las seleccionadas
 (``enrich_news``): URL final del medio en lugar de la redirección de Google News y extracto breve de
 ``og:description`` si el feed no trae resumen (``ingest.article_meta``: solo metadatos, respeta
-``robots.txt``, con presupuesto de tiempo). Cada respuesta de red se cachea por día en
-``settings.cache_path`` (ver ``ingest.cache``).
+``robots.txt``, con presupuesto de tiempo). Ese enriquecimiento se **adelanta** (``prefetch_meta``)
+con una selección provisional en cuanto solo quedan por responder las fuentes lentas (yfinance), así
+que en frío casi todas las elegidas llegan con extracto sin alargar la ingesta. Cada respuesta de
+red se cachea por día en ``settings.cache_path`` (ver ``ingest.cache``). Las estadísticas (fuentes,
+descartes, relevancia y motivos de cada elegida) se devuelven por llamada en ``stats_out`` y
+``format_news_stats`` las resume para la traza «Cómo se hizo».
 
 Derechos de autor: de cada noticia solo se guarda titular + extracto breve (``SUMMARY_MAX_CHARS``)
 + fuente + enlace; nunca el cuerpo del artículo.
@@ -40,7 +44,7 @@ import threading
 import time
 import unicodedata
 from collections import Counter
-from concurrent.futures import Future, ThreadPoolExecutor, wait
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -100,13 +104,9 @@ FETCH_WORKERS = 32
 ENRICH_BUDGET_S = 3.0
 ENRICH_WORKERS = 12
 
-#: Estadísticas de la última llamada a ``fetch_news`` (por fuente): ``items``, ``latency_s``,
-#: ``cached`` y ``error``. Solo informativo (trazas, UI, informe de latencias).
-last_fetch_stats: dict[str, dict[str, Any]] = {}
-#: Calidad de la última selección: ``sources_latency_s`` (descarga de fuentes), ``landing_pages``
-#: descartadas, ``near_duplicates`` fusionados, ``selected``, ``with_summary``, ``google_urls`` (sin resolver), ``enrich`` (``candidates``, ``done``, ``resolved``, ``summaries``,
-#: ``timed_out``, ``latency_s``) y ``scores`` (``id -> relevancia`` de las elegidas). Informativo.
-last_quality_stats: dict[str, Any] = {}
+# Las estadísticas de cada llamada (fuentes, calidad, enriquecimiento, relevancia de las elegidas)
+# se devuelven SOLO por ``stats_out``: no hay globales de «última llamada», que dos briefings
+# simultáneos (dos sesiones de Streamlit) se pisarían.
 
 #: Parámetros de URL de seguimiento que no identifican el artículo (se ignoran al deduplicar).
 _TRACKING_PARAMS = {
@@ -650,24 +650,40 @@ def relevance_score(item: NewsItem, ticker: str, now: datetime | None = None) ->
     - **Frescura**: hasta +2, decae con la edad (``2·e^(-horas/24)``).
     - **Español**: +1 (el podcast es en español). **Con extracto**: +0,5 (más útil para el Analista).
     - Lista de ≥ 3 valores más (mención de pasada, «Análisis de BBVA, CaixaBank, …»): -1.
+
+    ``relevance_explained`` devuelve además los motivos en texto (para la traza «Cómo se hizo»).
+    """
+    return relevance_explained(item, ticker, now)[0]
+
+
+def relevance_explained(item: NewsItem, ticker: str, now: datetime | None = None) -> tuple[float, list[str]]:
+    """``(relevance_score, motivos)``: los motivos son etiquetas breves en español de cada término.
+
+    Ej.: ``(5.4, ["titular", "3 h", "es", "extracto"])`` o ``(1.2, ["sin mención", "30 h", "en",
+    "lista de valores"])``.
     """
     now = now or datetime.now(timezone.utc)
+    reasons: list[str] = []
     if ticker in extract_tickers(item.title, [ticker]):
-        score = 3.0
+        score, reasons = 3.0, ["titular"]
     elif item.summary and ticker in extract_tickers(item.summary, [ticker]):
-        score = 1.0
+        score, reasons = 1.0, ["resumen"]
     else:
-        score = 0.0
+        score, reasons = 0.0, ["sin mención"]
     age_h = max(0.0, (now - _sort_key(item)).total_seconds() / 3600)
     score += 2.0 * math.exp(-age_h / 24)
+    reasons.append(f"{age_h:.0f} h")
     if item.language == "es":
         score += 1.0
+    reasons.append(item.language or "?")
     if item.summary.strip():
         score += 0.5
+        reasons.append("extracto")
     others = [t for t in item.tickers if t != ticker and not t.startswith("^")]
     if len(others) >= 3:
         score -= 1.0
-    return round(score, 3)
+        reasons.append("lista de valores")
+    return round(score, 3), reasons
 
 
 # ── combinación ───────────────────────────────────────────────────────────────────
@@ -697,16 +713,25 @@ def _cached_source(
 def _select(
     items: list[NewsItem], wanted: list[str], max_items: int, per_ticker: int,
     scores: dict[str, float] | None = None,
+    explain: dict[str, dict[str, Any]] | None = None,
 ) -> list[NewsItem]:
     """Reparte el cupo: ronda por ticker (por ``relevance_score``; empate, más reciente) y rellena con generales.
 
-    Si se pasa ``scores``, se anota ahí la relevancia de cada noticia elegida para su ticker.
+    Si se pasa ``scores``, se anota ahí la relevancia de cada noticia elegida para su ticker. Si se
+    pasa ``explain``, ``id -> {"ticker", "score", "reasons"}`` de cada elegida (las de contexto
+    general llevan ``ticker=None`` y el motivo ``"contexto general"``).
     """
     now = datetime.now(timezone.utc)
     by_recency = sorted(items, key=_sort_key, reverse=True)
     queues: dict[str, list[tuple[float, NewsItem]]] = {}
+    reasons: dict[tuple[str, str], list[str]] = {}
     for t in wanted:
-        scored = [(relevance_score(i, t, now), i) for i in by_recency if t in i.tickers]
+        scored: list[tuple[float, NewsItem]] = []
+        for i in by_recency:
+            if t in i.tickers:
+                score, why = relevance_explained(i, t, now)
+                scored.append((score, i))
+                reasons[(t, i.id)] = why
         queues[t] = sorted(scored, key=lambda pair: pair[0], reverse=True)  # estable: empate -> más reciente
     chosen: dict[str, NewsItem] = {}
     counts = dict.fromkeys(wanted, 0)
@@ -725,6 +750,8 @@ def _select(
             chosen[item.id] = item
             if scores is not None:
                 scores[item.id] = score
+            if explain is not None:
+                explain[item.id] = {"ticker": t, "score": score, "reasons": reasons[(t, item.id)]}
             for tk in item.tickers:
                 if tk in counts:
                     counts[tk] += 1
@@ -734,6 +761,8 @@ def _select(
         rest.sort(key=lambda i: not any(t.startswith("^") for t in i.tickers))
         for item in rest[: max_items - len(chosen)]:
             chosen[item.id] = item
+            if explain is not None:
+                explain[item.id] = {"ticker": None, "score": None, "reasons": ["contexto general"]}
     return sorted(chosen.values(), key=_sort_key, reverse=True)
 
 
@@ -746,7 +775,8 @@ def _useful_description(description: str, title: str) -> bool:
 
 
 def _empty_enrich_stats() -> dict[str, Any]:
-    return {"candidates": 0, "done": 0, "resolved": 0, "summaries": 0, "timed_out": 0, "latency_s": 0.0}
+    return {"candidates": 0, "done": 0, "resolved": 0, "summaries": 0, "timed_out": 0, "prefetched": 0,
+            "latency_s": 0.0}
 
 
 _meta_slots: dict[int, threading.BoundedSemaphore] = {}
@@ -785,6 +815,7 @@ def enrich_news(
     budget_s: float = ENRICH_BUDGET_S,
     max_workers: int = ENRICH_WORKERS,
     stats_out: dict[str, Any] | None = None,
+    prefetched: dict[str, Future] | None = None,
 ) -> list[NewsItem]:
     """Completa las noticias con la URL final del medio y un extracto breve (``og:description``).
 
@@ -799,25 +830,36 @@ def enrich_news(
     - ``url``: la del medio si se pudo resolver; si no, la original. ``id`` no cambia (se calculó
       con la URL de origen).
 
-    Deja el resumen en ``last_quality_stats["enrich"]`` y, si se pasa, en ``stats_out`` (propio
-    de esta llamada: sin carreras entre briefings simultáneos). Conserva el orden de ``items``.
+    ``prefetched`` (``url -> Future``): peticiones lanzadas antes por ``fetch_news`` mientras
+    esperaba a las fuentes lentas (``prefetch_meta``); se reutilizan en lugar de repetirlas, así
+    que el presupuesto rinde más. Deja el resumen en ``stats_out`` si se pasa (propio de esta
+    llamada: sin carreras entre briefings simultáneos). Conserva el orden de ``items``.
     """
     start = time.perf_counter()
     todo = [i for i in items if article_meta.is_google_news_url(i.url) or not i.summary.strip()]
     stats = {**_empty_enrich_stats(), "candidates": len(todo)}
     if not todo or budget_s <= 0:
-        last_quality_stats["enrich"] = stats
         if stats_out is not None:
             stats_out.update(stats)
         return list(items)
 
     metas: dict[str, dict[str, Any]] = {}
-    futures = {_start_meta_fetch(i.url, use_cache, max_workers): i.id for i in todo}
-    done, pending = wait(futures, timeout=budget_s)
-    stats["timed_out"] = len(pending)
-    for fut in done:
+    prefetched = prefetched or {}
+    jobs: list[tuple[Future, str]] = []
+    for i in todo:
+        fut = prefetched.get(i.url)
+        if fut is not None:
+            stats["prefetched"] += 1
+        else:
+            fut = _start_meta_fetch(i.url, use_cache, max_workers)
+        jobs.append((fut, i.id))
+    done, pending = wait({f for f, _ in jobs}, timeout=budget_s)
+    stats["timed_out"] = sum(1 for f, _ in jobs if f in pending)
+    for fut, item_id in jobs:
+        if fut not in done:
+            continue
         try:
-            metas[futures[fut]] = fut.result()
+            metas[item_id] = fut.result()
         except Exception as exc:  # noqa: BLE001 - fetch_article_meta no debería lanzar
             log.debug("Metadatos: fallo inesperado: %s", exc)
     stats["done"] = len(metas)
@@ -847,7 +889,6 @@ def enrich_news(
             stats["summaries"] += 1
         out.append(item.model_copy(update=update) if update else item)
     stats["latency_s"] = round(time.perf_counter() - start, 3)
-    last_quality_stats["enrich"] = stats
     if stats_out is not None:
         stats_out.update(stats)
     log.info(
@@ -899,10 +940,12 @@ def fetch_news(
         max_per_ticker: cupo por ticker (por defecto ``max(MIN_PER_TICKER, ceil(max_items / n))``).
         use_cache: ``False`` ignora la caché del día (vuelve a llamar a red y la refresca).
         enrich: ``False`` no busca URL final ni ``og:description`` (más rápido, sin extractos).
-        stats_out: si se pasa, recibe las estadísticas **de esta llamada**: ``{"fetch": {fuente:
-            {...}}, "quality": {..., "enrich": {...}}}`` (lo mismo que ``last_fetch_stats`` /
-            ``last_quality_stats``, pero sin la carrera de los globales entre briefings simultáneos).
-            ``format_news_stats`` lo resume en una línea para ``StepMetric.detail``.
+        stats_out: si se pasa, recibe las estadísticas **de esta llamada** (sin globales: dos
+            briefings simultáneos no se mezclan): ``{"fetch": {fuente: {items, latency_s, cached,
+            error}}, "quality": {collected, landing_pages, exact_duplicates, near_duplicates,
+            out_of_window, window_h, over_quota, sources_latency_s, selected, with_summary,
+            google_urls, enrich: {...}, selection: [{id, title, ticker, score, reasons,
+            has_summary}]}}``. ``format_news_stats`` lo resume para ``StepMetric.detail``.
 
     Returns:
         Noticias más recientes primero. Puede ser ``[]`` si las fuentes responden sin noticias.
@@ -935,11 +978,25 @@ def fetch_news(
     stats: dict[str, dict[str, Any]] = {}
     collected: list[NewsItem] = []
     failures = 0
+    prefetched: dict[str, Future] = {}
     fetch_start = time.perf_counter()
     pool = ThreadPoolExecutor(max_workers=min(FETCH_WORKERS, max(1, len(tasks))), thread_name_prefix="news")
     try:
         futures = {pool.submit(run, label): label for label in tasks}
-        done, pending = wait(futures, timeout=TOTAL_TIMEOUT)
+        pending: set[Future] = set(futures)
+        deadline = fetch_start + TOTAL_TIMEOUT
+        while pending:
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                break
+            _done, pending = wait(pending, timeout=remaining, return_when=FIRST_COMPLETED)
+            if enrich and not prefetched and pending and all(futures[f].startswith("yfinance:") for f in pending):
+                # Solo quedan las fuentes lentas (yfinance: 3-6 s por ticker cuando su API no
+                # responde): se adelanta el enriquecimiento de la selección provisional con lo ya
+                # descargado. No retrasa nada (se esperaba igual) y ``enrich_news`` lo reutiliza.
+                early = [i for f in futures if f.done() and not f.exception() for i in f.result()[0]]
+                provisional, _q = _choose(early, wanted, since, max_items, max_per_ticker, quiet=True)
+                prefetched = prefetch_meta(provisional, use_cache=use_cache)
         for fut in futures:
             label = futures[fut]
             if fut in pending:
@@ -959,9 +1016,6 @@ def fetch_news(
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
     sources_latency = time.perf_counter() - fetch_start
-    # Se publica de una vez (otro briefing simultáneo no ve el dict a medio rellenar).
-    last_fetch_stats.clear()
-    last_fetch_stats.update(stats)
     if stats_out is not None:
         stats_out["fetch"] = dict(stats)
 
@@ -973,6 +1027,61 @@ def fetch_news(
             "(¿sin conexión o bloqueo temporal?). Usa el modo de ejemplo o reinténtalo."
         )
 
+    selected, quality = _choose(collected, wanted, since, max_items, max_per_ticker)
+    quality["sources_latency_s"] = round(sources_latency, 3)
+    enrich_stats: dict[str, Any] = _empty_enrich_stats()
+    if enrich and selected:
+        # 2 enlaces -> mismo artículo
+        selected = dedupe_news(
+            enrich_news(selected, use_cache=use_cache, budget_s=ENRICH_BUDGET_S, stats_out=enrich_stats,
+                        prefetched=prefetched)
+        )
+    quality["enrich"] = enrich_stats
+    selected.sort(key=_sort_key, reverse=True)
+    explain: dict[str, dict[str, Any]] = quality.pop("explain")
+    quality.update(
+        selected=len(selected),
+        with_summary=sum(1 for i in selected if i.summary.strip()),
+        google_urls=sum(1 for i in selected if article_meta.is_google_news_url(i.url)),
+        selection=[
+            {
+                "id": i.id,
+                "title": i.title,
+                "ticker": explain.get(i.id, {}).get("ticker"),
+                "score": explain.get(i.id, {}).get("score"),
+                "reasons": list(explain.get(i.id, {}).get("reasons", [])),
+                "has_summary": bool(i.summary.strip()),
+            }
+            for i in selected
+        ],
+    )
+    if stats_out is not None:
+        stats_out["quality"] = quality
+    log.info(
+        "Noticias: %d obtenidas, %d casi duplicadas, %d fuera de ventana, %d seleccionadas "
+        "(%d con extracto; %d fuentes, %d fallidas)",
+        quality["collected"], quality["near_duplicates"], quality["out_of_window"], len(selected),
+        quality["with_summary"], len(tasks), failures,
+    )
+    return selected
+
+
+def _choose(
+    collected: list[NewsItem],
+    wanted: list[str],
+    since: datetime | None,
+    max_items: int,
+    max_per_ticker: int | None,
+    *,
+    quiet: bool = False,
+) -> tuple[list[NewsItem], dict[str, Any]]:
+    """Etiquetado -> fichas de cotización fuera -> duplicados -> ventana temporal -> cupo por relevancia.
+
+    Devuelve ``(seleccionadas, calidad)``; ``calidad`` cuenta lo descartado en cada etapa
+    (``landing_pages``, ``exact_duplicates``, ``near_duplicates``, ``out_of_window`` con
+    ``window_h``, ``over_quota``) y ``explain`` (``id -> ticker, score, reasons``). ``quiet``
+    silencia el log (selección provisional del pre-enriquecimiento).
+    """
     universe = list(dict.fromkeys([*wanted, *TICKER_UNIVERSE]))
     tagged = [
         item.model_copy(
@@ -985,57 +1094,73 @@ def fetch_news(
     unique = dedupe_news(exact)
 
     now = datetime.now(timezone.utc)
+    window_h: int | None = None
     if since is not None:
         since = since if since.tzinfo else since.replace(tzinfo=timezone.utc)
         in_window = [i for i in unique if _sort_key(i) >= since]
     else:
         in_window = []
         for hours in WINDOWS_HOURS:
+            window_h = hours
             in_window = [i for i in unique if _sort_key(i) >= now - timedelta(hours=hours)]
             counts = {t: sum(t in i.tickers for i in in_window) for t in wanted}
             if all(c >= MIN_PER_TICKER for c in counts.values()) and len(in_window) >= min(max_items, 3):
                 break
-            log.info("Pocas noticias en %d h (%s); se amplía la ventana", hours, counts)
+            if not quiet:
+                log.info("Pocas noticias en %d h (%s); se amplía la ventana", hours, counts)
 
     per_ticker = max_per_ticker or (max(MIN_PER_TICKER, math.ceil(max_items / len(wanted))) if wanted else max_items)
-    scores: dict[str, float] = {}
-    selected = _select(in_window, wanted, max_items, per_ticker, scores)
+    explain: dict[str, dict[str, Any]] = {}
+    selected = _select(in_window, wanted, max_items, per_ticker, explain=explain)
     quality: dict[str, Any] = {
-        "sources_latency_s": round(sources_latency, 3),
-        "landing_pages": len(tagged) - len(articles), "near_duplicates": len(exact) - len(unique), "scores": scores,
+        "collected": len(collected),
+        "landing_pages": len(tagged) - len(articles),
+        "exact_duplicates": len(articles) - len(exact),
+        "near_duplicates": len(exact) - len(unique),
+        "out_of_window": len(unique) - len(in_window),
+        "window_h": window_h,
+        "over_quota": len(in_window) - len(selected),
+        "explain": explain,
     }
-    last_quality_stats.clear()
-    enrich_stats: dict[str, Any] = _empty_enrich_stats()
-    if enrich and selected:
-        # 2 enlaces -> mismo artículo
-        selected = dedupe_news(enrich_news(selected, use_cache=use_cache, stats_out=enrich_stats))
-    else:
-        last_quality_stats["enrich"] = _empty_enrich_stats()
-    quality["enrich"] = enrich_stats
-    selected.sort(key=_sort_key, reverse=True)
-    quality.update(
-        selected=len(selected),
-        with_summary=sum(1 for i in selected if i.summary.strip()),
-        google_urls=sum(1 for i in selected if article_meta.is_google_news_url(i.url)),
-    )
-    last_quality_stats.update(quality)
-    if stats_out is not None:
-        stats_out["quality"] = {k: v for k, v in quality.items() if k != "scores"}
-    log.info(
-        "Noticias: %d obtenidas, %d únicas (%d casi duplicadas), %d en ventana, %d seleccionadas "
-        "(%d con extracto; %d fuentes, %d fallidas)",
-        len(collected), len(unique), quality["near_duplicates"], len(in_window), len(selected),
-        quality["with_summary"], len(tasks), failures,
-    )
-    return selected
+    return selected, quality
+
+
+def prefetch_meta(items: list[NewsItem], *, use_cache: bool = True) -> dict[str, Future]:
+    """Lanza ya (hilos *daemon*) la búsqueda de metadatos de las noticias que la necesitarán.
+
+    Mismo criterio que ``enrich_news`` (enlace de Google News o sin resumen). Devuelve
+    ``url -> Future`` para pasarlo a ``enrich_news(prefetched=...)``. Nunca lanza.
+    """
+    out: dict[str, Future] = {}
+    for item in items:
+        if item.url not in out and (article_meta.is_google_news_url(item.url) or not item.summary.strip()):
+            out[item.url] = _start_meta_fetch(item.url, use_cache, ENRICH_WORKERS)
+    if out:
+        log.debug("Pre-enriquecimiento: %d noticias mientras terminan las fuentes lentas", len(out))
+    return out
+
+
+#: Nombre legible de cada tipo de fuente en ``format_news_stats``.
+_SOURCE_LABELS = {
+    "google": "Google News", "bing": "Bing News", "yahoo_rss": "Yahoo RSS", "rss": "prensa", "yfinance": "yfinance",
+}
+#: Longitud máxima del titular de cada noticia en la explicación de relevancia.
+_EXPLAIN_TITLE_CHARS = 48
+
+
+def _short_title(title: str, max_chars: int = _EXPLAIN_TITLE_CHARS) -> str:
+    return title if len(title) <= max_chars else title[: max_chars - 1].rstrip() + "…"
 
 
 def format_news_stats(stats: dict[str, Any]) -> str | None:
-    """Resumen de una línea de ``fetch_news(stats_out=...)`` para ``StepMetric.detail``.
+    """Resumen legible de ``fetch_news(stats_out=...)`` para ``StepMetric.detail`` («Cómo se hizo»).
 
-    Ej.: ``"32 fuentes (2 fallidas, 30 de caché) en 1.2 s · 20 seleccionadas (17 con extracto) ·
-    3 casi duplicadas · 5 fichas de cotización descartadas · extractos: 6 URL resueltas, 4 nuevos
-    (0 sin tiempo)"``. ``None`` si no hay estadísticas.
+    Ej.: ``"22 fuentes (0 fallidas, 3 de caché) en 6.4 s: Google News 100, Bing News 57, … ·
+    20 seleccionadas (17 con extracto) · extracto en el 85 % · descartadas: 8 fichas de cotización,
+    4 casi duplicadas, 12 fuera de ventana (48 h), 90 por cupo de relevancia · extractos: 6 URL
+    resueltas, 4 nuevos (0 sin tiempo) · relevancia: SAN.MC 5.4 «Santander rebota…» (titular, 3 h,
+    es, extracto); …"``. Lo primero es el resumen (el grafo lo recorta); la explicación de cada
+    elegida va al final. ``None`` si no hay estadísticas.
     """
     fetch = stats.get("fetch") or {}
     quality = stats.get("quality") or {}
@@ -1045,23 +1170,52 @@ def format_news_stats(stats: dict[str, Any]) -> str | None:
     if fetch:
         failed = sum(1 for v in fetch.values() if v.get("error"))
         cached = sum(1 for v in fetch.values() if v.get("cached"))
+        by_kind: Counter[str] = Counter()
+        for label, v in fetch.items():
+            by_kind[label.split(":", 1)[0]] += int(v.get("items") or 0)
         lat = quality.get("sources_latency_s")
         parts.append(
             f"{len(fetch)} fuentes ({failed} fallidas, {cached} de caché)"
             + (f" en {float(lat):.1f} s" if lat is not None else "")
+            + (": " + ", ".join(f"{_SOURCE_LABELS.get(k, k)} {n}" for k, n in by_kind.items()) if by_kind else "")
         )
     if quality:
-        parts.append(f"{quality.get('selected', 0)} seleccionadas ({quality.get('with_summary', 0)} con extracto)")
-        if quality.get("near_duplicates"):
-            parts.append(f"{quality['near_duplicates']} casi duplicadas")
-        if quality.get("landing_pages"):
-            parts.append(f"{quality['landing_pages']} fichas de cotización descartadas")
+        selected, with_summary = int(quality.get("selected", 0)), int(quality.get("with_summary", 0))
+        parts.append(f"{selected} seleccionadas ({with_summary} con extracto)")
+        if selected:
+            parts.append(f"extracto en el {round(100 * with_summary / selected)} %")
+        dropped = [
+            (quality.get("landing_pages"), "fichas de cotización"),
+            ((quality.get("exact_duplicates") or 0) or None, "duplicadas"),
+            (quality.get("near_duplicates"), "casi duplicadas"),
+            (quality.get("out_of_window"),
+             f"fuera de ventana ({quality['window_h']} h)" if quality.get("window_h") else "fuera de ventana"),
+            (quality.get("over_quota"), "por cupo de relevancia"),
+        ]
+        dropped_text = ", ".join(f"{n} {label}" for n, label in dropped if n)
+        if dropped_text:
+            parts.append(f"descartadas: {dropped_text}")
         enrich = quality.get("enrich") or {}
         if enrich.get("candidates"):
             parts.append(
                 f"extractos: {enrich.get('resolved', 0)} URL resueltas, {enrich.get('summaries', 0)} nuevos "
-                f"({enrich.get('timed_out', 0)} sin tiempo)"
+                f"({enrich.get('timed_out', 0)} sin tiempo"
+                + (f", {enrich['prefetched']} adelantados" if enrich.get("prefetched") else "")
+                + ")"
             )
+        explained = []
+        for sel in quality.get("selection") or []:
+            who = sel.get("ticker") or "general"
+            score = sel.get("score")
+            reasons = list(sel.get("reasons") or [])
+            if sel.get("has_summary") and "extracto" not in reasons:
+                reasons.append("extracto añadido")
+            explained.append(
+                f"{who}{f' {float(score):.1f}' if score is not None else ''} "
+                f"«{_short_title(str(sel.get('title', '')))}» ({', '.join(reasons)})"
+            )
+        if explained:
+            parts.append("relevancia: " + "; ".join(explained))
     return " · ".join(parts)
 
 

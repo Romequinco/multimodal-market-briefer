@@ -330,7 +330,8 @@ def test_fetch_yfinance_news_never_raises(monkeypatch) -> None:
 
 
 def test_fetch_news_combines_dedupes_and_tags(http: FakeHTTP, yf_news) -> None:
-    out = news.fetch_news(["SAN.MC", "itx.mc", "AAPL"], max_items=20, rss_feeds=FEEDS)
+    stats: dict = {}
+    out = news.fetch_news(["SAN.MC", "itx.mc", "AAPL"], max_items=20, rss_feeds=FEEDS, stats_out=stats)
     titles = [i.title for i in out]
     # deduplicado: el análisis multi-valor aparece en las búsquedas de SAN.MC e ITX.MC
     assert titles.count("Análisis de BBVA, Iberdrola, Inditex y Banco Santander") == 1
@@ -349,8 +350,8 @@ def test_fetch_news_combines_dedupes_and_tags(http: FakeHTTP, yf_news) -> None:
     assert all(d.tzinfo is not None for d in dates)
     assert len({i.id for i in out}) == len(out)
     assert all(i.source and i.url for i in out)
-    stats = news.last_fetch_stats
-    assert stats["google:SAN.MC"]["items"] == 4 and stats["google:SAN.MC"]["error"] is None
+    fetch = stats["fetch"]
+    assert fetch["google:SAN.MC"]["items"] == 4 and fetch["google:SAN.MC"]["error"] is None
 
 
 def test_fetch_news_limits_per_ticker_and_total(http: FakeHTTP, yf_news) -> None:
@@ -366,9 +367,10 @@ def test_fetch_news_limits_per_ticker_and_total(http: FakeHTTP, yf_news) -> None
 def test_fetch_news_survives_failing_sources(monkeypatch, yf_news) -> None:
     fake = FakeHTTP(fail={"news.google.com", "yahoo"})
     monkeypatch.setattr(news, "_http_get", fake)
-    out = news.fetch_news(["SAN.MC", "AAPL"], rss_feeds=FEEDS)
+    stats: dict = {}
+    out = news.fetch_news(["SAN.MC", "AAPL"], rss_feeds=FEEDS, stats_out=stats)
     assert out  # el feed general y yfinance siguen funcionando
-    assert news.last_fetch_stats["google:SAN.MC"]["error"].startswith("ConnectionError")
+    assert stats["fetch"]["google:SAN.MC"]["error"].startswith("ConnectionError")
 
 
 def test_fetch_news_all_sources_fail(monkeypatch) -> None:
@@ -382,10 +384,11 @@ def test_fetch_news_uses_daily_cache(http: FakeHTTP, yf_news) -> None:
     first = news.fetch_news(["SAN.MC", "AAPL"], rss_feeds=FEEDS)
     n_calls = len(http.calls)
     assert n_calls > 0
-    second = news.fetch_news(["SAN.MC", "AAPL"], rss_feeds=FEEDS)
+    stats: dict = {}
+    second = news.fetch_news(["SAN.MC", "AAPL"], rss_feeds=FEEDS, stats_out=stats)
     assert len(http.calls) == n_calls  # sin red la segunda vez
     assert [i.id for i in second] == [i.id for i in first]
-    assert all(v["cached"] for k, v in news.last_fetch_stats.items() if not k.startswith("yfinance:"))
+    assert all(v["cached"] for k, v in stats["fetch"].items() if not k.startswith("yfinance:"))
     news.fetch_news(["SAN.MC", "AAPL"], rss_feeds=FEEDS, use_cache=False)
     assert len(http.calls) == 2 * n_calls
 
@@ -487,3 +490,13 @@ def test_price_snapshots_daily_cache(monkeypatch) -> None:
     assert second == first
     prices.get_price_snapshots(["SAN.MC"], use_cache=False)
     assert mod.calls["download"] == 2
+
+
+def test_tests_never_reach_the_network() -> None:
+    """Guarda de ``conftest``: cualquier conexión fuera de localhost falla como «sin red»."""
+    import socket
+
+    with pytest.raises(ConnectionError, match="Red bloqueada"):
+        socket.create_connection(("example.com", 80), timeout=1)
+    with pytest.raises(OSError, match="Red bloqueada"):  # requests.ConnectionError es un OSError
+        news._http_get("https://news.google.com/rss/search?q=x")  # el GET real tampoco sale
