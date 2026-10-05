@@ -902,11 +902,11 @@ def render_qa_answer(answer: QAAnswer, briefing: Briefing | None = None) -> None
     if answer.metrics:
         total = sum(m.latency_s for m in answer.metrics)
         detail = " · ".join(
-            f"{STEP_SHORT.get(m.step, m.step)} {m.latency_s:.1f} s" + (" (error)" if m.error else "")
+            f"{STEP_SHORT.get(m.step, m.step)} {_es(m.latency_s, 1, ' s')}" + (" (error)" if m.error else "")
             for m in answer.metrics
         )
         target = " ✓ < 10 s" if total < 10 else ""
-        st.caption(tech_label(f"Latencia total {total:.1f} s{target}", "ok" if total < 10 else "amber")
+        st.caption(tech_label(f"Latencia total {_es(total, 1, ' s')}{target}", "ok" if total < 10 else "amber")
                    + " " + tech_label(f"({detail})", "muted"), unsafe_allow_html=True)
         with st.expander("Cómo se hizo (voz → texto → respuesta → voz)"):
             render_trace(answer)
