@@ -4,18 +4,29 @@ Carril C. Entrada: ``list[PriceSnapshot]`` (+ ``Portfolio`` opcional). Salida:
 ``list[ChartAsset]`` guardados en ``out_dir``. Se usan en la UI, el email y el vídeo.
 
 Estilo común: lienzo 16:9 de 1920×1080 px (apto para vídeo sin reescalar), tipografía grande,
-rejilla discreta y colores aptos para daltonismo: azul = sube, rojo = baja, siempre
-acompañados de signo y flecha (▲/▼) para que el color no sea la única pista. Números y fechas en
-formato español (``+1,23 %``, ``05/10/2026``). Cada gráfico lleva en el título la fecha de la
-última sesión y en el pie la fuente de los datos (por defecto «Yahoo Finance»).
+rejilla discreta y color de tendencia siempre acompañado de signo y flecha (▲/▼) para que el
+color no sea la única pista. Números y fechas en formato español (``+1,23 %``, ``05/10/2026``).
+Cada gráfico lleva en el título la fecha de la última sesión y en el pie la fuente de los datos
+(por defecto «Yahoo Finance»).
+
+Temas (``BRIEFER_CHART_THEME`` o parámetro ``theme=``):
+
+- ``dark`` (por defecto, «Noticiero nocturno», a juego con la UI): fondo #12151B, títulos en serif,
+  cifras y etiquetas en mono, línea de precio coral con relleno muy sutil, subidas en verde y
+  bajadas en rosa, índices y fuente en gris.
+- ``light``: el estilo claro original (azul = sube, rojo = baja), útil para email o impresión.
+
+Las fuentes son las DejaVu que trae matplotlib (Sans, Serif, Sans Mono): no dependen del sistema,
+así que se ven igual en Docker.
 
 Índices de referencia (``^IBEX``, ``^GSPC``…, todo ticker que empieza por ``^``): en el gráfico de
 variación del día van **aparte**, debajo de los valores del usuario, en gris y rotulados con su
 nombre («IBEX 35», «S&P 500») y la marca «índice», para que no se confundan con un valor.
 
 Concurrencia: se usa la API orientada a objetos de matplotlib (``Figure``) sin ``pyplot`` ni
-``rcParams`` globales, así que es seguro dibujar desde varios hilos o sesiones de Streamlit a la
-vez. Cada PNG se escribe de forma atómica (temporal + ``replace``).
+``rcParams`` globales, y el tema viaja como objeto inmutable (``ChartTheme``), así que es seguro
+dibujar desde varios hilos o sesiones de Streamlit a la vez. Cada PNG se escribe de forma atómica
+(temporal + ``replace``).
 """
 
 from __future__ import annotations
@@ -24,6 +35,7 @@ import os
 import re
 import threading
 from collections.abc import Collection
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -48,6 +60,7 @@ DPI = 120  # 16×9 in × 120 dpi = 1920×1080 px
 DEFAULT_SOURCE = "Yahoo Finance"
 FOOTER_NOTE = "Market Briefer · información, no asesoramiento financiero"
 
+# Constantes del tema claro (se mantienen por compatibilidad; el estilo vive en ``ChartTheme``).
 SURFACE = "#fcfcfb"
 TEXT_PRIMARY = "#0b0b0b"
 TEXT_SECONDARY = "#52514e"
@@ -60,6 +73,96 @@ INDEX_COLOR = "#a3a29c"  # índices de referencia: gris, distinto de los valores
 CATEGORICAL = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 OTHERS_COLOR = "#b5b4ae"
 FONT = "DejaVu Sans"
+
+
+@dataclass(frozen=True)
+class ChartTheme:
+    """Paleta y tipografías de un tema de gráficos (inmutable: se comparte entre hilos sin riesgo)."""
+
+    name: str
+    surface: str  # fondo de la figura y del eje
+    text_primary: str  # títulos, nombres, cifras principales
+    text_secondary: str  # etiquetas de los ejes
+    muted: str  # subtítulo, fuente, fecha, índices
+    grid: str  # rejilla y ejes
+    axis: str  # línea del cero y separadores
+    up: str
+    down: str
+    neutral: str
+    index: str  # barras de los índices de referencia
+    price_line: str | None  # color fijo de la línea de precio (None = color de tendencia)
+    fill_alpha: float  # relleno bajo la línea de precio
+    categorical: tuple[str, ...]  # cartera
+    others: str
+    title_font: str
+    body_font: str
+    mono_font: str
+
+
+LIGHT = ChartTheme(
+    name="light",
+    surface=SURFACE,
+    text_primary=TEXT_PRIMARY,
+    text_secondary=TEXT_SECONDARY,
+    muted=TEXT_SECONDARY,
+    grid=GRID,
+    axis=TEXT_SECONDARY,
+    up=UP,
+    down=DOWN,
+    neutral=NEUTRAL,
+    index=INDEX_COLOR,
+    price_line=None,
+    fill_alpha=0.08,
+    categorical=tuple(CATEGORICAL),
+    others=OTHERS_COLOR,
+    title_font=FONT,
+    body_font=FONT,
+    mono_font=FONT,
+)
+
+DARK = ChartTheme(
+    name="dark",
+    surface="#12151B",
+    text_primary="#D6DEE8",
+    text_secondary="#A9B3BF",
+    muted="#888780",
+    grid="#2A313B",
+    axis="#4A5361",
+    up="#5DCAA5",
+    down="#F09595",
+    neutral="#888780",
+    index="#888780",
+    price_line="#F0997B",
+    fill_alpha=0.06,
+    categorical=("#F0997B", "#5DCAA5", "#85B7EB", "#EF9F27", "#ED93B1", "#AFA9EC", "#97C459", "#F09595"),
+    others="#5F5E5A",
+    title_font="DejaVu Serif",
+    body_font="DejaVu Sans",
+    mono_font="DejaVu Sans Mono",
+)
+
+THEMES: dict[str, ChartTheme] = {"dark": DARK, "light": LIGHT}
+
+
+def resolve_theme(theme: str | ChartTheme | None = None) -> ChartTheme:
+    """Tema pedido (``"dark"`` / ``"light"``) o, con ``None``, el de ``BRIEFER_CHART_THEME`` (``dark``).
+
+    Raises:
+        ValueError: si el nombre no es un tema conocido.
+    """
+    if isinstance(theme, ChartTheme):
+        return theme
+    if theme is None:
+        try:
+            from briefer.config import get_settings
+
+            theme = get_settings().briefer_chart_theme
+        except Exception:  # pragma: no cover - config inválida: no tumbar los gráficos
+            theme = "dark"
+    key = str(theme).strip().lower()
+    if key not in THEMES:
+        raise ValueError(f"Tema de gráfico desconocido: {theme!r} (usa 'dark' o 'light')")
+    return THEMES[key]
 
 
 # ── Utilidades ─────────────────────────────────────────────────────────────────────
@@ -90,9 +193,9 @@ def fmt_date(day: date, with_year: bool = True) -> str:
     return f"{day:%d/%m/%Y}" if with_year else f"{day:%d/%m}"
 
 
-def trend_color(value: float) -> str:
-    """Azul si sube, rojo si baja, gris si plano."""
-    return UP if value > 0 else (DOWN if value < 0 else NEUTRAL)
+def trend_color(value: float, theme: ChartTheme = LIGHT) -> str:
+    """Color de subida / bajada / plano del tema (claro: azul, rojo, gris; oscuro: verde, rosa, gris)."""
+    return theme.up if value > 0 else (theme.down if value < 0 else theme.neutral)
 
 
 def trend_arrow(value: float) -> str:
@@ -138,52 +241,68 @@ def _date_ticks(dates: list[date], max_ticks: int = 7) -> list[date]:
     return [dates[round(i * step)] for i in range(max_ticks)]
 
 
-def _new_figure() -> tuple[Figure, Axes]:
+def _new_figure(theme: ChartTheme = LIGHT) -> tuple[Figure, Axes]:
     """Figura 1920×1080 sin ``pyplot`` (sin estado global: segura entre hilos)."""
-    fig = Figure(figsize=FIGSIZE, dpi=DPI, facecolor=SURFACE)
+    fig = Figure(figsize=FIGSIZE, dpi=DPI, facecolor=theme.surface)
     ax = fig.add_subplot()
-    _style_axes(ax)
+    _style_axes(ax, theme)
     return fig, ax
 
 
-def _style_axes(ax: Axes) -> None:
+def _style_axes(ax: Axes, theme: ChartTheme = LIGHT) -> None:
     """Estilo común aplicado al eje (equivale a un ``rc_context`` pero sin tocar ``rcParams``)."""
-    ax.set_facecolor(SURFACE)
+    ax.set_facecolor(theme.surface)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     for side in ("left", "bottom"):
-        ax.spines[side].set_color(GRID)
-    ax.grid(True, color=GRID, linewidth=1.0)
+        ax.spines[side].set_color(theme.grid)
+    ax.grid(True, color=theme.grid, linewidth=1.0)
     ax.set_axisbelow(True)
-    ax.tick_params(colors=TEXT_SECONDARY, labelsize=18, length=0, pad=8)
-    for label in (*ax.get_xticklabels(), *ax.get_yticklabels()):
-        label.set_fontfamily(FONT)
+    ax.tick_params(colors=theme.text_secondary, labelsize=18, length=0, pad=8,
+                   labelfontfamily=theme.mono_font)
 
 
-def _title(fig: Figure, title: str, subtitle: str | None = None) -> None:
-    fig.text(0.04, 0.94, title, fontsize=34, fontweight="bold", color=TEXT_PRIMARY, va="top", family=FONT)
+def _small(theme: ChartTheme, size: int) -> int:
+    """La mono es más ancha que la sans: algo más pequeña para que quepa el subtítulo en una línea."""
+    return size if theme.mono_font == theme.body_font else size - 3
+
+
+def _title(fig: Figure, title: str, subtitle: str | None = None, theme: ChartTheme = LIGHT) -> None:
+    fig.text(0.04, 0.94, title, fontsize=34, fontweight="bold", color=theme.text_primary, va="top",
+             family=theme.title_font)
     if subtitle:
-        fig.text(0.04, 0.875, subtitle, fontsize=20, color=TEXT_SECONDARY, va="top", family=FONT)
+        fig.text(0.04, 0.875, subtitle, fontsize=_small(theme, 20), color=theme.muted, va="top",
+                 family=theme.mono_font)
 
 
-def _footer(fig: Figure, source: str | None = DEFAULT_SOURCE, extra: str | None = None) -> None:
+def _trend_badge(fig: Figure, change_pct: float, theme: ChartTheme) -> None:
+    """Variación del día arriba a la derecha, en color de tendencia (con ▲/▼ y signo)."""
+    fig.text(0.96, 0.94, f"{trend_arrow(change_pct)} {fmt_pct(change_pct)}", fontsize=32, fontweight="bold",
+             color=trend_color(change_pct, theme), va="top", ha="right", family=theme.mono_font)
+
+
+def _footer(fig: Figure, source: str | None = DEFAULT_SOURCE, extra: str | None = None,
+            theme: ChartTheme = LIGHT) -> None:
     """Pie con la fuente de los datos (a la izquierda) y el aviso (a la derecha)."""
     left = " · ".join(p for p in (f"Fuente: {source}" if source else "", extra or "") if p)
+    # Mono (tema oscuro): 13 pt para que fuente + aviso quepan en una línea sin solaparse.
+    size = 15 if theme.mono_font == theme.body_font else 13
     if left:
-        fig.text(0.04, 0.03, left, fontsize=15, color=TEXT_SECONDARY, va="bottom", family=FONT)
-    fig.text(0.96, 0.03, FOOTER_NOTE, fontsize=15, color=TEXT_SECONDARY, va="bottom", ha="right", family=FONT)
+        fig.text(0.04, 0.03, left, fontsize=size, color=theme.muted, va="bottom", family=theme.mono_font)
+    fig.text(0.96, 0.03, FOOTER_NOTE, fontsize=size, color=theme.muted, va="bottom", ha="right",
+             family=theme.mono_font)
 
 
 def _save(fig: Figure, path: Path) -> Path:
     """Guarda a tamaño fijo (sin ``bbox_inches="tight"`` para mantener 1920×1080), de forma atómica.
 
     Se escribe en un temporal único por hilo y se renombra: la UI nunca lee un PNG a medias y
-    dos ejecuciones simultáneas no se pisan el temporal.
+    dos ejecuciones simultáneas no se pisan el temporal. El fondo es el de la figura (su tema).
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.stem}.{os.getpid()}.{threading.get_ident()}.tmp")
     try:
-        fig.savefig(tmp, dpi=DPI, facecolor=SURFACE, format="png")
+        fig.savefig(tmp, dpi=DPI, facecolor=fig.get_facecolor(), format="png")
         os.replace(tmp, path)
     finally:
         tmp.unlink(missing_ok=True)
@@ -194,27 +313,37 @@ def _save(fig: Figure, path: Path) -> Path:
 # ── Gráficos ───────────────────────────────────────────────────────────────────────
 
 
-def make_price_chart(snapshot: PriceSnapshot, out_dir: Path, *, source: str | None = DEFAULT_SOURCE) -> ChartAsset:
+def make_price_chart(
+    snapshot: PriceSnapshot,
+    out_dir: Path,
+    *,
+    source: str | None = DEFAULT_SOURCE,
+    theme: str | None = None,
+) -> ChartAsset:
     """Línea de cotización del histórico de un ticker (kind="price_line").
 
     ``source``: fuente de los datos que se rotula en el pie (``None`` = sin fuente).
+    ``theme``: ``"dark"`` / ``"light"`` (``None`` = ``BRIEFER_CHART_THEME``).
     """
+    th = resolve_theme(theme)
     if not snapshot.history:
         raise ValueError(f"{snapshot.ticker}: sin histórico de precios")
     history = sorted(snapshot.history, key=lambda item: item[0])
     dates = [d for d, _ in history]
     closes = [c for _, c in history]
     index = is_index(snapshot.ticker)
-    color = trend_color(snapshot.change_pct)
+    # Tema claro: la línea toma el color de tendencia. Oscuro: línea coral fija y la tendencia va
+    # en la cifra grande de arriba a la derecha.
+    color = th.price_line or trend_color(snapshot.change_pct, th)
     unit = "puntos" if index else snapshot.currency
 
-    fig, ax = _new_figure()
+    fig, ax = _new_figure(th)
     ax.plot(dates, closes, color=color, linewidth=3, solid_capstyle="round")
     low = min(closes)
     pad = (max(closes) - low) * 0.08 or abs(low) * 0.01 or 1.0
     ax.set_ylim(low - pad, max(closes) + pad)
-    ax.fill_between(dates, closes, low - pad, color=color, alpha=0.08, linewidth=0)
-    ax.scatter([dates[-1]], [closes[-1]], s=140, color=color, zorder=3, edgecolors=SURFACE, linewidths=2)
+    ax.fill_between(dates, closes, low - pad, color=color, alpha=th.fill_alpha, linewidth=0)
+    ax.scatter([dates[-1]], [closes[-1]], s=140, color=color, zorder=3, edgecolors=th.surface, linewidths=2)
     ax.annotate(
         f"{fmt_number(closes[-1])} {unit}",
         (dates[-1], closes[-1]),
@@ -223,9 +352,9 @@ def make_price_chart(snapshot: PriceSnapshot, out_dir: Path, *, source: str | No
         ha="right",
         fontsize=20,
         fontweight="bold",
-        color=TEXT_PRIMARY,
-        family=FONT,
-        bbox={"boxstyle": "round,pad=0.25", "facecolor": SURFACE, "edgecolor": "none", "alpha": 0.9},
+        color=th.text_primary,
+        family=th.mono_font,
+        bbox={"boxstyle": "round,pad=0.25", "facecolor": th.surface, "edgecolor": "none", "alpha": 0.9},
     )
     ax.grid(axis="x", visible=False)
     decimals = 0 if max(closes) >= 1000 else 2  # «19.200» y no «19.200,00» (cabe y se lee mejor)
@@ -236,27 +365,36 @@ def make_price_chart(snapshot: PriceSnapshot, out_dir: Path, *, source: str | No
     name = display_name(snapshot.ticker)
     label = f"{name} · índice" if index else (
         f"{name} · {snapshot.ticker}" if name.upper() != snapshot.ticker.upper() else name)
-    _title(
-        fig,
-        f"{label}   {trend_arrow(snapshot.change_pct)} {fmt_pct(snapshot.change_pct)}",
+    subtitle = (
         f"Cierre del {fmt_date(dates[-1])}: {fmt_number(snapshot.last)} {unit} · variación de la sesión · "
-        f"{len(history)} sesiones ({fmt_date(dates[0], False)} – {fmt_date(dates[-1])})",
+        f"{len(history)} sesiones ({fmt_date(dates[0], False)} – {fmt_date(dates[-1])})"
     )
-    _footer(fig, source, "precios de cierre")
+    if th.price_line:
+        _title(fig, label, subtitle, th)
+        _trend_badge(fig, snapshot.change_pct, th)
+    else:
+        _title(fig, f"{label}   {trend_arrow(snapshot.change_pct)} {fmt_pct(snapshot.change_pct)}", subtitle, th)
+    _footer(fig, source, "precios de cierre", th)
     fig.subplots_adjust(left=0.1, right=0.96, top=0.8, bottom=0.12)
     path = _save(fig, Path(out_dir) / f"{safe_name(snapshot.ticker)}_price.png")
     return ChartAsset(path=path, ticker=snapshot.ticker, kind="price_line")
 
 
 def make_overview_chart(
-    snapshots: list[PriceSnapshot], out_dir: Path, *, source: str | None = DEFAULT_SOURCE
+    snapshots: list[PriceSnapshot],
+    out_dir: Path,
+    *,
+    source: str | None = DEFAULT_SOURCE,
+    theme: str | None = None,
 ) -> ChartAsset:
     """Barras horizontales con la variación del día (%) (kind="overview_bar").
 
-    Arriba, los valores del usuario ordenados (la mayor subida arriba), en azul/rojo y con su
-    nombre; debajo, separados por una línea y rotulados «Índices de referencia», los índices
+    Arriba, los valores del usuario ordenados (la mayor subida arriba), en color de tendencia y
+    con su nombre; debajo, separados por una línea y rotulados «Índices de referencia», los índices
     (``^IBEX``…) en gris con la marca «índice». El título lleva la fecha de la última sesión.
+    ``theme``: ``"dark"`` / ``"light"`` (``None`` = ``BRIEFER_CHART_THEME``).
     """
+    th = resolve_theme(theme)
     if not snapshots:
         raise ValueError("make_overview_chart: no hay precios")
     stocks = sorted((s for s in snapshots if not is_index(s.ticker)), key=lambda s: s.change_pct, reverse=True)
@@ -268,19 +406,24 @@ def make_overview_chart(
     # Posición vertical: de arriba abajo; un hueco extra entre valores e índices.
     gap = 0.6 if stocks and indices else 0.0
     ys = [-(i + (gap if is_idx else 0.0)) for i, (_, is_idx) in enumerate(rows)]
+    dark = th.price_line is not None
 
-    fig, ax = _new_figure()
+    fig, ax = _new_figure(th)
     bar_h = 0.62 if n > 1 else 0.4
-    colors = [INDEX_COLOR if is_idx else trend_color(s.change_pct) for s, is_idx in rows]
-    ax.barh(ys, values, color=colors, height=bar_h, edgecolor=SURFACE, linewidth=2,
+    colors = [th.index if is_idx else trend_color(s.change_pct, th) for s, is_idx in rows]
+    ax.barh(ys, values, color=colors, height=bar_h, edgecolor=th.surface, linewidth=2,
             hatch=None)
-    ax.axvline(0, color=TEXT_SECONDARY, linewidth=1.5)
+    ax.axvline(0, color=th.axis, linewidth=1.5)
     offset = span * 0.02
     for y, (snap, is_idx), v in zip(ys, rows, values, strict=True):
+        if is_idx:
+            value_color = th.muted
+        else:
+            value_color = trend_color(v, th) if dark else th.text_primary
         ax.text(
             v + (offset if v >= 0 else -offset), y, f"{trend_arrow(v)} {fmt_pct(v)}",
             va="center", ha="left" if v >= 0 else "right", fontsize=19, fontweight="bold",
-            color=TEXT_SECONDARY if is_idx else TEXT_PRIMARY, family=FONT,
+            color=value_color, family=th.mono_font,
         )
     # Etiquetas propias (nombre + ticker o «índice») en lugar de los ticks del eje Y.
     ax.set_yticks([])
@@ -291,16 +434,17 @@ def make_overview_chart(
         sub = "índice" if is_idx else (snap.ticker if name.upper() != snap.ticker.upper() else "")
         ax.text(-0.015, y + (0.13 if sub else 0), name, transform=label_tf, ha="right", va="center",
                 fontsize=21 if big else 16, fontweight="bold",
-                color=TEXT_SECONDARY if is_idx else TEXT_PRIMARY, family=FONT)
+                color=th.muted if is_idx else th.text_primary, family=th.body_font)
         if sub:
             ax.text(-0.015, y - 0.2, sub, transform=label_tf, ha="right", va="center",
-                    fontsize=14 if big else 12, color=TEXT_SECONDARY, family=FONT,
+                    fontsize=14 if big else 12, color=th.muted,
+                    family=th.body_font if is_idx else th.mono_font,
                     style="italic" if is_idx else "normal")
     if stocks and indices:
         sep = (ys[len(stocks) - 1] + ys[len(stocks)]) / 2
-        ax.axhline(sep, color=GRID, linewidth=1.5, linestyle=(0, (4, 4)))
+        ax.axhline(sep, color=th.axis if dark else th.grid, linewidth=1.5, linestyle=(0, (4, 4)))
         ax.text(1.0, sep - 0.08, "Índices de referencia", transform=label_tf, ha="right", va="top",
-                fontsize=15, color=TEXT_SECONDARY, style="italic", family=FONT)
+                fontsize=15, color=th.muted, style="italic", family=th.body_font)
     ax.set_ylim(min(ys) - 0.7, 0.7)
     lo, hi = min(0.0, *values), max(0.0, *values)
     ax.set_xlim(lo - span * (0.38 if lo < 0 else 0.04), hi + span * (0.38 if hi > 0 else 0.04))
@@ -317,8 +461,8 @@ def make_overview_chart(
         parts.append(f"{len(stocks)} {'valor' if len(stocks) == 1 else 'valores'}: {ups} suben · {downs} bajan")
     if indices:
         parts.append("referencia: " + ", ".join(display_name(s.ticker) for s in indices))
-    _title(fig, title, " · ".join(parts))
-    _footer(fig, source, "variación del último cierre frente al anterior")
+    _title(fig, title, " · ".join(parts), th)
+    _footer(fig, source, "variación del último cierre frente al anterior", th)
     fig.subplots_adjust(left=0.22, right=0.96, top=0.8, bottom=0.12)
     path = _save(fig, Path(out_dir) / "overview_change.png")
     return ChartAsset(path=path, ticker=None, kind="overview_bar")
@@ -346,27 +490,30 @@ def make_portfolio_chart(
     out_dir: Path,
     prices: list[PriceSnapshot] | None = None,
     min_share: float = 0.03,
+    *,
+    theme: str | None = None,
 ) -> ChartAsset:
     """Reparto de la cartera por pesos (kind="portfolio_pie"), en forma de donut.
 
     Las posiciones por debajo de ``min_share`` y las que excedan los 8 colores categóricos se
-    agrupan en «Otros».
+    agrupan en «Otros». ``theme``: ``"dark"`` / ``"light"`` (``None`` = ``BRIEFER_CHART_THEME``).
     """
+    th = resolve_theme(theme)
     weights = portfolio_weights(portfolio, prices)
     if not weights:
         raise ValueError("make_portfolio_chart: la cartera no tiene pesos ni cantidades valorables")
     items = sorted(weights.items(), key=lambda kv: kv[1], reverse=True)
-    main = [(t, w) for t, w in items if w >= min_share][: len(CATEGORICAL)]
+    main = [(t, w) for t, w in items if w >= min_share][: len(th.categorical)]
     others = 1.0 - sum(w for _, w in main)
     labels = [t for t, _ in main]
     values = [w for _, w in main]
-    colors = CATEGORICAL[: len(main)]
+    colors = list(th.categorical[: len(main)])
     if others > 1e-9:
         labels.append("Otros")
         values.append(others)
-        colors.append(OTHERS_COLOR)
+        colors.append(th.others)
 
-    fig, ax = _new_figure()
+    fig, ax = _new_figure(th)
     ax.grid(False)
     ax.axis("off")
     ax.set_position([0.04, 0.1, 0.5, 0.72])
@@ -375,12 +522,12 @@ def make_portfolio_chart(
         colors=colors,
         startangle=90,
         counterclock=False,
-        wedgeprops={"width": 0.38, "edgecolor": SURFACE, "linewidth": 3},
+        wedgeprops={"width": 0.38, "edgecolor": th.surface, "linewidth": 3},
     )
     ax.set_aspect("equal")
     ax.text(0, 0.06, str(len(weights)), ha="center", va="center", fontsize=48, fontweight="bold",
-            color=TEXT_PRIMARY, family=FONT)
-    ax.text(0, -0.16, "posiciones", ha="center", va="center", fontsize=20, color=TEXT_SECONDARY, family=FONT)
+            color=th.text_primary, family=th.title_font)
+    ax.text(0, -0.16, "posiciones", ha="center", va="center", fontsize=20, color=th.muted, family=th.body_font)
     # Leyenda con valores (la identidad no depende solo del color)
     y = 0.76
     for label, value, color in zip(labels, values, colors, strict=True):
@@ -391,12 +538,12 @@ def make_portfolio_chart(
             )
         )
         name = display_name(label) if label != "Otros" else label
-        fig.text(0.635, y, name, fontsize=22, color=TEXT_PRIMARY, va="center", family=FONT)
-        fig.text(0.94, y, fmt_pct(value * 100, 1).lstrip("+"), fontsize=22, color=TEXT_PRIMARY,
-                 va="center", ha="right", fontweight="bold", family=FONT)
+        fig.text(0.635, y, name, fontsize=22, color=th.text_primary, va="center", family=th.body_font)
+        fig.text(0.94, y, fmt_pct(value * 100, 1).lstrip("+"), fontsize=22, color=th.text_primary,
+                 va="center", ha="right", fontweight="bold", family=th.mono_font)
         y -= 0.07
-    _title(fig, f"Reparto de la cartera · {portfolio.name}", "Peso de cada posición sobre el total")
-    _footer(fig, None, "pesos de la cartera cargada (orientativo)")
+    _title(fig, f"Reparto de la cartera · {portfolio.name}", "Peso de cada posición sobre el total", th)
+    _footer(fig, None, "pesos de la cartera cargada (orientativo)", th)
     path = _save(fig, Path(out_dir) / "portfolio_weights.png")
     return ChartAsset(path=path, ticker=None, kind="portfolio_pie")
 
@@ -408,6 +555,7 @@ def make_charts(
     *,
     line_tickers: Collection[str] | None = None,
     source: str | None = DEFAULT_SOURCE,
+    theme: str | None = None,
 ) -> list[ChartAsset]:
     """Genera todos los gráficos del briefing (overview + uno por ticker + cartera).
 
@@ -419,33 +567,40 @@ def make_charts(
     índices de contexto, p. ej. ``^IBEX``, salen solo en el gráfico de variación del día).
     ``source``: fuente de los precios rotulada en el pie (por defecto «Yahoo Finance»; en modo
     demo el pipeline debería pasar p. ej. ``"precios sintéticos (demo)"``).
+    ``theme``: ``"dark"`` / ``"light"`` para todos los gráficos (``None`` = ``BRIEFER_CHART_THEME``).
+    Un tema desconocido lanza ``ValueError`` (se resuelve una vez, antes de dibujar).
     """
+    theme = resolve_theme(theme).name
     wanted_lines = {t.upper() for t in line_tickers} if line_tickers is not None else None
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     assets: list[ChartAsset] = []
     if len(prices) >= 2:
         try:
-            assets.append(make_overview_chart(prices, out_dir, source=source))
+            assets.append(make_overview_chart(prices, out_dir, source=source, theme=theme))
         except Exception as exc:
             log.warning("Gráfico de variaciones omitido: %s", exc)
     for snap in prices:
         if not snap.history or (wanted_lines is not None and snap.ticker.upper() not in wanted_lines):
             continue
         try:
-            assets.append(make_price_chart(snap, out_dir, source=source))
+            assets.append(make_price_chart(snap, out_dir, source=source, theme=theme))
         except Exception as exc:
             log.warning("Gráfico de %s omitido: %s", snap.ticker, exc)
     if portfolio is not None and portfolio.positions:
         try:
-            assets.append(make_portfolio_chart(portfolio, out_dir, prices=prices))
+            assets.append(make_portfolio_chart(portfolio, out_dir, prices=prices, theme=theme))
         except Exception as exc:
             log.warning("Gráfico de cartera omitido: %s", exc)
     return assets
 
 
 __all__ = [
+    "DARK",
     "DEFAULT_SOURCE",
+    "LIGHT",
+    "THEMES",
+    "ChartTheme",
     "display_name",
     "fmt_date",
     "fmt_number",
@@ -457,5 +612,6 @@ __all__ = [
     "make_portfolio_chart",
     "make_price_chart",
     "portfolio_weights",
+    "resolve_theme",
     "safe_name",
 ]

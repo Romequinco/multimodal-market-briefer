@@ -110,6 +110,8 @@ class Settings(BaseSettings):
     briefer_news_rss_feeds: str = ""
     briefer_news_max_items: int = 20
     briefer_podcast_target_minutes: float = 4.0
+    # Tema de los gráficos PNG: "dark" (a juego con la UI) | "light" (email, impresión).
+    briefer_chart_theme: Literal["dark", "light"] = "dark"
 
     # ── Rutas (relativas a la raíz del repo si no son absolutas) ────────────────
     briefer_data_dir: Path = Path("data")

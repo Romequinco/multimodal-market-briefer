@@ -1,13 +1,37 @@
 # Tema y ajustes de la app Streamlit (Market Briefer).
-# Paleta alineada con los gráficos (media/charts.py): azul = sube / acción principal, fondo cálido claro.
+# Diseño «Noticiero nocturno»: base oscura de terminal, titulares serif de periódico y acento naranja
+# «en antena». El CSS complementario (cinta, cabecera, reproductor, tarjetas) está en
+# app/components/theme.py; los gráficos (media/charts.py) usan la misma paleta.
 
 [theme]
-base = "light"
-primaryColor = "#2a78d6"
-backgroundColor = "#fcfcfb"
-secondaryBackgroundColor = "#f2f1ee"
-textColor = "#0b0b0b"
-font = "sans serif"
+base = "dark"
+primaryColor = "#D85A30"             # accent «en antena»: botón primario, enlaces activos
+backgroundColor = "#12151B"          # bg
+secondaryBackgroundColor = "#1C2129" # surface: tarjetas, expanders, inputs
+textColor = "#D6DEE8"
+linkColor = "#F0997B"                # accent-soft
+borderColor = "#2A313B"
+dataframeBorderColor = "#2A313B"
+dataframeHeaderBackgroundColor = "#232A34"
+codeBackgroundColor = "#0E1116"
+greenColor = "#5DCAA5"               # up / OK
+redColor = "#F09595"                 # down / error
+orangeColor = "#EF9F27"              # amber: etiquetas técnicas, sustituto
+grayColor = "#888780"
+baseRadius = "8px"
+showWidgetBorder = true
+# Fuentes de Google Fonts (Streamlit >= 1.45 admite "<nombre>:<url>"; una familia por URL).
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+headingFont = "'Source Serif 4':https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&display=swap"
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+codeFontSize = "13px"
+chartCategoricalColors = ["#F0997B", "#5DCAA5", "#EF9F27", "#85B7EB", "#F09595", "#B4B2A9"]
+
+[theme.sidebar]
+backgroundColor = "#0E1116"          # bg-sidebar
+secondaryBackgroundColor = "#1C2129"
+borderColor = "#2A313B"
 
 [client]
 toolbarMode = "minimal"

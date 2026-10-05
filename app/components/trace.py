@@ -8,9 +8,11 @@ navegador (no hace falta el paquete ``graphviz`` de Python ni el binario ``dot``
 - Las aristas siguen el flujo de datos real del pipeline (``STEP_DEPENDENCIES``): noticias →
   filtro por tickers → Analista → Guionista → TTS → transcripción; precios → gráficos; subidas
   (PDF, gráfico, voz) → Analista; todo → vídeo / entrega → guardado.
-- Colores: verde = proveedor real · gris = mock en un briefing de demo · naranja = paso que cayó
-  a un sustituto (mock, ``data/samples``, precios sintéticos, guion de respaldo) en un briefing real
-  · rojo = paso con error.
+- Estilo «Noticiero nocturno» (tono terminal, fondo oscuro): nodos superficie ``#1C2129`` con texto
+  claro y fuente mono; el **borde** indica el estado: verde = proveedor real (OK) · ámbar = paso que
+  cayó a un sustituto (mock, ``data/samples``, precios sintéticos, guion de respaldo) en un briefing
+  real · rojo = paso con error · gris = mock (borde discontinuo) o procesado local sin IA.
+  Paleta en ``TRACE_COLORS``; leyenda en texto plano en ``TRACE_LEGEND`` / ``trace_legend_text()``.
 - ``StepMetric.detail`` (v0.3: grounding de cifras, reintentos, noticias filtradas…) se añade al
   nodo (recortado) y entero a la tabla.
 
@@ -83,13 +85,55 @@ STEP_LABELS: dict[str, str] = {
 #: Longitud máxima de ``StepMetric.detail`` dentro de un nodo del grafo (la tabla lo muestra entero).
 DETAIL_MAX_CHARS = 60
 
-COLORS = {
-    "real": ("#d8f3dc", "#2d6a4f"),
-    "mock": ("#eeeeee", "#6c757d"),
-    "fallback": ("#ffe8cc", "#d9480f"),
-    "error": ("#ffe3e3", "#c92a2a"),
-    "local": ("#e7f5ff", "#1c7ed6"),
+#: Paleta del grafo para fondo oscuro (tono terminal de «Cómo se hizo»).
+TRACE_COLORS: dict[str, str] = {
+    "background": "transparent",
+    "surface": "#1C2129",       # relleno de los nodos
+    "text": "#D6DEE8",          # texto de los nodos
+    "muted": "#888780",         # aristas, mock y procesado local
+    "border": "#2A313B",        # borde de los clusters
+    "stage_label": "#EF9F27",   # etiqueta ámbar de cada etapa
+    "ok": "#5DCAA5",            # proveedor real sin incidencias
+    "fallback": "#EF9F27",      # cayó a un sustituto
+    "error": "#F09595",         # paso omitido por error
 }
+
+#: Fuente mono para nodos, aristas y clusters (Graphviz en el navegador usa fuentes web).
+TRACE_FONT = "monospace"
+
+#: Estado -> (relleno, borde). El relleno es siempre la superficie; el borde codifica el estado.
+COLORS: dict[str, tuple[str, str]] = {
+    "real": (TRACE_COLORS["surface"], TRACE_COLORS["ok"]),
+    "mock": (TRACE_COLORS["surface"], TRACE_COLORS["muted"]),
+    "fallback": (TRACE_COLORS["surface"], TRACE_COLORS["fallback"]),
+    "error": (TRACE_COLORS["surface"], TRACE_COLORS["error"]),
+    "local": (TRACE_COLORS["surface"], TRACE_COLORS["muted"]),
+}
+
+#: Estilo del nodo por estado (mock con borde discontinuo para distinguirlo de «local»).
+NODE_STYLES: dict[str, str] = {
+    "real": "rounded,filled,bold",
+    "mock": "rounded,filled,dashed",
+    "fallback": "rounded,filled,bold",
+    "error": "rounded,filled,bold",
+    "local": "rounded,filled",
+}
+
+#: Leyenda de estados en texto plano (sin HTML): (estado, color del borde, descripción).
+TRACE_LEGEND: tuple[tuple[str, str, str], ...] = (
+    ("real", TRACE_COLORS["ok"], "OK · modelo de IA real"),
+    ("fallback", TRACE_COLORS["fallback"],
+     "SUSTITUTO · cayó a mock, datos de ejemplo, precios sintéticos o guion de respaldo"),
+    ("error", TRACE_COLORS["error"], "ERROR · paso omitido"),
+    ("mock", TRACE_COLORS["muted"], "MOCK · simulado (borde discontinuo)"),
+    ("local", TRACE_COLORS["muted"], "LOCAL · procesado sin IA"),
+)
+
+
+def trace_legend_text(sep: str = " · ") -> str:
+    """Leyenda de estados en una línea de texto plano (para pintarla en mono)."""
+    names = {"real": "verde", "fallback": "ámbar", "error": "rojo", "mock": "gris discontinuo", "local": "gris"}
+    return sep.join(f"{names[status]} = {desc}" for status, _, desc in TRACE_LEGEND)
 
 
 @dataclass(frozen=True)
@@ -235,28 +279,37 @@ def fallback_tag(metric: StepMetric) -> str:
 def build_trace_dot(metrics: Iterable[StepMetric], *, rankdir: str = "LR") -> str:
     """Grafo DOT de la cadena de modelos de un briefing (o de una pregunta Q&A)."""
     nodes = build_nodes(metrics)
+    c = TRACE_COLORS
+    font = TRACE_FONT
     out = [
         "digraph briefing {",
         f'  rankdir="{rankdir}";',
-        '  graph [fontname="Helvetica", fontsize=11, nodesep=0.25, ranksep=0.45];',
-        '  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10];',
-        '  edge [color="#868e96", arrowsize=0.7];',
+        f'  graph [bgcolor="{c["background"]}", fontname="{font}", fontsize=11, fontcolor="{c["stage_label"]}", '
+        'nodesep=0.25, ranksep=0.45];',
+        f'  node [shape=box, style="rounded,filled", fontname="{font}", fontsize=10, fontcolor="{c["text"]}", '
+        f'fillcolor="{c["surface"]}", color="{c["muted"]}", penwidth=1.4];',
+        f'  edge [color="{c["muted"]}", arrowsize=0.7, penwidth=1.0];',
     ]
+
+    def node_line(n: TraceNode, indent: str) -> str:
+        fill, border = COLORS[n.status]
+        return (f'{indent}{n.node_id} [label="{node_label(n)}", style="{NODE_STYLES[n.status]}", '
+                f'fillcolor="{fill}", color="{border}"];')
+
     for prefix, label in STAGES:
         members = [n for n in nodes if n.metric.step.split(".", 1)[0] == prefix]
         if not members:
             continue
         out.append(f"  subgraph cluster_{prefix} {{")
-        out.append(f'    label="{_esc(label)}"; style="rounded,dashed"; color="#adb5bd";')
+        out.append(f'    label="{_esc(label.upper())}"; labeljust="l"; style="rounded,dashed"; '
+                   f'color="{c["border"]}"; fontcolor="{c["stage_label"]}"; fontname="{font}"; fontsize=10;')
         for n in members:
-            fill, border = COLORS[n.status]
-            out.append(f'    {n.node_id} [label="{node_label(n)}", fillcolor="{fill}", color="{border}"];')
+            out.append(node_line(n, "    "))
         out.append("  }")
     grouped = {p for p, _ in STAGES}
     for n in nodes:
         if n.metric.step.split(".", 1)[0] not in grouped:
-            fill, border = COLORS[n.status]
-            out.append(f'  {n.node_id} [label="{node_label(n)}", fillcolor="{fill}", color="{border}"];')
+            out.append(node_line(n, "  "))
     for a, b in build_edges(nodes):
         out.append(f"  {a} -> {b};")
     out.append("}")
@@ -279,7 +332,12 @@ def trace_summary(metrics: Iterable[StepMetric]) -> dict[str, float | int]:
 
 
 __all__ = [
+    "COLORS",
+    "NODE_STYLES",
     "STEP_DEPENDENCIES",
+    "TRACE_COLORS",
+    "TRACE_FONT",
+    "TRACE_LEGEND",
     "TraceNode",
     "build_edges",
     "build_nodes",
@@ -290,5 +348,6 @@ __all__ = [
     "is_demo_run",
     "node_label",
     "step_status",
+    "trace_legend_text",
     "trace_summary",
 ]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -12,12 +13,16 @@ if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 from components.trace import (  # noqa: E402
+    COLORS,
+    TRACE_COLORS,
+    TRACE_LEGEND,
     build_edges,
     build_nodes,
     build_trace_dot,
     is_demo_run,
     node_label,
     step_status,
+    trace_legend_text,
     trace_summary,
 )
 
@@ -131,6 +136,71 @@ def test_dot_is_well_formed_and_marks_incidents() -> None:
     assert "cluster_agents" in dot and "cluster_media" in dot
     assert "CAÍDO A MOCK" in dot and "ERROR" in dot
     assert dot.count("->") == len(build_edges(build_nodes(REAL_RUN)))
+
+
+def _node_attrs(dot: str) -> dict[str, str]:
+    """``node_id`` -> atributos del nodo (texto entre corchetes) de las líneas de nodo del DOT."""
+    return {m.group(1): m.group(2) for m in re.finditer(r"^\s*(n\d+) \[(.*)\];$", dot, re.MULTILINE)}
+
+
+def test_dot_dark_theme_colors_by_status() -> None:
+    dot = build_trace_dot(REAL_RUN)
+    assert 'bgcolor="transparent"' in dot
+    assert 'fontname="monospace"' in dot
+    assert f'fontcolor="{TRACE_COLORS["text"]}"' in dot          # texto claro #D6DEE8
+    assert f'fontcolor="{TRACE_COLORS["stage_label"]}"' in dot   # etiqueta ámbar de las etapas
+    assert f'color="{TRACE_COLORS["border"]}"' in dot            # borde de los clusters
+    assert 'edge [color="#888780"' in dot
+    nodes = build_nodes(REAL_RUN)
+    attrs = _node_attrs(dot)
+    assert set(attrs) == {n.node_id for n in nodes}
+    expected = {"real": "#5DCAA5", "fallback": "#EF9F27", "error": "#F09595", "local": "#888780"}
+    for n in nodes:
+        assert 'fillcolor="#1C2129"' in attrs[n.node_id]
+        assert f'color="{expected[n.status]}"' in attrs[n.node_id], (n.metric.step, n.status)
+    # Ningún color del tema claro anterior
+    for old in ("#d8f3dc", "#ffe8cc", "#ffe3e3", "#e7f5ff", "Helvetica"):
+        assert old not in dot
+
+
+def test_dot_mock_nodes_are_grey_dashed() -> None:
+    dot = build_trace_dot(DEMO_RUN)
+    attrs = _node_attrs(dot)
+    for n in build_nodes(DEMO_RUN):
+        if n.status == "mock":
+            assert 'color="#888780"' in attrs[n.node_id] and "dashed" in attrs[n.node_id]
+
+
+def test_dot_structure_is_valid() -> None:
+    """Validación estructural del DOT (con el paquete ``graphviz`` si está, si no con regex)."""
+    dot = build_trace_dot(REAL_RUN)
+    lines = [ln.strip() for ln in dot.splitlines()]
+    assert lines[0] == "digraph briefing {" and lines[-1] == "}"
+    depth = 0
+    for ln in lines:
+        depth += ln.count("{") - ln.count("}")
+        assert depth >= 0
+    assert depth == 0
+    # Comillas equilibradas (sin contar las escapadas) en cada línea
+    for ln in lines:
+        assert ln.replace('\\"', "").count('"') % 2 == 0, ln
+    ids = set(_node_attrs(dot))
+    for a, b in re.findall(r"^\s*(n\d+) -> (n\d+);$", dot, re.MULTILINE):
+        assert a in ids and b in ids
+    try:
+        import graphviz  # type: ignore[import-not-found]
+    except ImportError:
+        return
+    assert graphviz.Source(dot).source == dot
+
+
+def test_colors_and_legend_cover_every_status() -> None:
+    statuses = {"real", "mock", "fallback", "error", "local"}
+    assert set(COLORS) == statuses
+    assert {s for s, _, _ in TRACE_LEGEND} == statuses
+    text = trace_legend_text()
+    assert "<" not in text and ">" not in text  # texto plano, sin HTML
+    assert "verde" in text and "ámbar" in text and "rojo" in text and "gris" in text
 
 
 def test_dot_escapes_quotes() -> None:

@@ -20,10 +20,12 @@
 from __future__ import annotations
 
 import threading
+from html import escape
 from pathlib import Path
 
 import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
+from components.theme import apply_theme, tech_label
 from components.players import (
     featured_briefing,
     handle_navigation,
@@ -41,6 +43,7 @@ from briefer.config import get_settings
 from briefer.schemas import Briefing, QAAnswer
 
 st.set_page_config(page_title="Preguntar · Market Briefer", page_icon=":material/forum:", layout="wide")
+apply_theme()
 handle_navigation()
 mode = sidebar_mode()
 settings = get_settings()
@@ -93,8 +96,11 @@ if briefing is None:
     st.info("No hay ningún briefing cargado: el agente responderá sin el contexto del día. Genera uno en "
             "la página «Briefing» para preguntar sobre él.")
 else:
-    st.caption(f":material/description: Contexto: **{briefing.analysis.headline}** "
-               f"(sesión del {briefing.analysis.date:%d/%m/%Y}, id `{briefing.id}`)")
+    st.caption(
+        f'{tech_label("Contexto:")} <b>{escape(briefing.analysis.headline)}</b> '
+        + tech_label(f"sesión del {briefing.analysis.date:%d/%m/%Y} · id {briefing.id}", "muted"),
+        unsafe_allow_html=True,
+    )
 
 context_id = briefing.id if briefing is not None else None
 if st.session_state.get(CONTEXT_KEY) != context_id:
@@ -153,7 +159,7 @@ def _answer(question: str | Path) -> QAAnswer:
                                           history=history, mode=mode)
     if not two_step:
         return answer
-    with st.container(border=True):  # el texto se ve ya, mientras se sintetiza la voz
+    with st.container(key="mb-card-qa-pending"):  # el texto se ve ya, mientras se sintetiza la voz
         render_qa_answer(answer, briefing)
     with st.spinner("Poniendo voz a la respuesta…"):
         try:
@@ -223,8 +229,8 @@ if answers:
         st.session_state[ANSWERS_KEY] = []
         st.session_state[HISTORY_KEY] = []
         st.rerun()
-    for previous in answers:
-        with st.container(border=True):
+    for i, previous in enumerate(answers):
+        with st.container(key=f"mb-card-qa-{i}"):
             render_qa_answer(previous, briefing)
 
 show_disclaimer()

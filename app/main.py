@@ -2,18 +2,23 @@
 
 Las páginas de ``app/pages/`` aparecen automáticamente en la barra lateral.
 
-«Demo que nunca falla» (lo que ve el evaluador en los primeros 30 s):
+«Demo que nunca falla» (lo que ve el evaluador en los primeros 30 s), con el tema «Noticiero
+nocturno» (``components.theme``):
 
-1. Cabecera: nombre, propuesta de valor en una línea e insignia del modo (real / demo).
+1. Cinta de cotizaciones del briefing destacado y cabecera: nombre en serif, insignia «● en antena»,
+   fecha de la sesión en mono, propuesta de valor en una línea e insignia del modo (real / demo).
 2. El briefing de hoy **sin pulsar nada**: el último guardado (``data/outputs``) o, si no hay, el
    pregenerado real de ``data/samples/demo_briefing/`` (``storage.load_featured_briefing``, cacheado),
-   con el reproductor arriba, 3 puntos clave, «Preguntar sobre este briefing» y «Generar el tuyo».
-3. Franja «Cómo se hizo» (modelos, pasos, latencia y coste) y pestañas con el detalle.
+   con titular serif, reproductor, 3 puntos clave, «Preguntar sobre este briefing» (primario) y
+   «Generar el tuyo».
+3. Franja «Cómo se hizo» en mono (modelos, pasos, latencia y coste) y pestañas con el detalle.
 
 Si no existe ningún briefing, lo explica y ofrece generar uno. El disclaimer va al pie, compacto.
 """
 
 from __future__ import annotations
+
+from html import escape
 
 import components  # noqa: F401  (añade src/ al sys.path)
 from components import ROOT_DIR
@@ -25,6 +30,7 @@ from components.players import (
     PAGE_HISTORY,
     PAGE_PORTFOLIO,
     VALUE_PROPOSITION,
+    briefing_tape,
     featured_briefing,
     handle_navigation,
     mode_badge,
@@ -32,25 +38,32 @@ from components.players import (
     show_disclaimer,
     sidebar_mode,
 )
+from components.theme import apply_theme, masthead
 
 from briefer import storage
 from briefer.logging_utils import error_text
 
 st.set_page_config(page_title="Market Briefer", page_icon=":material/podcasts:", layout="wide")
+apply_theme()
 handle_navigation()
 mode = sidebar_mode()
 
-# ── Cabecera ──────────────────────────────────────────────────────────────────────
-st.title("Market Briefer")
-st.markdown(f"#### {VALUE_PROPOSITION}")
-mode_badge(mode)
-
 # ── Briefing de hoy (último guardado o pregenerado) ────────────────────────────────
+load_error: str | None = None
 try:
     featured = featured_briefing()
 except Exception as exc:  # nunca romper la portada
     featured = None
-    st.caption(f"No se pudo cargar el briefing guardado ({type(exc).__name__}).")
+    load_error = type(exc).__name__
+
+# ── Cinta y cabecera ──────────────────────────────────────────────────────────────
+if featured is not None:
+    briefing_tape(featured[0])
+masthead(featured[0].analysis.date if featured is not None else None, on_air=featured is not None)
+st.markdown(f'<p class="mb-tagline">{escape(VALUE_PROPOSITION)}</p>', unsafe_allow_html=True)
+mode_badge(mode)
+if load_error:
+    st.caption(f"No se pudo cargar el briefing guardado ({load_error}).")
 
 if featured is not None:
     briefing, origin = featured
@@ -60,7 +73,7 @@ if featured is not None:
     except Exception as exc:  # p. ej. ficheros movidos a mano: se avisa sin traceback
         st.warning(f"El briefing guardado no se pudo mostrar completo ({error_text(exc)}).")
 else:
-    with st.container(border=True):
+    with st.container(key="mb-card-empty"):
         st.info(
             "Todavía no hay ningún briefing guardado ni el briefing de ejemplo "
             f"(`{storage.DEMO_BRIEFING_DIRNAME}/` en `data/samples/`). Genera el primero en la página "
@@ -70,19 +83,20 @@ else:
 
 # ── Acciones ──────────────────────────────────────────────────────────────────────
 st.markdown("### ¿Qué más puedes hacer?")
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    page_link(PAGE_BRIEFING, "Generar el tuyo", ":material/podcasts:")
-    st.caption("Elige valores, añade un PDF de resultados, una captura de gráfico o una nota de voz.")
-with col2:
-    page_link(PAGE_ASK, "Preguntar por voz", ":material/mic:")
-    st.caption("El Agente Q&A responde sobre el briefing, en texto y en audio.")
-with col3:
-    page_link(PAGE_PORTFOLIO, "Mi cartera", ":material/account_balance_wallet:")
-    st.caption("Carga tu cartera (CSV) para filtrar las noticias. No se guarda en disco.")
-with col4:
-    page_link(PAGE_HISTORY, "Histórico", ":material/history:")
-    st.caption("Briefings anteriores, con su audio, gráficos y traza.")
+ACTIONS = [
+    (PAGE_BRIEFING, "Generar el tuyo", ":material/podcasts:",
+     "Elige valores, añade un PDF de resultados, una captura de gráfico o una nota de voz."),
+    (PAGE_ASK, "Preguntar por voz", ":material/mic:",
+     "El Agente Q&A responde sobre el briefing, en texto y en audio."),
+    (PAGE_PORTFOLIO, "Mi cartera", ":material/account_balance_wallet:",
+     "Carga tu cartera (CSV) para filtrar las noticias. No se guarda en disco."),
+    (PAGE_HISTORY, "Histórico", ":material/history:",
+     "Briefings anteriores, con su audio, gráficos y traza."),
+]
+for i, (col, (page, label, icon, text)) in enumerate(zip(st.columns(4), ACTIONS)):
+    with col, st.container(key=f"mb-card-action-{i}"):
+        page_link(page, label, icon)
+        st.caption(text)
 
 with st.expander("¿Cómo funciona? (cadena de modelos)"):
     st.markdown(

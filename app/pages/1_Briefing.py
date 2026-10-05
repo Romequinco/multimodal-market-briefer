@@ -25,9 +25,12 @@ from pathlib import Path
 
 import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
+from components.theme import apply_theme
 from components.players import (
     StatusProgress,
+    briefing_tape,
     demo_mode_banner,
+    featured_briefing,
     handle_navigation,
     pending,
     render_briefing,
@@ -41,6 +44,7 @@ from briefer.config import get_settings
 from briefer.ingest.tickers import TICKER_UNIVERSE
 
 st.set_page_config(page_title="Briefing · Market Briefer", page_icon=":material/podcasts:", layout="wide")
+apply_theme()
 handle_navigation()
 mode = sidebar_mode()
 use_mock = mode != "real"
@@ -49,6 +53,19 @@ settings = get_settings()
 REQUEST_KEY = "_briefing_request"
 BUSY_KEY = "_briefing_busy"
 
+
+def _tape_briefing():
+    """Briefing de la cinta: el activo de la sesión o, si no hay, el destacado de la portada."""
+    if "briefing" in st.session_state:
+        return st.session_state["briefing"]
+    try:
+        featured = featured_briefing()
+    except Exception:
+        return None
+    return featured[0] if featured else None
+
+
+briefing_tape(_tape_briefing())
 st.title("Briefing del día")
 demo_mode_banner(mode)
 

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 import traceback
+from html import escape
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,10 +32,28 @@ from briefer.logging_utils import error_text, redact_secrets
 from briefer.providers import registry
 from briefer.schemas import DISCLAIMER_ES, Briefing, ChartAsset, NewsItem, QAAnswer, StepMetric
 
-from .trace import build_trace_dot, fallback_tag, has_real_voices, is_demo_run, step_status, trace_summary
+from .theme import (
+    fmt_duration,
+    headline,
+    keypoint_card,
+    legend_html,
+    pill_html,
+    player_card,
+    tech_label,
+    ticker_tape,
+)
+from .trace import (
+    TRACE_LEGEND,
+    build_trace_dot,
+    fallback_tag,
+    has_real_voices,
+    is_demo_run,
+    step_status,
+    trace_summary,
+)
 
 SENTIMENT_LABEL = {"positivo": "▲ positivo", "negativo": "▼ negativo", "neutral": "● neutral"}
-SENTIMENT_BADGE = {"positivo": "blue", "negativo": "red", "neutral": "gray"}
+SENTIMENT_BADGE = {"positivo": "green", "negativo": "red", "neutral": "gray"}
 SYNTHETIC_VOICE_NOTE = (
     "voces **sintéticas** generadas con IA, no son personas reales (lo dicen también el cierre del "
     "episodio y los metadatos del MP3, AI Act art. 50)"
@@ -53,9 +72,9 @@ CHART_KIND_LABEL = {
 
 
 def show_disclaimer() -> None:
-    """Aviso MiFID II visible en todas las páginas (compacto, al pie)."""
+    """Aviso MiFID II visible en todas las páginas (compacto, al pie, mono gris)."""
     st.divider()
-    st.caption(f":material/info: **Aviso:** {DISCLAIMER_ES}")
+    disclaimer_note()
 
 
 def pending(exc: BaseException, what: str) -> None:
@@ -188,7 +207,7 @@ def sidebar_mode() -> str:
         )
         if want_real and available:
             mode = "real"
-            st.markdown(":green-background[**MODO REAL**] · APIs de `.env`")
+            st.markdown(mode_line("MODO REAL", "APIs de .env", "ok"), unsafe_allow_html=True)
         else:
             demo_options = ["demo_voices", "mock"]
             default = previous if previous in demo_options else default_demo_mode()
@@ -201,9 +220,10 @@ def sidebar_mode() -> str:
                 "Offline: todo simulado, sin red (el audio es un silencio de prueba).",
             )
             if mode == "demo_voices":
-                st.markdown(":orange-background[**MODO DEMO**] · sin claves · voces reales (edge-tts)")
+                st.markdown(mode_line("MODO DEMO", "sin claves · voces reales (edge-tts)", "amber"),
+                            unsafe_allow_html=True)
             else:
-                st.markdown(":orange-background[**MODO DEMO**] · sin red ni claves")
+                st.markdown(mode_line("MODO DEMO", "sin red ni claves", "amber"), unsafe_allow_html=True)
             if not available:
                 st.caption(f"Modo real no disponible: {why}")
         st.session_state["run_mode"] = mode
@@ -269,23 +289,26 @@ def demo_mode_banner(mode: str | bool) -> None:
     mode = _as_mode(mode)
     mocked = mock_providers(mode)
     if mode == "mock":
-        st.markdown(":orange-background[**MODO DEMO (mock)**] · sin red ni claves")
+        st.markdown(mode_line("MODO DEMO (mock)", "sin red ni claves", "amber"), unsafe_allow_html=True)
         st.caption(
             "Proveedores en mock: " + ", ".join(mocked) + ". Noticias de ejemplo y precios "
             "sintéticos: los contenidos son ficticios."
         )
     elif mode == "demo_voices":
-        st.markdown(":orange-background[**MODO DEMO SIN CLAVES**] · voces reales (edge-tts)")
+        st.markdown(mode_line("MODO DEMO SIN CLAVES", "voces reales (edge-tts)", "amber"),
+                    unsafe_allow_html=True)
         st.caption(
             "Proveedores en mock: " + ", ".join(mocked) + ". Noticias de ejemplo y precios "
             "sintéticos (contenidos ficticios), pero el podcast se lee con voces sintéticas reales "
             "de edge-tts (gratis, sin clave; necesita conexión)."
         )
     elif mocked:
-        st.markdown(":orange-background[**MODO MIXTO**] · algunos proveedores son simulados")
+        st.markdown(mode_line("MODO MIXTO", "algunos proveedores son simulados", "amber"),
+                    unsafe_allow_html=True)
         st.caption("Proveedores en mock (según `.env`): " + ", ".join(mocked) + ".")
     else:
-        st.markdown(":green-background[**MODO REAL**] · noticias, precios y modelos reales")
+        st.markdown(mode_line("MODO REAL", "noticias, precios y modelos reales", "ok"),
+                    unsafe_allow_html=True)
 
 
 def failed_steps(metrics: list[StepMetric]) -> list[StepMetric]:
@@ -347,6 +370,16 @@ def format_source(source: str, news: dict[str, NewsItem]) -> str:
     return source
 
 
+def source_parts(source: str, news: dict[str, NewsItem]) -> tuple[str, str | None]:
+    """``(texto, url)`` de una fuente para las tarjetas HTML (el escape lo hace ``theme``)."""
+    item = news.get(source)
+    if item is not None:
+        return f"{item.title} · {item.source}", item.url
+    if source.startswith(("http://", "https://")):
+        return source, source
+    return source, None
+
+
 def chart_caption(chart: ChartAsset) -> str:
     """Pie de figura legible para un gráfico."""
     label = CHART_KIND_LABEL.get(chart.kind, chart.kind)
@@ -358,6 +391,11 @@ def _fmt_duration(seconds: float) -> str:
     return f"{mins}:{secs:02d}"
 
 
+def _es(value: float, decimals: int, unit: str = "") -> str:
+    """Número con coma decimal (formato español) y unidad, para las métricas de la UI."""
+    return f"{value:.{decimals}f}".replace(".", ",") + unit
+
+
 def render_metrics(briefing: Briefing) -> None:
     """Tabla de latencia y coste estimado por paso, con totales."""
     if not briefing.metrics:
@@ -366,8 +404,8 @@ def render_metrics(briefing: Briefing) -> None:
     summary = costs.summarize_metrics(briefing.metrics)
     c1, c2, c3 = st.columns(3)
     c1.metric("Pasos", int(summary.get("steps", len(briefing.metrics))))
-    c2.metric("Latencia total", f"{summary.get('total_latency_s', 0.0):.2f} s")
-    c3.metric("Coste estimado", f"{summary.get('total_cost_eur', 0.0):.4f} €")
+    c2.metric("Latencia total", _es(summary.get('total_latency_s', 0.0), 2, " s"))
+    c3.metric("Coste estimado", _es(summary.get('total_cost_eur', 0.0), 4, " €"))
     render_metrics_table(briefing.metrics)
     st.caption("Costes estimados con las tarifas de `costs.py` (no son facturas reales).")
 
@@ -422,20 +460,21 @@ def render_trace(source: Briefing | QAAnswer | list[StepMetric], key: str = "tra
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Modelos de IA", summary["ai_models"])
     c2.metric("Pasos", summary["steps"])
-    c3.metric("Latencia (suma)", f"{summary['total_latency_s']:.1f} s")
-    c4.metric("Coste estimado", f"{summary['total_cost_eur']:.4f} €")
+    c3.metric("Latencia (suma)", _es(summary['total_latency_s'], 1, " s"))
+    c4.metric("Coste estimado", _es(summary['total_cost_eur'], 4, " €"))
     try:
         st.graphviz_chart(build_trace_dot(metrics))
     except Exception as exc:  # el grafo es secundario: nunca rompe la página
         st.caption(f"No se pudo dibujar el grafo ({exc}); se muestra solo la tabla.")
-    st.caption(
-        "Verde: modelo real · gris: simulado (mock) · naranja: cayó a un sustituto (mock, datos de "
-        "ejemplo o precios sintéticos) por un fallo · "
-        "rojo: paso omitido por error · azul: procesado local sin IA. La latencia es la suma de "
-        "pasos (algunos se ejecutan en paralelo). Costes estimados con `costs.py`."
-    )
+    st.html(legend_html(TRACE_LEGEND))
+    st.caption("La latencia es la suma de pasos (algunos se ejecutan en paralelo). Costes estimados "
+               "con `costs.py`.")
     if summary["fallbacks"] or summary["errors"]:
-        st.caption(f"Incidencias: {summary['fallbacks']} caída(s) a mock · {summary['errors']} error(es).")
+        st.caption(
+            tech_label(f"Incidencias: {summary['fallbacks']} caída(s) a mock", "warn") + " · "
+            + tech_label(f"{summary['errors']} error(es)", "err" if summary["errors"] else "muted"),
+            unsafe_allow_html=True,
+        )
     render_metrics_table(metrics)
 
 
@@ -523,11 +562,11 @@ def handle_navigation() -> None:
         st.info("Abre la página **Preguntar** en el menú lateral: el briefing ya está seleccionado.")
 
 
-def page_link(page: str, label: str, icon: str | None = None, container=None) -> None:
+def page_link(page: str, label: str, icon: str | None = None, container=None, width: str = "content") -> None:
     """``st.page_link`` tolerante: si la página no está registrada, muestra el texto sin enlace."""
     target = container or st
     try:
-        target.page_link(page, label=label, icon=icon)
+        target.page_link(page, label=label, icon=icon, width=width)
     except StreamlitAPIException:
         target.markdown(f"{label} (menú lateral)")
 
@@ -567,11 +606,12 @@ def featured_briefing() -> tuple[Briefing, str] | None:
 def mode_badge(mode: str) -> None:
     """Insignia compacta del modo activo (cabecera de las páginas)."""
     if mode == "real":
-        st.badge("Modo real", icon=":material/bolt:", color="green")
+        body = pill_html("Modo real", "ok")
     elif mode == "demo_voices":
-        st.badge("Demo sin claves · voces reales", icon=":material/science:", color="orange")
+        body = pill_html("Demo sin claves · voces reales", "amber")
     else:
-        st.badge("Demo offline · todo simulado", icon=":material/science:", color="orange")
+        body = pill_html("Demo offline · todo simulado", "amber")
+    st.markdown(body, unsafe_allow_html=True)
 
 
 def origin_badge(briefing: Briefing, origin: str) -> None:
@@ -579,10 +619,9 @@ def origin_badge(briefing: Briefing, origin: str) -> None:
     demo = is_demo_run(briefing.metrics)
     if origin == "pregenerado":
         label = "Briefing de ejemplo pregenerado" + (" (simulado)" if demo else " con datos y modelos reales")
-        st.badge(label, icon=":material/inventory_2:", color="blue")
     else:
         label = "Último briefing guardado" + (" (demo)" if demo else "")
-        st.badge(label, icon=":material/history:", color="gray" if demo else "blue")
+    st.markdown(pill_html(label, "muted" if demo else "accent"), unsafe_allow_html=True)
 
 
 # ── Descargas y reproductor ────────────────────────────────────────────────────────
@@ -640,7 +679,15 @@ def render_downloads(briefing: Briefing, key: str = "briefing", *, zip_export: b
 def render_podcast_player(briefing: Briefing, key: str = "briefing", *, downloads: bool = True) -> None:
     """Reproductor del podcast con el aviso de voz sintética y, opcionalmente, las descargas."""
     if briefing.audio and _exists(briefing.audio.path):
-        st.audio(str(Path(briefing.audio.path)))
+        a = briefing.analysis
+        player_card(
+            Path(briefing.audio.path),
+            key=key,
+            title="Podcast del día",
+            meta=[f"{a.date:%d/%m/%Y}", f"{fmt_duration(briefing.audio.duration_s)} min",
+                  "2 voces sintéticas"],
+            seed=briefing.id,
+        )
         st.caption(
             f":material/graphic_eq: {_fmt_duration(briefing.audio.duration_s)} min · "
             f"{len(briefing.audio.segments)} intervenciones · {SYNTHETIC_VOICE_NOTE}"
@@ -655,8 +702,14 @@ def render_podcast_player(briefing: Briefing, key: str = "briefing", *, download
 
 
 def disclaimer_note(text: str | None = None) -> None:
-    """Disclaimer compacto (visible, sin ocupar la pantalla como un ``st.warning``)."""
-    st.caption(f":material/info: **Aviso:** {text or DISCLAIMER_ES}")
+    """Disclaimer compacto (visible, sin ocupar la pantalla como un ``st.warning``), en mono gris."""
+    body = escape(text or DISCLAIMER_ES)
+    st.caption(f'<span class="mb-disclaimer"><b>Aviso:</b> {body}</span>', unsafe_allow_html=True)
+
+
+def mode_line(label: str, note: str, tone: str) -> str:
+    """Insignia de modo en mono (``MODO DEMO`` / ``MODO REAL``) + nota; HTML escapado."""
+    return f'{pill_html(label, tone)} <span class="mb-mode-note">· {escape(note)}</span>'
 
 
 def render_key_points(briefing: Briefing, max_points: int | None = None, *, compact: bool = False) -> None:
@@ -668,19 +721,28 @@ def render_key_points(briefing: Briefing, max_points: int | None = None, *, comp
         return
     news = _news_index(briefing)
     for kp in points:
-        badge = SENTIMENT_BADGE.get(kp.sentiment, "gray")
-        label = SENTIMENT_LABEL.get(kp.sentiment, kp.sentiment)
-        if compact:
-            tickers = f" · {', '.join(kp.tickers)}" if kp.tickers else ""
-            st.markdown(f"- **{kp.title}** :{badge}[{label}]{tickers}")
-            continue
-        with st.container(border=True):
-            st.markdown(f"**{kp.title}** — :{badge}[{label}]")
-            st.write(kp.explanation)
-            if kp.tickers:
-                st.caption("Valores: " + ", ".join(kp.tickers))
-            if kp.sources:
-                st.markdown("Fuentes: " + " · ".join(format_source(s, news) for s in kp.sources))
+        sources = [] if compact else [source_parts(s, news) for s in kp.sources]
+        keypoint_card(kp, sources, compact=compact)
+
+
+def briefing_tape(briefing: Briefing | None) -> None:
+    """Cinta de cotizaciones del briefing activo (índices de contexto con su nombre, en gris)."""
+    if briefing is None or not briefing.context.prices:
+        return
+    try:
+        indices = list(get_settings().context_tickers)
+    except Exception:  # .env mal formado: lo avisa la barra lateral
+        indices = []
+    try:
+        from briefer.ingest.tickers import TICKER_UNIVERSE
+    except Exception:
+        TICKER_UNIVERSE = {}
+    names = {
+        p.ticker: str(TICKER_UNIVERSE.get(p.ticker, {}).get("name", p.ticker))
+        for p in briefing.context.prices
+        if p.ticker.startswith("^") or p.ticker in indices
+    }
+    ticker_tape(briefing.context.prices, names, indices)
 
 
 def trace_strip(briefing: Briefing) -> str:
@@ -698,9 +760,8 @@ def render_briefing(briefing: Briefing, key: str = "briefing", *, ask_button: bo
     ``ask_button``: botón «Preguntar sobre este briefing» (lo deja como contexto y abre Preguntar).
     """
     a = briefing.analysis
-    st.subheader(a.headline)
-    st.caption(f"Sesión del {a.date:%d/%m/%Y} · generado el {briefing.created_at:%d/%m/%Y a las %H:%M} · "
-               f"id `{briefing.id}`")
+    headline(a.headline, [f"Sesión del {a.date:%d/%m/%Y}",
+                          f"generado el {briefing.created_at:%d/%m/%Y a las %H:%M}", f"id {briefing.id}"])
     st.markdown(f"**Tono del mercado:** {a.market_mood}")
     render_run_warnings(briefing)
 
@@ -765,21 +826,25 @@ def render_featured_briefing(
     de resumen de la traza siempre visible.
     """
     a = briefing.analysis
-    with st.container(border=True):
-        origin_badge(briefing, origin)
-        st.subheader(a.headline)
-        st.caption(f"Sesión del {a.date:%d/%m/%Y} · valores: {', '.join(briefing.context.tickers) or '—'}")
-        if briefing.cover_path and _exists(briefing.cover_path):
-            st.image(str(briefing.cover_path), caption="Imagen generada por IA")
-        render_podcast_player(briefing, key, downloads=False)
-        render_key_points(briefing, max_points, compact=True)
+    origin_badge(briefing, origin)
+    meta = [f"{a.date:%d/%m/%Y}"]
+    if briefing.audio:
+        meta.append(f"{fmt_duration(briefing.audio.duration_s)} min")
+    meta += ["2 voces sintéticas", "valores: " + (", ".join(briefing.context.tickers) or "—")]
+    headline(a.headline, meta)
+    if briefing.cover_path and _exists(briefing.cover_path):
+        st.image(str(briefing.cover_path), caption="Imagen generada por IA")
+    render_podcast_player(briefing, key, downloads=False)
+    render_key_points(briefing, max_points, compact=True)
+    with st.container(key=f"mb-cta-{key}"):
         c1, c2 = st.columns(2)
         c1.button("Preguntar sobre este briefing", key=f"{key}_ask", icon=":material/forum:",
-                  on_click=ask_about, args=(briefing,), width="stretch")
-        page_link(PAGE_BRIEFING, "Generar el tuyo", ":material/podcasts:", container=c2)
-        if briefing.metrics:
-            st.caption(f":material/account_tree: **Cómo se hizo:** {trace_strip(briefing)} "
-                       "(detalle en la pestaña «Cómo se hizo»)")
+                  on_click=ask_about, args=(briefing,), width="stretch", type="primary")
+        page_link(PAGE_BRIEFING, "Generar el tuyo", ":material/podcasts:", container=c2, width="stretch")
+    if briefing.metrics:
+        st.caption(f'{tech_label("Cómo se hizo:")} <span class="mb-strip">{escape(trace_strip(briefing))}'
+                   "</span> " + tech_label("(detalle en la pestaña «Cómo se hizo»)", "muted"),
+                   unsafe_allow_html=True)
 
     tab_points, tab_transcript, tab_charts, tab_trace = st.tabs(
         ["Puntos clave", "Transcripción", "Gráficos", "Cómo se hizo"]
@@ -821,7 +886,8 @@ def render_qa_answer(answer: QAAnswer, briefing: Briefing | None = None) -> None
             for m in answer.metrics
         )
         target = " ✓ < 10 s" if total < 10 else ""
-        st.caption(f":material/timer: Latencia total {total:.1f} s{target} ({detail})")
+        st.caption(tech_label(f"Latencia total {total:.1f} s{target}", "ok" if total < 10 else "amber")
+                   + " " + tech_label(f"({detail})", "muted"), unsafe_allow_html=True)
         with st.expander("Cómo se hizo (voz → texto → respuesta → voz)"):
             render_trace(answer)
 

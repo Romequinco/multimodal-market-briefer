@@ -14,6 +14,7 @@ from pathlib import Path
 
 import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
+from components.theme import apply_theme
 from components.players import (
     handle_navigation,
     mode_badge,
@@ -29,6 +30,7 @@ from briefer import storage
 from briefer.config import get_settings
 
 st.set_page_config(page_title="Histórico · Market Briefer", page_icon=":material/history:", layout="wide")
+apply_theme()
 handle_navigation()
 mode = sidebar_mode()
 
