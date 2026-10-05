@@ -11,6 +11,9 @@ Flujo resumido:
 
 Todos los modelos son serializables a JSON (``model_dump_json``) para guardarlos en
 ``data/outputs/<id>/briefing.json`` (ver ``storage.py``).
+
+Versión de contratos: ``CONTRACTS_VERSION`` (detalle y changelog en ``docs/03_contratos_modulos.md``).
+v0.2 (aditiva): ``StepMetric.error`` y ``QAAnswer.metrics``.
 """
 
 from __future__ import annotations
@@ -21,6 +24,9 @@ from typing import Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+#: Versión de los contratos de este módulo. Menor = cambio aditivo; mayor = cambio que rompe.
+CONTRACTS_VERSION = "0.2"
 
 # Disclaimer MiFID II: el producto informa, no asesora. Se muestra en la UI, en el
 # análisis, en el email/Telegram y se lee al final del podcast.
@@ -190,13 +196,17 @@ class VideoAsset(_Model):
 
 
 class StepMetric(_Model):
-    """Métrica de un paso del pipeline (latencia y coste estimado)."""
+    """Métrica de un paso del pipeline (latencia y coste estimado).
+
+    ``error`` (v0.2): ``"Tipo: mensaje"`` si el paso lanzó una excepción; ``None`` si fue bien.
+    """
 
     step: str
     provider: str
     model: str
     latency_s: float
     est_cost_eur: float = 0.0
+    error: str | None = None
 
 
 class DeliveryResult(_Model):
@@ -232,15 +242,21 @@ class Briefing(_Model):
 
 
 class QAAnswer(_Model):
-    """Respuesta del Agente Q&A (texto + audio opcional)."""
+    """Respuesta del Agente Q&A (texto + audio opcional).
+
+    ``metrics`` (v0.2): un ``StepMetric`` por paso (``qa.stt`` si la pregunta es de voz,
+    ``agents.qa`` y ``qa.tts`` si se pide audio) para medir la latencia de extremo a extremo.
+    """
 
     question: str
     answer_text: str
     audio_path: Path | None = None
     sources: list[str] = Field(default_factory=list)
+    metrics: list[StepMetric] = Field(default_factory=list)
 
 
 __all__ = [
+    "CONTRACTS_VERSION",
     "DISCLAIMER_ES",
     "Analysis",
     "AudioAsset",

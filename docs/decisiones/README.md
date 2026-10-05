@@ -10,6 +10,7 @@ de ambos.
 | --- | --- | --- | --- |
 | [ADR-001](ADR-001-stack-mvp.md) | Stack del MVP | Aceptado | 05-oct-2026 |
 | [ADR-002](ADR-002-proveedores-intercambiables.md) | Proveedores de IA intercambiables y modo mock | Aceptado | 05-oct-2026 |
+| [ADR-003](ADR-003-tolerancia-fallos-y-contratos-v02.md) | Tolerancia a fallos por paso y contratos v0.2 | Aceptado | 05-oct-2026 |
 
 Estados posibles: **Propuesto** · **Aceptado** · **Sustituido por ADR-XXX** · **Descartado**.
 

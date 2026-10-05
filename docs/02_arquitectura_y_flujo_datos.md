@@ -111,8 +111,10 @@ Fuente: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | | Email | `delivery/email_sender.py` | `send_briefing_email(briefing, to, settings)` | SMTP |
 | | Telegram | `delivery/telegram_sender.py` | `send_briefing_telegram(briefing, chat_id, settings)` | Telegram Bot API |
 
-Firmas exactas en [03_contratos_modulos.md](03_contratos_modulos.md). Salvo `pipeline.py`, las funciones de
-esta tabla son todavía *stubs* (`NotImplementedError`); ver [06](06_estado_actual.md).
+Firmas exactas en [03_contratos_modulos.md](03_contratos_modulos.md) (v0.2). Al cierre de la Fase 0 todas las
+funciones de esta tabla están implementadas y probadas con proveedores mock, salvo `make_video`, `make_cover` y
+los envíos (`send_briefing_email`, `send_briefing_telegram`), que son *stubs*; lo que requiere red (noticias,
+precios, proveedores reales) también. Ver [06](06_estado_actual.md).
 
 ## Secuencia · generación del briefing
 
@@ -166,12 +168,15 @@ Cada paso se envuelve en `logging_utils.track_step(...)`, que añade un `StepMet
 estimado vía `costs.estimate_cost_eur`) incluso si el paso falla. La entrega se hace **antes** de guardar, para
 que `briefing.json` incluya `deliveries` (siempre con la entrada `web`).
 
-**Tolerancia a fallos, estado actual:** el código **no** reintenta ni cae a `mock` por paso: cualquier
-excepción se propaga a quien llama (la UI y `scripts/demo.py` muestran `NotImplementedError` como
-«Pendiente»). La única red de seguridad hoy es la del `registry` (`BRIEFER_FALLBACK_TO_MOCK`) al **crear** el
-proveedor. Está previsto (tarea «Tolerancia a fallos» de [05](05_roadmap_TODO.md)) que un fallo en un paso
-opcional (portada, vídeo, entrega) no rompa el briefing y que un fallo núcleo caiga a `mock` y se marque en la
-UI.
+**Tolerancia a fallos** ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md)): cada paso es
+**núcleo** u **opcional** (lista en [03](03_contratos_modulos.md#pasos-núcleo-y-pasos-opcionales)). Un paso
+opcional que falla (una subida, portada, vídeo, un canal de entrega, el guardado) deja su `StepMetric` con
+`error`, se registra en el log y el briefing sigue; un canal caído queda en `deliveries` con `ok=False`. Un paso
+núcleo que falla lanza `PipelineStepError` con el nombre del paso (`StepNotImplementedError` si es un *stub*: la
+UI lo muestra como «Pendiente»). Dentro de los pasos hay reintentos locales (TTS por línea, reescritura del
+Guionista). Además del fallback del `registry` al **crear** el proveedor (`BRIEFER_FALLBACK_TO_MOCK`), está
+previsto para D1 que un paso núcleo con proveedor real que falla se repita con `mock` y quede marcado en la UI.
+El guardado va al final y su métrica también queda en `Briefing.metrics`.
 
 ## Secuencia · pregunta por voz (Q&A)
 
@@ -203,7 +208,7 @@ sequenceDiagram
         PL->>TTS: synthesize(respuesta, BRIEFER_VOICE_B, out_path)
         TTS-->>PL: ruta del audio
     end
-    PL-->>UI: QAAnswer(question, answer_text, audio_path, sources)
+    PL-->>UI: QAAnswer(question, answer_text, audio_path, sources, metrics)
     UI-->>U: texto + audio + fuentes
 ```
 
@@ -258,22 +263,24 @@ Sin base de datos: ficheros en disco, suficiente para el MVP.
 
 ```text
 data/
-├── samples/                      # versionado: portfolio_ejemplo.csv, noticias_ejemplo.json, README.md
+├── samples/                      # versionado: CSV, JSON, grafico_ejemplo.png, resultados_ejemplo.pdf,
+│                                 #   generar_muestras.py (previsto: demo_briefing/ pregenerado)
 ├── cache/                        # ignorado: respuestas de yfinance/RSS (previsto, p. ej. news_<fecha>.json)
 └── outputs/                      # ignorado (BRIEFER_OUTPUT_DIR)
     ├── <briefing_id>/            # YYYYMMDD-HHMMSS-xxxxxx (new_briefing_id): orden alfabético = cronológico
-    │   ├── briefing.json         # Briefing serializado (model_dump_json)
+    │   ├── briefing.json         # Briefing serializado; rutas internas relativas a esta carpeta
     │   ├── podcast.<ext>         # .mp3 con edge-tts, .wav con MockTTS
-    │   ├── parts/                # audio por línea del guion (intermedios: 000_A, 001_B…)
+    │   ├── parts/                # audio por línea (000_A, 001_B…); se borra al terminar salvo keep_parts
     │   ├── podcast.srt
-    │   ├── charts/               # <TICKER>_price.png, vista general, cartera
+    │   ├── charts/               # <TICKER>_price.png, overview_change.png, portfolio_weights.png
     │   ├── cover.png             # opcional
     │   ├── briefing.mp4          # opcional
     │   └── qa/respuesta_<id>.<ext>
     └── sin_briefing/qa/          # respuestas del Q&A sin briefing de referencia
 ```
 
-Rutas tomadas de `pipeline.py` y de los `TODO` de `media/*` (aún sin implementar). `storage` (`briefing_dir`,
-`save_briefing`, `load_briefing`, `list_briefings`) es la puerta para guardar y leer `briefing.json`; el
+Rutas tomadas de `pipeline.py`, `media/*` y `storage.py`. `storage` (`briefing_dir`, `save_briefing`,
+`load_briefing`, `list_briefings`) es la puerta para guardar y leer `briefing.json`; al guardar escribe las rutas
+de dentro de la carpeta como relativas (portables entre máquinas y Docker) y al cargar las resuelve de nuevo; el
 pipeline crea la carpeta `<briefing_id>/` y los módulos de `media/` escriben en ella. El histórico de la UI lee
 de aquí.

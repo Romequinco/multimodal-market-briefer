@@ -6,16 +6,38 @@ Config: ``TELEGRAM_BOT_TOKEN`` (de @BotFather) y ``TELEGRAM_CHAT_ID``.
 
 from __future__ import annotations
 
+import html
+
 from briefer.config import Settings
-from briefer.schemas import Briefing, DeliveryResult
+from briefer.schemas import DISCLAIMER_ES, Briefing, DeliveryResult
 
 API_URL = "https://api.telegram.org/bot{token}/{method}"
+SENTIMENT_ICON = {"positivo": "▲", "negativo": "▼", "neutral": "●"}
 
 
 def build_caption(briefing: Briefing, max_len: int = 1024) -> str:
-    """Texto del mensaje: titular + puntos clave + disclaimer (límite de caption de Telegram)."""
-    # TODO: formato HTML de Telegram (<b>, <i>) con html.escape; recortar a max_len.
-    raise NotImplementedError("build_caption: pendiente (carril C)")
+    """Texto del mensaje: titular + puntos clave + disclaimer (límite de caption de Telegram).
+
+    Función pura (formato HTML de Telegram: ``<b>``, ``<i>``). Se añaden puntos clave enteros
+    mientras quepan; el aviso de voz sintética y el disclaimer se reservan siempre, así que el
+    recorte nunca deja etiquetas HTML a medias ni elimina el aviso legal.
+    """
+    a = briefing.analysis
+    tail = f"\n\n<i>Voces sintéticas generadas con IA.</i>\n<i>{html.escape(a.disclaimer or DISCLAIMER_ES)}</i>"
+    head = f"<b>{html.escape(a.headline)}</b>\n<i>{a.date:%d/%m/%Y} · {html.escape(a.market_mood)}</i>"
+    if len(head) + len(tail) > max_len:
+        # Caso extremo (titular larguísimo o max_len pequeño): titular recortado sin formato.
+        room = max(0, max_len - len(tail) - 1)
+        return (html.escape(a.headline)[:room] + "…" + tail)[:max_len]
+    body = head
+    for kp in a.key_points:
+        tickers = f" ({html.escape(', '.join(kp.tickers))})" if kp.tickers else ""
+        icon = SENTIMENT_ICON.get(kp.sentiment, "•")
+        line = f"\n\n{icon} <b>{html.escape(kp.title)}</b>{tickers}\n{html.escape(kp.explanation)}"
+        if len(body) + len(line) + len(tail) > max_len:
+            break
+        body += line
+    return body + tail
 
 
 def send_briefing_telegram(

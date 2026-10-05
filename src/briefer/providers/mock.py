@@ -4,9 +4,11 @@ Transversal. Sirven para tests, para desarrollar los tres carriles en paralelo y
 "red de seguridad" en la demo (``BRIEFER_FALLBACK_TO_MOCK=true``).
 
 - ``MockLLM``: con ``response_model`` devuelve una instancia válida (contenido de ejemplo
-  realista para ``Analysis`` y ``PodcastScript``; relleno genérico para el resto). Sin él,
-  devuelve un texto fijo.
-- ``MockVision`` / ``MockSTT``: textos fijos.
+  realista para ``Analysis``, ``PodcastScript`` y ``DocumentInsight``; relleno genérico para el
+  resto). Para ``DocumentInsight`` distingue por el prompt si es un PDF de resultados o un
+  gráfico (cifras coherentes con ``data/samples/resultados_ejemplo.pdf`` y
+  ``grafico_ejemplo.png``). Sin ``response_model``, devuelve un texto fijo.
+- ``MockVision`` / ``MockSTT``: textos fijos (la visión describe el gráfico de ejemplo).
 - ``MockTTS``: escribe un WAV de silencio corto (stdlib ``wave``).
 - ``MockImageGen``: escribe un PNG de color liso (stdlib ``zlib``/``struct``).
 - ``MockImageClassifier``: distribución fija sobre las etiquetas.
@@ -34,7 +36,14 @@ from briefer.providers.base import (
     TTSProvider,
     VisionProvider,
 )
-from briefer.schemas import DISCLAIMER_ES, Analysis, KeyPoint, PodcastScript, ScriptLine
+from briefer.schemas import (
+    DISCLAIMER_ES,
+    Analysis,
+    DocumentInsight,
+    KeyPoint,
+    PodcastScript,
+    ScriptLine,
+)
 
 FIXED_DATE = date(2026, 10, 5)
 FIXED_DATETIME = datetime(2026, 10, 5, 9, 0, 0)
@@ -174,6 +183,61 @@ def sample_script() -> PodcastScript:
     )
 
 
+def sample_pdf_insight() -> DocumentInsight:
+    """Insight de ejemplo de un PDF de resultados (cifras de ``resultados_ejemplo.pdf``, ficticias)."""
+    return DocumentInsight(
+        source_type="pdf",
+        source_name="resultados_ejemplo.pdf",
+        extracted_text="[MOCK] Resultados 3T 2026 de Ejemplo Industrial S.A. (EJMP, ficticia).",
+        key_figures={
+            "Ingresos 3T 2026": "1.245 M€ (+8,4 % interanual)",
+            "EBITDA": "312 M€ (+11,2 %)",
+            "Margen EBITDA": "25,1 % (+0,6 p.p.)",
+            "Beneficio neto atribuido": "158 M€ (+6,9 %)",
+            "Deuda financiera neta": "890 M€ (1,6x EBITDA; -5,3 %)",
+            "BPA": "0,63 € (+6,8 %)",
+            "Dividendo complementario propuesto": "0,42 € por acción",
+        },
+        summary=(
+            "[MOCK] Documento de ejemplo ficticio: Ejemplo Industrial S.A. (EJMP) presenta unos "
+            "resultados del 3T 2026 con ingresos de 1.245 M€ (+8,4 %) y un EBITDA de 312 M€ "
+            "(+11,2 %), con el margen mejorando hasta el 25,1 %. El beneficio neto sube un 6,9 % "
+            "hasta 158 M€ y la deuda neta baja a 890 M€ (1,6 veces EBITDA). La empresa atribuye "
+            "el crecimiento a servicios digitales (34 % de los ingresos) y mantiene su objetivo "
+            "anual de crecimiento de un dígito alto."
+        ),
+    )
+
+
+def sample_chart_insight() -> DocumentInsight:
+    """Insight de ejemplo de una captura de gráfico (``grafico_ejemplo.png``, datos ficticios)."""
+    return DocumentInsight(
+        source_type="chart",
+        source_name="grafico_ejemplo.png",
+        extracted_text="[MOCK] Velas diarias de EJMP (jul-sep 2026), datos ficticios.",
+        key_figures={
+            "Último cierre": "22,44 EUR (+0,74 % en la sesión)",
+            "Máximo del periodo": "≈24,5 EUR (finales de agosto)",
+            "Mínimo del periodo": "≈21,6 EUR (finales de julio)",
+            "Media de 20 sesiones": "≈22,6 EUR (pendiente bajista)",
+            "Volumen diario": "entre 0,8 y 2,5 M de títulos",
+        },
+        summary=(
+            "[MOCK] Gráfico ficticio de velas diarias de EJMP entre julio y septiembre de 2026: "
+            "rebote desde 21,6 hasta 24,5 EUR en agosto y posterior corrección. Cierra en "
+            "22,44 EUR (+0,74 %), ligeramente por debajo de su media de 20 sesiones."
+        ),
+    )
+
+
+def _canned_insight(prompt_text: str) -> DocumentInsight:
+    """Elige el insight de ejemplo según el prompt del lector (PDF vs gráfico)."""
+    folded = prompt_text.lower()
+    if "pdf" in folded:
+        return sample_pdf_insight()
+    return sample_chart_insight()
+
+
 _CANNED: dict[type[BaseModel], typing.Callable[[], BaseModel]] = {
     Analysis: sample_analysis,
     PodcastScript: sample_script,
@@ -206,7 +270,10 @@ class MockLLM(LLMProvider):
             output_text = str(result)
         else:
             factory = _CANNED.get(response_model)
-            result = factory() if factory else fake_instance(response_model)
+            if response_model is DocumentInsight:
+                result = _canned_insight(system)
+            else:
+                result = factory() if factory else fake_instance(response_model)
             output_text = result.model_dump_json()
         self.last_usage = {
             "input_tokens": estimate_tokens(prompt_text),
@@ -225,8 +292,11 @@ class MockVision(VisionProvider):
     def describe(self, image: bytes, prompt: str) -> str:
         self.last_usage = {"input_tokens": estimate_tokens(prompt) + 100, "output_tokens": 40}
         return (
-            "[MOCK] Gráfico de velas diarias con tendencia alcista moderada; "
-            f"imagen de {len(image)} bytes. Cifras clave: máximo 10,5; mínimo 9,8."
+            "[MOCK] Gráfico de velas diarias de un valor de ejemplo (EJMP, datos ficticios) entre "
+            "julio y septiembre de 2026, con volumen y media de 20 sesiones. Tras tocar mínimos "
+            "cerca de 21,6 EUR a finales de julio, rebota hasta ≈24,5 EUR a finales de agosto y "
+            "corrige después. Último cierre: 22,44 EUR (+0,74 %); media de 20 sesiones ≈22,6 EUR. "
+            f"(Imagen de {len(image)} bytes.)"
         )
 
 
@@ -288,6 +358,8 @@ __all__ = [
     "MockVision",
     "fake_instance",
     "sample_analysis",
+    "sample_chart_insight",
+    "sample_pdf_insight",
     "sample_script",
     "write_silence_wav",
     "write_solid_png",

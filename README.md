@@ -8,9 +8,15 @@ recoge las noticias de mercado relevantes para los tickers que sigue el usuario,
 corto**. El usuario puede además subir una captura de gráfico o un PDF de resultados para que entren en el
 análisis, y **preguntar por voz** sobre el briefing a un agente que le responde también por voz.
 
-> **Estado (05-oct-2026):** esqueleto. Estructura, contratos (`schemas.py`), proveedores mock, `registry`,
-> configuración, pipeline y UI esbozada funcionan; los módulos de `ingest/`, `agents/`, `media/`, `delivery/` y
-> `storage.py` son *stubs* pendientes de implementar. Estado vivo en
+> **Estado (05-oct-2026, noche · Fase 0 cerrada):** el producto funciona de punta a punta **en modo mock, sin
+> red ni claves** (UI y `python scripts/demo.py --mock`): noticias de ejemplo → Agente Analista → Agente
+> Guionista → podcast a dos voces → transcripción SRT → gráficos → `briefing.json`, más el Q&A, con
+> guardarraíles de compliance, tolerancia a fallos por paso y métricas de latencia/coste por paso. Pendiente
+> (todo lo que necesita red o claves): noticias y precios reales, Claude texto y visión, edge-tts, Whisper,
+> vídeo, portada y envíos. Plan hasta la entrega en [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md)
+> (revisado según [docs/07_revision_critica.md](docs/07_revision_critica.md)): **mar 6** núcleo real y demo
+> que no falla · **mié 7** multimodalidad, orquestación visible y vídeo (*feature freeze* 22:00) · **jue 8**
+> capturas, demo grabada y pitch (*code freeze* 11:00, entrega 16:30). Estado vivo en
 > [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
 > **Aviso legal.** Market Briefer genera **información financiera genérica con fines educativos**. No es
@@ -274,8 +280,8 @@ python -m pytest -q                                             # tests sin red
 Flags de `scripts/demo.py`: `--tickers T [T ...]` (por defecto `BRIEFER_DEFAULT_TICKERS`),
 `--portfolio CSV`, `--upload [FICHERO ...]` (PDF, imagen o audio), `--video`, `--cover`,
 `--deliver [email|telegram ...]`, `--mock` y `--question TEXTO` (en vez del briefing, pregunta al Agente Q&A).
-Mientras `ingest/`, `agents/`, `media/` y `storage` sean *stubs*, `demo.py --mock` termina con
-«Pendiente de implementar: …» (código de salida 2).
+`demo.py --mock` funciona de punta a punta; sin `--mock`, los pasos que aún son *stubs* (ingesta y
+proveedores reales) terminan con «Pendiente de implementar: …» (código de salida 2) mientras no estén hechos.
 
 ---
 
@@ -403,6 +409,7 @@ Guion previsto de la demo:
 | [04 · Viabilidad](docs/04_viabilidad_costes_latencia_compliance.md) | Costes, latencias, compliance, monetización |
 | [05 · Roadmap](docs/05_roadmap_TODO.md) | TODO hasta la entrega |
 | [06 · Estado actual](docs/06_estado_actual.md) | Qué funciona y qué no |
+| [07 · Revisión crítica](docs/07_revision_critica.md) | Revisión del plan: hallazgos, prioridades MoSCoW, plan por fases |
 | [Decisiones (ADR)](docs/decisiones/README.md) | Decisiones de arquitectura |
 | [Material de clase](docs/clase/00_indice.md) | Resumen del material del taller |
 | [Pitch deck](pitch/README.md) | Pitch técnico |

@@ -77,24 +77,26 @@ Anthropic, Gemini, Mistral, ElevenLabs, Whisper…) o modelos propios. Modalidad
 
 ## Checklist de rúbrica → repo
 
-Estado a 05-oct-2026. Se actualiza en [06_estado_actual.md](06_estado_actual.md).
+Estado al cierre de la Fase 0 (05-oct-2026, noche). Se actualiza en [06_estado_actual.md](06_estado_actual.md);
+el análisis de huecos por criterio está en [07 §5](07_revision_critica.md#5-checklist-de-rúbrica--evidencia-que-verá-el-evaluador).
+Leyenda: **Hecho** · **Parcial** (existe, falta lo que se pide) · **Pendiente**.
 
-| # | Criterio | Dónde se cubre | Estado |
-| --- | --- | --- | --- |
-| R1 | Esquema visual del producto | `docs/assets/arquitectura_mvp_podcast_financiero.png`, mermaid en `README.md` y [01](01_producto_y_propuesta_valor.md) | Hecho |
-| R2 | Problema, público (B2C/B2B/B2B2C), valor de la multimodalidad | [01](01_producto_y_propuesta_valor.md), `README.md` | Borrador |
-| R3 | Costes de inferencia y APIs | [04](04_viabilidad_costes_latencia_compliance.md), `src/briefer/costs.py`, métricas en UI | Estimaciones; medir |
-| R4 | Latencias para UX fluida | [04](04_viabilidad_costes_latencia_compliance.md), `StepMetric` en `pipeline.py` | Objetivos; medir |
-| R5 | Compliance y privacidad | [04](04_viabilidad_costes_latencia_compliance.md), disclaimer en `Analysis` y UI | Borrador |
-| R6 | Monetización | [01](01_producto_y_propuesta_valor.md), [04](04_viabilidad_costes_latencia_compliance.md) | Borrador |
-| R7 | Diversidad de modalidades | Tabla de modalidades en `README.md` (11 entradas/salidas) | Diseñado |
-| R8 | Encadenamiento multi-modelo | `pipeline.py`: STT/visión → analista → guionista → TTS → vídeo | Diseñado |
-| R9 | MVP ejecutable | `app/`, `scripts/demo.py` | En curso |
-| R10 | UI / UX / navegación / robustez | `app/` multipágina, modo `mock`, fallos parciales tolerados | En curso |
-| R11 | Plug-and-play | `requirements.txt`, `Dockerfile`, `docker-compose.yml`, `scripts/run.ps1`, `scripts/run.sh` | En curso |
-| R12 | README exhaustivo con capturas | `README.md` (sección Capturas) | Esqueleto; capturas D3 |
-| R13 | Diagrama de flujo multimodal | `README.md`, [02](02_arquitectura_y_flujo_datos.md) | Hecho |
-| R14 | Descripción de arquitectura | `README.md`, [02](02_arquitectura_y_flujo_datos.md), [ADRs](decisiones/README.md) | Hecho |
-| R15 | Pitch deck técnico | `pitch/` | Pendiente |
-| R16 | Separación modelos / negocio / UI | `providers/` · `ingest/agents/media/delivery` · `app/` | Diseñado |
-| R17 | Demo funcional | Vídeo enlazado en `README.md#demo` | Pendiente |
+| # | Criterio | Dónde se cubre | Estado | Hueco a cerrar (fase) |
+| --- | --- | --- | --- | --- |
+| R1 | Esquema visual del producto | `docs/assets/arquitectura_mvp_podcast_financiero.png`, mermaid en `README.md` y [01](01_producto_y_propuesta_valor.md) | Hecho | — |
+| R2 | Problema, público (B2C/B2B/B2B2C), valor de la multimodalidad | [01](01_producto_y_propuesta_valor.md), `README.md` | Hecho (borrador) | Una diapositiva del pitch; B2B2C como motor principal (D3) |
+| R3 | Costes de inferencia y APIs | [04](04_viabilidad_costes_latencia_compliance.md), `costs.py`, `StepMetric.est_cost_eur` por paso | Parcial | Tarifas verificadas con fecha, coste **medido** por briefing, costes fijos de datos/licencias (D2-D3) |
+| R4 | Latencias para UX fluida | [04](04_viabilidad_costes_latencia_compliance.md), `StepMetric` en `Briefing.metrics` y `QAAnswer.metrics` | Pendiente (NO MEDIDO) | p50/p95 medidos de briefing y Q&A, visibles en la UI (D2-D3) |
+| R5 | Compliance y privacidad | [04](04_viabilidad_costes_latencia_compliance.md), `DISCLAIMER_ES`, `agents/guardrails.py`, cierre hablado del Guionista | Parcial | MAR, AI Act art. 50, transferencias RGPD; borrado del audio de la pregunta y consentimiento en la UI (D2) |
+| R6 | Monetización | [01](01_producto_y_propuesta_valor.md), [04](04_viabilidad_costes_latencia_compliance.md) | Parcial | Costes fijos y punto de equilibrio (D2) |
+| R7 | Diversidad de modalidades | Tabla de modalidades en `README.md` | Parcial (prometido > demostrado) | Texto→imagen por API, captura de cartera, columna «Activo en la demo» (D2-D3) |
+| R8 | Encadenamiento multi-modelo | `pipeline.py` (pasos núcleo/opcionales, métricas por paso) | Parcial (lineal; solo mock) | Proveedores reales (D1); router CLIP, puertas de calidad, WER, traza «Cómo se hizo» (D2) |
+| R9 | MVP ejecutable | `app/`, `scripts/demo.py` | Parcial: completo en modo mock | Núcleo real fin a fin (D1) |
+| R10 | UI / UX / navegación / robustez | `app/` multipágina en modo demo; tolerancia a fallos por paso ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md)) | Parcial | Portada de 30 s, modos e insignias, fallback núcleo → mock, pregenerado (D1-D2) |
+| R11 | Plug-and-play | `requirements.txt` + `pip install -e .` verificados (Python 3.13, venv limpio); `Dockerfile`, `docker-compose.yml`, `scripts/run.ps1`, `scripts/run.sh` | Parcial | Docker y scripts en clon limpio (D2 Sync 4, D3) |
+| R12 | README exhaustivo con capturas | `README.md` | Parcial | Capturas, enlace a la demo arriba, resultados medidos, configuración a un anexo (D3) |
+| R13 | Diagrama de flujo multimodal | `README.md`, [02](02_arquitectura_y_flujo_datos.md) | Hecho | Diagrama de **orquestación** con ramas y decisiones (D3) |
+| R14 | Descripción de arquitectura | `README.md`, [02](02_arquitectura_y_flujo_datos.md), [ADRs](decisiones/README.md) | Hecho | — |
+| R15 | Pitch deck técnico | `pitch/` | Pendiente | PDF de 10-12 diapositivas (D2 esqueleto, D3) |
+| R16 | Separación modelos / negocio / UI | `providers/` · `ingest/agents/media/delivery` · `app/`; inyección de dependencias; tests sin red | Hecho | Retirar *stubs* no implementados del registry (D3) |
+| R17 | Demo funcional | Vídeo enlazado en `README.md#demo` | Pendiente | Demo grabada de 3-4 min + pregenerado (D3) |

@@ -1,4 +1,8 @@
-"""Página "Mi cartera": carga la cartera desde CSV para personalizar el briefing (carril C/A)."""
+"""Página "Mi cartera": carga la cartera desde CSV para personalizar el briefing (carril C/A).
+
+La cartera vive solo en ``st.session_state["portfolio"]`` (RGPD: no se guarda en disco). La
+lectura del CSV la hace ``briefer.ingest.portfolio.load_portfolio_csv``.
+"""
 
 from __future__ import annotations
 
@@ -26,26 +30,52 @@ use_sample = col2.button("Usar cartera de ejemplo")
 if sample_path.exists():
     col2.download_button("Descargar plantilla", sample_path.read_bytes(), file_name="portfolio_ejemplo.csv")
 
-source = uploaded if uploaded is not None else (sample_path if use_sample else None)
-if source is not None:
+
+def _load(source, name: str) -> None:
+    """Carga la cartera con el helper de ingest y la deja en la sesión."""
     from briefer.ingest.portfolio import load_portfolio_csv
 
     try:
-        name = "Cartera de ejemplo" if source is sample_path else "Mi cartera"
         st.session_state["portfolio"] = load_portfolio_csv(source, name=name)
-        st.success("Cartera cargada.")
+        st.success(f"Cartera «{name}» cargada.")
     except NotImplementedError as exc:
         pending(exc, "la lectura de carteras CSV")
     except Exception as exc:
         st.error(f"No se pudo leer el CSV: {exc}")
 
+
+if use_sample:
+    if sample_path.exists():
+        _load(sample_path, "Cartera de ejemplo")
+    else:
+        st.error(f"No se encuentra la cartera de ejemplo en {sample_path}.")
+elif uploaded is not None and st.session_state.get("_portfolio_upload_id") != uploaded.file_id:
+    # Solo se procesa una vez por fichero subido (no en cada recarga de la página).
+    st.session_state["_portfolio_upload_id"] = uploaded.file_id
+    _load(uploaded, "Mi cartera")
+
 portfolio = st.session_state.get("portfolio")
 if portfolio is not None:
     st.subheader(portfolio.name)
-    st.dataframe([p.model_dump() for p in portfolio.positions])
-    # TODO: gráfico de reparto (media.charts.make_portfolio_chart) y edición con st.data_editor.
+    total_w = sum(p.weight or 0.0 for p in portfolio.positions)
+    rows = [
+        {
+            "Ticker": p.ticker,
+            "Peso (%)": round(100 * p.weight / total_w, 1) if (p.weight is not None and total_w > 0) else None,
+            "Cantidad": p.quantity,
+        }
+        for p in portfolio.positions
+    ]
+    st.dataframe(
+        rows,
+        hide_index=True,
+        column_config={
+            "Peso (%)": st.column_config.ProgressColumn("Peso", format="%.1f %%", min_value=0.0, max_value=100.0),
+        },
+    )
+    st.caption("La cartera se usará automáticamente en la página «Briefing» mientras dure la sesión.")
     if st.button("Olvidar cartera"):
-        del st.session_state["portfolio"]
+        st.session_state.pop("portfolio", None)
         st.rerun()
 else:
     st.write("No hay cartera cargada.")

@@ -6,7 +6,7 @@ from datetime import datetime
 
 import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
-from components.players import pending, render_qa_answer, show_disclaimer, sidebar_controls
+from components.players import pending, render_qa_answer, show_disclaimer, show_error, sidebar_controls
 
 from briefer.config import get_settings
 
@@ -57,7 +57,7 @@ if st.button("Preguntar", type="primary", disabled=audio is None and not text.st
         except NotImplementedError as exc:
             pending(exc, "el Agente Q&A (voz → texto → respuesta → voz)")
         except Exception as exc:
-            st.exception(exc)
+            show_error(exc, "la respuesta")
 
 for previous in st.session_state.get("qa_answers", []):
     with st.container(border=True):

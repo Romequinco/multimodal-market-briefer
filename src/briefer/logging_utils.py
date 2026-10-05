@@ -22,6 +22,9 @@ from briefer.schemas import StepMetric
 _LOGGER_NAME = "briefer"
 _configured = False
 
+#: Longitud máxima del mensaje de error que se guarda en ``StepMetric.error``.
+_ERROR_DETAIL_CHARS = 160
+
 
 def get_logger(name: str | None = None) -> logging.Logger:
     """Logger del paquete (``briefer`` o ``briefer.<name>``), configurado una sola vez."""
@@ -58,6 +61,7 @@ class StepHandle:
     model: str
     est_cost_eur: float = 0.0
     metric: StepMetric | None = field(default=None)
+    error: str | None = None
 
 
 @contextmanager
@@ -71,7 +75,9 @@ def track_step(
 
     - Si se pasa ``metrics``, el ``StepMetric`` se añade a esa lista.
     - El ``StepMetric`` queda también en ``handle.metric`` tras salir del bloque.
-    - Las excepciones se registran en log y se propagan (no se tragan).
+    - Las excepciones se registran en log y se propagan (no se tragan). Si el paso falla,
+      ``handle.error`` recibe ``"Tipo: mensaje"`` y el ``StepMetric`` lo lleva en su campo
+      ``error`` (contrato v0.2; ver ``step_failed``/``step_error``).
     """
     log = get_logger("pipeline")
     handle = StepHandle(step=step, provider=provider, model=model)
@@ -79,8 +85,10 @@ def track_step(
     failed = False
     try:
         yield handle
-    except BaseException:
+    except BaseException as exc:
         failed = True
+        detail = " ".join(str(exc).split())[:_ERROR_DETAIL_CHARS]
+        handle.error = f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__
         raise
     finally:
         latency = time.perf_counter() - start
@@ -90,6 +98,7 @@ def track_step(
             model=handle.model,
             latency_s=round(latency, 4),
             est_cost_eur=round(handle.est_cost_eur, 6),
+            error=handle.error,
         )
         if metrics is not None:
             metrics.append(handle.metric)
@@ -101,5 +110,15 @@ def track_step(
             handle.model,
             latency,
             handle.est_cost_eur,
-            " (FALLO)" if failed else "",
+            f" (FALLO: {handle.error})" if failed else "",
         )
+
+
+def step_failed(metric: StepMetric) -> bool:
+    """``True`` si el ``StepMetric`` corresponde a un paso que lanzó una excepción."""
+    return bool(metric.error)
+
+
+def step_error(metric: StepMetric) -> str | None:
+    """Texto ``"Tipo: mensaje"`` del error de un paso fallido, o ``None`` si no falló."""
+    return metric.error or None

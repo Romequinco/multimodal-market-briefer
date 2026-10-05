@@ -6,6 +6,7 @@ Las páginas de ``app/pages/`` aparecen automáticamente en la barra lateral.
 from __future__ import annotations
 
 import components  # noqa: F401  (añade src/ al sys.path)
+from components import ROOT_DIR
 import streamlit as st
 from components.players import show_disclaimer, sidebar_controls
 
@@ -46,6 +47,8 @@ with st.expander("¿Cómo funciona? (cadena de modelos)"):
         "4. **Salidas**: gráficos · podcast a 2 voces · transcripción · vídeo corto.\n"
         "5. **Entrega**: app web · email · Telegram."
     )
-    # TODO: mostrar docs/assets/arquitectura_mvp_podcast_financiero.png si existe.
+    diagram = ROOT_DIR / "docs" / "assets" / "arquitectura_mvp_podcast_financiero.png"
+    if diagram.exists():
+        st.image(str(diagram), caption="Arquitectura del MVP")
 
 show_disclaimer()
