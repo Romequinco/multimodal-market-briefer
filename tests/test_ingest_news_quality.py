@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 import types
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
 from urllib.parse import quote, urlsplit
 
@@ -21,7 +21,7 @@ import pytest
 from briefer.ingest import article_meta, cache, news
 from briefer.schemas import NewsItem
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 
 def _rfc822(hours_ago: float) -> str:
@@ -133,7 +133,7 @@ class FakeWeb:
         assert inner[0] == "garturlreq" and inner[3] == 1759600000 and inner[4] == "SIG123"
         return batch_response(self.google[inner[2]])
 
-    def install(self, monkeypatch: pytest.MonkeyPatch) -> "FakeWeb":
+    def install(self, monkeypatch: pytest.MonkeyPatch) -> FakeWeb:
         monkeypatch.setattr(article_meta, "_http_fetch", self.fetch)
         monkeypatch.setattr(article_meta, "_http_post", self.post)
         return self
@@ -346,7 +346,7 @@ def test_future_dates_are_clamped() -> None:
 <item><title>Noticia con hora mal declarada</title><link>https://a.es/n-1-2.html</link><pubDate>{future}</pubDate></item>
 </channel></rss>""".encode()
     item = news.parse_feed(feed)[0]
-    assert item.published_at <= datetime.now(timezone.utc) + timedelta(seconds=5)
+    assert item.published_at <= datetime.now(UTC) + timedelta(seconds=5)
 
 
 # ── feeds: Google News, Bing News y respuestas raras ──────────────────────────────

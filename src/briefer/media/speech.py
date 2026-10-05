@@ -536,7 +536,8 @@ def normalize_for_speech(text: str) -> str:
     """Devuelve ``text`` preparado para leerse en voz alta en español (ver docstring del módulo).
 
     El orden importa: pares de divisas/marca → tickers → fechas → periodos → importes →
-    porcentajes/puntos → horas/ordinales/múltiplos → números sueltos → abreviaturas → símbolos. Si el resultado quedara vacío, devuelve el original.
+    porcentajes/puntos → horas/ordinales/múltiplos → números sueltos → abreviaturas → símbolos.
+    Si el resultado quedara vacío, devuelve el original.
     """
     if not text or not text.strip():
         return text

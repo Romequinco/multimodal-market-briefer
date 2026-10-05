@@ -20,11 +20,13 @@ from __future__ import annotations
 
 from html import escape
 
-import components  # noqa: F401  (añade src/ al sys.path)
-from components import ROOT_DIR
 import streamlit as st
+
+import components  # noqa: F401  (añade src/ al sys.path)
+from briefer import storage
+from briefer.logging_utils import error_text
+from components import ROOT_DIR
 from components.players import (
-    page_link,
     PAGE_ASK,
     PAGE_BRIEFING,
     PAGE_HISTORY,
@@ -34,14 +36,12 @@ from components.players import (
     featured_briefing,
     handle_navigation,
     mode_badge,
+    page_link,
     render_featured_briefing,
     show_disclaimer,
     sidebar_mode,
 )
 from components.theme import apply_theme, masthead
-
-from briefer import storage
-from briefer.logging_utils import error_text
 
 st.set_page_config(page_title="Market Briefer", page_icon=":material/podcasts:", layout="wide")
 apply_theme()
@@ -93,7 +93,7 @@ ACTIONS = [
     (PAGE_HISTORY, "Histórico", ":material/history:",
      "Briefings anteriores, con su audio, gráficos y traza."),
 ]
-for i, (col, (page, label, icon, text)) in enumerate(zip(st.columns(4), ACTIONS)):
+for i, (col, (page, label, icon, text)) in enumerate(zip(st.columns(4), ACTIONS, strict=False)):
     with col, st.container(key=f"mb-card-action-{i}"):
         page_link(page, label, icon)
         st.caption(text)

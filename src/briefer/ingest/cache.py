@@ -88,7 +88,7 @@ def write_cache(source: str, key: str, data: Any, day: date | None = None) -> No
     except (OSError, TypeError, ValueError) as exc:  # disco, permisos o dato no serializable
         log.warning("No se pudo escribir la caché %s/%s: %s", source, key, exc)
         try:
-            tmp.unlink(missing_ok=True)  # type: ignore[possibly-undefined]
+            tmp.unlink(missing_ok=True)
         except (OSError, NameError):
             pass
     _maybe_purge()

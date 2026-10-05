@@ -221,7 +221,10 @@ def main(argv: list[str] | None = None) -> int:
         data["process_wall_s"] = wall
         results.append(data)
 
-    print(f"\n{'Pregunta':<10} {'qa.stt':>9} {'agents.qa':>10} {'qa.tts':>9} {'t. texto':>10} {'t. audio':>10} {'coste':>10}  Estado")
+    print(
+        f"\n{'Pregunta':<10} {'qa.stt':>9} {'agents.qa':>10} {'qa.tts':>9} "
+        f"{'t. texto':>10} {'t. audio':>10} {'coste':>10}  Estado"
+    )
     for i, r in enumerate(results, 1):
         print(
             f"— Proceso {i}: import pipeline {r['import_s']:.2f} s · warmup {r['warmup_s']:.2f} s "

@@ -26,7 +26,10 @@ from __future__ import annotations
 
 import re
 
-_ACTIONS = r"(?:comprar|compres|compréis|vender|vendas|vendáis|mantener|deshacer(?:te|os)?|invertir|inviertas|entrar|salir|acumular|reforzar)"
+_ACTIONS = (
+    r"(?:comprar|compres|compréis|vender|vendas|vendáis|mantener|deshacer(?:te|os)?|invertir|inviertas"
+    r"|entrar|salir|acumular|reforzar)"
+)
 
 # Frases de recomendación en la RESPUESTA del agente.
 _ADVICE_PATTERNS = [
@@ -51,7 +54,10 @@ _ADVICE_REQUEST_PATTERNS = [
     re.compile(r"\bdeber[íi]a\b[^?]{0,40}\b(?:comprar|vender|invertir|mantener|salir|entrar)\b", re.IGNORECASE),
     re.compile(r"\b(?:qué|que)\s+(?:me\s+)?(?:recomiendas|aconsejas|harías)\b", re.IGNORECASE),
     re.compile(r"\bcu[áa]nto\s+(?:dinero\s+)?(?:invierto|debo invertir|meto)\b", re.IGNORECASE),
-    re.compile(r"\b(?:es|ser[íi]a)\s+(?:buen|un buen)\s+momento\s+(?:para|de)\s+(?:comprar|vender|invertir|entrar)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:es|ser[íi]a)\s+(?:buen|un buen)\s+momento\s+(?:para|de)\s+(?:comprar|vender|invertir|entrar)\b",
+        re.IGNORECASE,
+    ),
 ]
 
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")

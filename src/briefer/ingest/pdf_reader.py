@@ -97,6 +97,7 @@ def _open(path: Path):
     except (PdfReadError, OSError, ValueError) as exc:
         raise ValueError(f"No se puede leer el PDF {path.name}: fichero dañado o no es un PDF") from exc
     if reader.is_encrypted:
+        ok: int
         try:
             ok = reader.decrypt("")
         except Exception:  # noqa: BLE001 - pypdf lanza distintos tipos según el cifrado

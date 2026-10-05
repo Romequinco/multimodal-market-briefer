@@ -61,14 +61,14 @@ def prepare_image(image: bytes) -> tuple[bytes, str]:
         too_big = len(image) > MAX_IMAGE_BYTES or max(img.size) > MAX_SIDE_PX
         if not too_big:
             return image, media_type
-        img = img.convert("RGB") if img.mode not in ("RGB", "L") else img.copy()
-        img.thumbnail((MAX_SIDE_PX, MAX_SIDE_PX))
+        out: Image.Image = img.convert("RGB") if img.mode not in ("RGB", "L") else img.copy()
+        out.thumbnail((MAX_SIDE_PX, MAX_SIDE_PX))
         buf = io.BytesIO()
-        img.save(buf, format="PNG", optimize=True)
+        out.save(buf, format="PNG", optimize=True)
         if buf.tell() <= MAX_IMAGE_BYTES:
             return buf.getvalue(), "image/png"
         buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=85)
+        out.save(buf, format="JPEG", quality=85)
         return buf.getvalue(), "image/jpeg"
 
 

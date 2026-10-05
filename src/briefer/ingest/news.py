@@ -45,7 +45,7 @@ import time
 import unicodedata
 from collections import Counter
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
@@ -168,24 +168,24 @@ def _parse_datetime(value: Any) -> datetime | None:
         return None
     try:
         if isinstance(value, datetime):
-            return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+            return value if value.tzinfo else value.replace(tzinfo=UTC)
         if isinstance(value, time.struct_time):
-            return datetime.fromtimestamp(calendar.timegm(value), tz=timezone.utc)
+            return datetime.fromtimestamp(calendar.timegm(value), tz=UTC)
         if isinstance(value, (int, float)):
             seconds = value / 1000 if value > 1e12 else value
-            return datetime.fromtimestamp(seconds, tz=timezone.utc)
+            return datetime.fromtimestamp(seconds, tz=UTC)
         text = str(value).strip()
         if text.isdigit():
             return _parse_datetime(int(text))
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
     except (ValueError, OverflowError, OSError, TypeError):
         return None
 
 
 def _not_future(dt: datetime, now: datetime | None = None) -> datetime:
     """Fechas en el futuro (zona horaria mal declarada en el feed) -> ahora, para no colarse primeras."""
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     return now if dt > now + FUTURE_TOLERANCE else dt
 
 
@@ -231,7 +231,7 @@ def parse_yfinance_item(raw: dict, ticker: str) -> NewsItem | None:
         _parse_datetime(content.get("pubDate"))
         or _parse_datetime(content.get("displayTime"))
         or _parse_datetime(raw.get("providerPublishTime"))
-        or datetime.now(timezone.utc)
+        or datetime.now(UTC)
     )
     lang = _language(_as_dict(content.get("canonicalUrl")).get("lang"), "en")
     return NewsItem(
@@ -305,8 +305,8 @@ def _yfinance_lib_news(ticker: str, max_items: int) -> list[NewsItem]:
     except Exception:
         _record_yf_news(ticker, ok=False)
         raise
-    items = [parse_yfinance_item(r, ticker) for r in (raw or [])]
-    items = [i for i in items if i is not None][:max_items]
+    parsed = [parse_yfinance_item(r, ticker) for r in (raw or [])]
+    items = [i for i in parsed if i is not None][:max_items]
     _record_yf_news(ticker, ok=bool(items))
     return items
 
@@ -396,7 +396,7 @@ def parse_feed(
         published = _not_future(
             _parse_datetime(entry.get("published_parsed"))
             or _parse_datetime(entry.get("updated_parsed"))
-            or datetime.now(timezone.utc)
+            or datetime.now(UTC)
         )
         items.append(
             NewsItem(
@@ -573,7 +573,7 @@ def _tokens_similar(ta: frozenset[str], tb: frozenset[str], threshold: float) ->
 def _sort_key(item: NewsItem) -> datetime:
     """Fecha comparable aunque se mezclen datetimes con y sin zona horaria (naive = UTC)."""
     dt = item.published_at
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 def dedupe_news(items: list[NewsItem], near_threshold: float | None = NEAR_DUP_THRESHOLD) -> list[NewsItem]:
@@ -662,7 +662,7 @@ def relevance_explained(item: NewsItem, ticker: str, now: datetime | None = None
     Ej.: ``(5.4, ["titular", "3 h", "es", "extracto"])`` o ``(1.2, ["sin mención", "30 h", "en",
     "lista de valores"])``.
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     reasons: list[str] = []
     if ticker in extract_tickers(item.title, [ticker]):
         score, reasons = 3.0, ["titular"]
@@ -721,7 +721,7 @@ def _select(
     pasa ``explain``, ``id -> {"ticker", "score", "reasons"}`` de cada elegida (las de contexto
     general llevan ``ticker=None`` y el motivo ``"contexto general"``).
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     by_recency = sorted(items, key=_sort_key, reverse=True)
     queues: dict[str, list[tuple[float, NewsItem]]] = {}
     reasons: dict[tuple[str, str], list[str]] = {}
@@ -1093,10 +1093,10 @@ def _choose(
     exact = dedupe_news(sorted(articles, key=_sort_key, reverse=True), near_threshold=None)
     unique = dedupe_news(exact)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     window_h: int | None = None
     if since is not None:
-        since = since if since.tzinfo else since.replace(tzinfo=timezone.utc)
+        since = since if since.tzinfo else since.replace(tzinfo=UTC)
         in_window = [i for i in unique if _sort_key(i) >= since]
     else:
         in_window = []

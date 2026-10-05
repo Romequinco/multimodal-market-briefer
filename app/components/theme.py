@@ -272,7 +272,7 @@ def apply_theme() -> bool:
     st.html(f"<style>{theme_css()}</style>")
     if marker is not None:
         try:
-            setattr(ctx, "_mb_theme_marker", marker)
+            ctx._mb_theme_marker = marker
         except Exception:
             pass
     return True

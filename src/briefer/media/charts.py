@@ -415,7 +415,7 @@ def make_overview_chart(
             hatch=None)
     ax.axvline(0, color=th.axis, linewidth=1.5)
     offset = span * 0.02
-    for y, (snap, is_idx), v in zip(ys, rows, values, strict=True):
+    for y, (_snap, is_idx), v in zip(ys, rows, values, strict=True):
         if is_idx:
             value_color = th.muted
         else:
@@ -516,7 +516,7 @@ def make_portfolio_chart(
     fig, ax = _new_figure(th)
     ax.grid(False)
     ax.axis("off")
-    ax.set_position([0.04, 0.1, 0.5, 0.72])
+    ax.set_position((0.04, 0.1, 0.5, 0.72))
     ax.pie(
         values,
         colors=colors,

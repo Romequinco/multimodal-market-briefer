@@ -106,7 +106,7 @@ class GeminiLLM(LLMProvider):
             if self.model.startswith("gemini-2.5"):
                 kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
             else:
-                kwargs["thinking_config"] = types.ThinkingConfig(thinking_level="low")
+                kwargs["thinking_config"] = types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
         return types.GenerateContentConfig(**kwargs)
 
     def _generate(self, system: str, messages: list[dict], response_model: type[BaseModel] | None):

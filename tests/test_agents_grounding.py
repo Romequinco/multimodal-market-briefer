@@ -130,7 +130,7 @@ def test_same_speaker_runs_and_merge() -> None:
     lines = _lines("ABBBAAB")
     assert scriptwriter.same_speaker_runs(lines) == [(1, 3)]
     merged = scriptwriter.merge_long_runs(lines)
-    assert [l.speaker for l in merged] == ["A", "B", "A", "A", "B"]
+    assert [ln.speaker for ln in merged] == ["A", "B", "A", "A", "B"]
     assert merged[1].text == "Frase 1. Frase 2. Frase 3."
     assert scriptwriter.merge_long_runs(_lines("ABAB")) == _lines("ABAB")
 

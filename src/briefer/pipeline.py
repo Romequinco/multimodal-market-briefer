@@ -51,6 +51,7 @@ precios y noticias junto a los del usuario, pero no cuentan como tickers del usu
 
 from __future__ import annotations
 
+import functools
 import importlib
 import time
 from collections.abc import Callable, Iterator, Sequence
@@ -59,7 +60,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
-from typing import Literal, TypeVar, get_args
+from typing import Literal, TypeVar, cast, get_args
 
 from pydantic import BaseModel
 
@@ -323,6 +324,11 @@ def _core_step(
         raise PipelineStepError(step, exc) from exc
 
 
+def _send_via(sender: Callable[[Briefing], DeliveryResult], briefing: Briefing, _step: StepHandle) -> DeliveryResult:
+    """Envía ``briefing`` por un canal (``functools.partial`` en vez de lambda: tipado)."""
+    return sender(briefing)
+
+
 @dataclass
 class _Fallback:
     """Sustituto de un paso núcleo cuando su proveedor real falla."""
@@ -379,7 +385,7 @@ def _run_core(
     second: list[StepMetric] = []
     try:
         with track_step(step, fallback.provider, fallback.model, second) as handle:
-            result = fallback.fn(handle)
+            result = cast(T, fallback.fn(handle))
     except Exception as exc:
         metrics.extend(first + second)
         raise PipelineStepError(step, exc) from exc
@@ -394,7 +400,7 @@ def _run_core(
             }
         )
     )
-    return result  # type: ignore[return-value]
+    return result
 
 
 #: Fuente rotulada en los gráficos cuando los precios son sintéticos (demo o fallback).
@@ -972,7 +978,7 @@ def _run_briefing(
     for channel in channels:
         notify(f"Enviando por {channel}…")
         result = _optional_step(
-            f"delivery.{channel}", channel, "-", metrics, lambda _step, c=channel: senders[c](briefing)
+            f"delivery.{channel}", channel, "-", metrics, functools.partial(_send_via, senders[channel], briefing)
         )
         if result is None:
             error = step_error(metrics[-1]) if metrics else None

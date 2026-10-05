@@ -69,7 +69,7 @@ def build_email_html(briefing: Briefing, chart_cids: list[str] | None = None) ->
     charts = "".join(
         f'<img src="cid:{html.escape(cid, quote=True)}" alt="{html.escape(_chart_alt(chart), quote=True)}" '
         'width="560" style="display:block;width:100%;max-width:560px;margin:12px 0;border-radius:6px;">'
-        for cid, chart in zip(cids, briefing.charts)
+        for cid, chart in zip(cids, briefing.charts, strict=False)
     )
     duration = ""
     if briefing.audio:

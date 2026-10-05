@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sys
 import types
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from email.utils import format_datetime
 from urllib.parse import parse_qs, urlsplit
 
@@ -20,7 +20,7 @@ import pytest
 
 from briefer.ingest import article_meta, news, prices
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 
 def _rfc822(hours_ago: float) -> str:

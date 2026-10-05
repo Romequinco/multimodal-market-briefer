@@ -7,7 +7,7 @@ caché temporal del ``conftest`` (no tocan ``data/cache``).
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -26,7 +26,7 @@ def test_live_fetch_news_spanish_and_cited() -> None:
     assert any(i.language == "es" for i in items)
     for t in TICKERS:
         assert any(t in i.tickers for i in items), f"sin noticias para {t}"
-    oldest_allowed = datetime.now(timezone.utc) - timedelta(days=max(news.WINDOWS_HOURS) / 24 + 1)
+    oldest_allowed = datetime.now(UTC) - timedelta(days=max(news.WINDOWS_HOURS) / 24 + 1)
     assert all(i.published_at >= oldest_allowed for i in items)
 
 

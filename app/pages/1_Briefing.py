@@ -23,9 +23,11 @@ import shutil
 import tempfile
 from pathlib import Path
 
-import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
-from components.theme import apply_theme
+
+import components  # noqa: F401  (añade src/ al sys.path)
+from briefer.config import get_settings
+from briefer.ingest.tickers import TICKER_UNIVERSE
 from components.players import (
     StatusProgress,
     briefing_tape,
@@ -39,9 +41,7 @@ from components.players import (
     show_error,
     sidebar_mode,
 )
-
-from briefer.config import get_settings
-from briefer.ingest.tickers import TICKER_UNIVERSE
+from components.theme import apply_theme
 
 st.set_page_config(page_title="Briefing · Market Briefer", page_icon=":material/podcasts:", layout="wide")
 apply_theme()

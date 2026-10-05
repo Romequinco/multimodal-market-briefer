@@ -17,9 +17,12 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
-from components.theme import apply_theme
+
+import components  # noqa: F401  (añade src/ al sys.path)
+from briefer import storage
+from briefer.config import get_settings
+from briefer.logging_utils import error_text
 from components.players import (
     ACTIVE_BRIEFING_KEY,
     handle_navigation,
@@ -31,10 +34,7 @@ from components.players import (
     show_error,
     sidebar_mode,
 )
-
-from briefer import storage
-from briefer.config import get_settings
-from briefer.logging_utils import error_text
+from components.theme import apply_theme
 
 st.set_page_config(page_title="Histórico · Market Briefer", page_icon=":material/history:", layout="wide")
 apply_theme()

@@ -63,7 +63,7 @@ def test_synthesize_podcast_with_mock_tts(tmp_path: Path) -> None:
     assert len(audio.segments) == len(script.lines)
     assert [s.speaker for s in audio.segments] == [line.speaker for line in script.lines]
     # Tiempos crecientes, sin solapes y con la pausa entre intervenciones
-    for prev, nxt in zip(audio.segments, audio.segments[1:]):
+    for prev, nxt in zip(audio.segments, audio.segments[1:], strict=False):
         assert prev.end_s > prev.start_s
         assert nxt.start_s == pytest.approx(prev.end_s + 0.35, abs=1e-3)
     assert audio.segments[0].start_s == 0.0

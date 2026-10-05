@@ -69,7 +69,7 @@ def _as_file(content: bytes) -> io.BytesIO:
 
 
 def test_bom_and_cp1252_csv_load_fine() -> None:
-    bom = "﻿ticker;peso\nSAN.MC;60 %\nAAPL;40 %\n".encode("utf-8")
+    bom = "﻿ticker;peso\nSAN.MC;60 %\nAAPL;40 %\n".encode()
     assert [p.ticker for p in load_portfolio_csv(_as_file(bom)).positions] == ["SAN.MC", "AAPL"]
     cp1252 = "ticker,weight,nombre\nSAN.MC,0.5,España\nAAPL,0.5,Cañón\n".encode("cp1252")  # Excel antiguo
     assert len(load_portfolio_csv(_as_file(cp1252)).positions) == 2

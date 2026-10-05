@@ -35,3 +35,27 @@ markers = [
 line-length = 110
 target-version = "py311"
 src = ["src", "app"]
+
+[tool.ruff.lint]
+# Errores reales (pyflakes, pycodestyle), imports ordenados, bugbear y sintaxis moderna.
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.pycodestyle]
+# El formato apunta a 110; E501 solo salta en líneas claramente largas (textos y tablas en tests).
+max-line-length = 130
+
+[tool.ruff.lint.isort]
+known-first-party = ["briefer", "components"]
+
+[tool.ruff.lint.per-file-ignores]
+# Los scripts añaden src/ al sys.path antes de importar briefer.
+"scripts/*.py" = ["E402"]
+# CSS embebido y datos de prueba (HTML/RSS) en una línea.
+"app/components/theme.py" = ["E501"]
+"tests/*.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/briefer"]
+ignore_missing_imports = true
+warn_unused_ignores = true

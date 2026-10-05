@@ -23,9 +23,12 @@ import threading
 from html import escape
 from pathlib import Path
 
-import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
-from components.theme import apply_theme, tech_label
+
+import components  # noqa: F401  (añade src/ al sys.path)
+from briefer import pipeline
+from briefer.config import get_settings
+from briefer.schemas import Briefing, QAAnswer
 from components.players import (
     featured_briefing,
     handle_navigation,
@@ -37,10 +40,7 @@ from components.players import (
     show_error,
     sidebar_mode,
 )
-
-from briefer import pipeline
-from briefer.config import get_settings
-from briefer.schemas import Briefing, QAAnswer
+from components.theme import apply_theme, tech_label
 
 st.set_page_config(page_title="Preguntar · Market Briefer", page_icon=":material/forum:", layout="wide")
 apply_theme()

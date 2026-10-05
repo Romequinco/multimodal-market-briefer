@@ -47,7 +47,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from briefer import storage  # noqa: E402
 from briefer.logging_utils import step_failed, step_fell_back  # noqa: E402
-from briefer.schemas import Briefing, StepMetric  # noqa: E402
+from briefer.schemas import Briefing  # noqa: E402
 
 MODES = ("real", "demo_voices", "mock")
 UPLOAD_STEPS = ("ingest.pdf", "ingest.chart", "ingest.voice")
@@ -320,7 +320,7 @@ def _table(headers: list[str], rows: list[list[str]], markdown: bool) -> str:
         return "\n".join(lines)
     widths = [max(len(h), *(len(r[i]) for r in rows)) if rows else len(h) for i, h in enumerate(headers)]
     def fmt(cells: list[str]) -> str:
-        return "  ".join(c.ljust(w) if i == 0 else c.rjust(w) for i, (c, w) in enumerate(zip(cells, widths)))
+        return "  ".join(c.ljust(w) if i == 0 else c.rjust(w) for i, (c, w) in enumerate(zip(cells, widths, strict=False)))
     return "\n".join([fmt(headers), "  ".join("-" * w for w in widths), *(fmt(r) for r in rows)])
 
 

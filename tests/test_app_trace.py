@@ -12,6 +12,7 @@ APP_DIR = Path(__file__).resolve().parents[1] / "app"
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
+from briefer.schemas import StepMetric  # noqa: E402
 from components.trace import (  # noqa: E402
     COLORS,
     TRACE_COLORS,
@@ -25,8 +26,6 @@ from components.trace import (  # noqa: E402
     trace_legend_text,
     trace_summary,
 )
-
-from briefer.schemas import StepMetric  # noqa: E402
 
 
 def _m(step: str, provider: str, model: str = "-", latency: float = 0.1, cost: float = 0.0,
@@ -225,6 +224,7 @@ def _trace_app(app_dir: str) -> None:
     if app_dir not in sys.path:
         sys.path.insert(0, app_dir)
     import streamlit as st
+
     from components.players import render_trace
 
     render_trace(st.session_state["metrics"])

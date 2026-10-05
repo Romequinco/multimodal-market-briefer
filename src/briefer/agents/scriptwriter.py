@@ -19,6 +19,7 @@ Si el LLM no da nada aprovechable, se genera un guion mínimo a partir del propi
 from __future__ import annotations
 
 import re
+from typing import Literal
 
 from briefer.agents import load_prompt
 from briefer.agents.guardrails import (
@@ -314,7 +315,10 @@ def regionalisms(text: str) -> list[str]:
 def fix_regionalisms(text: str) -> str:
     """Sustituye los regionalismos por la palabra de España («precificado» -> «descontado»)."""
     for pattern, fix, _word in REGIONALISM_FIXES:
-        text = pattern.sub(lambda m, f=fix: _keep_case(m.group(0), m.expand(f)), text)
+        def _sub(m: re.Match[str], f: str = fix) -> str:
+            return _keep_case(m.group(0), m.expand(f))
+
+        text = pattern.sub(_sub, text)
     return text
 
 
@@ -381,7 +385,7 @@ def _finalize(
         log.warning("Guionista: guion vacío tras reparar; se usa el guion de respaldo")
         lines = _repair(fallback_script(analysis, speaker_names).lines)
     if not _has_closing(lines):
-        closer = "B" if lines[-1].speaker == "A" else "A"
+        closer: Literal["A", "B"] = "B" if lines[-1].speaker == "A" else "A"
         lines.append(ScriptLine(speaker=closer, text=CLOSING_LINE_ES))
     title = re.sub(r"\s+", " ", script.title or "").strip() or f"Market Briefer · {analysis.date:%d/%m/%Y}"
     return PodcastScript(title=title, lines=lines, est_duration_s=estimate_duration_s(lines))

@@ -105,6 +105,6 @@ def test_corrupt_demo_is_ignored_by_featured(tmp_path: Path) -> None:
     demo = storage.demo_briefing_dir(tmp_path / "samples")
     demo.mkdir(parents=True)
     (demo / storage.BRIEFING_FILE).write_text("[]", encoding="utf-8")
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         storage.load_demo_briefing(tmp_path / "samples")
     assert storage.load_featured_briefing(tmp_path / "outputs", tmp_path / "samples") is None

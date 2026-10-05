@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import re
 import traceback
-from html import escape
 from dataclasses import dataclass
+from html import escape
 from pathlib import Path
 
 import streamlit as st

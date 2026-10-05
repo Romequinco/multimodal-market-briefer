@@ -126,3 +126,18 @@ def test_delete_briefing_refuses_samples_as_output_dir(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         storage.delete_briefing(storage.DEMO_BRIEFING_DIRNAME, samples, samples_dir=samples)
     assert (samples / storage.DEMO_BRIEFING_DIRNAME / storage.BRIEFING_FILE).is_file()
+
+
+def test_is_link_without_path_is_junction(monkeypatch: pytest.MonkeyPatch) -> None:
+    """En Python 3.11 ``Path.is_junction`` no existe: se detecta igual por el atributo de reanálisis."""
+    from briefer import storage
+
+    class OldPath:  # como un Path de 3.11: sin ``is_junction``
+        def is_symlink(self) -> bool:
+            return False
+
+    attrs = {"value": 0}
+    monkeypatch.setattr(storage.os, "lstat", lambda _p: type("St", (), {"st_file_attributes": attrs["value"]})())
+    assert storage._is_link(OldPath()) is False  # type: ignore[arg-type]
+    attrs["value"] = storage._FILE_ATTRIBUTE_REPARSE_POINT
+    assert storage._is_link(OldPath()) is True  # type: ignore[arg-type]

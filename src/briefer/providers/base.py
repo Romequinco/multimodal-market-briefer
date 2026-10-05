@@ -17,7 +17,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 
-class _Provider(ABC):
+class _Provider(ABC):  # noqa: B024 - base común; los métodos abstractos van en cada familia
     """Atributos comunes a todos los proveedores."""
 
     provider_name: str = "base"

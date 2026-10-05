@@ -7,7 +7,8 @@ Carril B. Implementa ``LLMProvider.complete(system, messages, response_model)``:
   (``output_config.format = json_schema``), con el esquema del modelo Pydantic adaptado por
   ``anthropic.transform_schema`` (``additionalProperties: false``, sin restricciones no
   admitidas). Los campos ``dict[str, str]`` (``DocumentInsight.key_figures``) se piden como lista
-  de pares ``{label, value}`` y se reconvierten (``_structured.encode_dict_fields``). Se valida con Pydantic y, si falla, se reintenta **una** vez enviando el error
+  de pares ``{label, value}`` y se reconvierten (``_structured.encode_dict_fields``). Se valida con Pydantic y, si falla, se
+  reintenta **una** vez enviando el error
   (ver ``_structured.complete_structured``). Se usa este mecanismo y no ``tool_choice``
   forzado porque Sonnet 5.5 rechaza ``tool_choice`` de tipo ``any``/``tool`` (400).
 - ``last_usage`` = tokens de entrada/salida de la llamada (sumando el reintento si lo hubo).

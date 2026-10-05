@@ -352,8 +352,8 @@ def stub_lanes(monkeypatch: pytest.MonkeyPatch, sample_context: MarketContext) -
     def fake_podcast(script, tts, out_dir, voice_a, voice_b, pause_s=0.35, **_kwargs):
         path = Path(out_dir) / "podcast.wav"
         path.write_bytes(b"RIFF")
-        segs = [AudioSegment(speaker=l.speaker, text=l.text, start_s=i, end_s=i + 1)
-                for i, l in enumerate(script.lines)]
+        segs = [AudioSegment(speaker=ln.speaker, text=ln.text, start_s=i, end_s=i + 1)
+                for i, ln in enumerate(script.lines)]
         return AudioAsset(path=path, duration_s=len(segs), segments=segs)
 
     monkeypatch.setattr(pipeline.podcast, "synthesize_podcast", fake_podcast)
@@ -395,7 +395,7 @@ def test_run_briefing_mock_flow_with_stubbed_lanes(settings: Settings, stub_lane
     )
     assert briefing.context.tickers == ["SAN.MC", "AAPL"]
     assert briefing.analysis.key_points
-    assert {l.speaker for l in briefing.script.lines} == {"A", "B"}
+    assert {ln.speaker for ln in briefing.script.lines} == {"A", "B"}
     steps = [m.step for m in briefing.metrics]
     for expected in ["ingest.news", "ingest.tickers", "ingest.prices", "agents.analyst",
                      "agents.scriptwriter", "media.podcast", "media.transcript", "media.charts",

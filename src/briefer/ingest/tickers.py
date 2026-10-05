@@ -169,4 +169,4 @@ def filter_by_tickers(
                 break
             if not keep[i] and set(item.tickers) & set(MARKET_INDEX_TICKERS):
                 keep[i] = True
-    return [item for item, k in zip(enriched, keep) if k]
+    return [item for item, k in zip(enriched, keep, strict=True) if k]

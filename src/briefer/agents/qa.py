@@ -191,7 +191,7 @@ def answer(
     ][-MAX_HISTORY_TURNS:]
     while past and past[0]["role"] != "user":  # tras el acuse del contexto toca un turno "user"
         past.pop(0)
-    messages = [
+    messages: list[dict] = [
         # "cache": caché de prompt en Anthropic (system + contexto, estable entre preguntas).
         {"role": "user", "content": context_message(briefing), "cache": True},
         {"role": "assistant", "content": CONTEXT_ACK},

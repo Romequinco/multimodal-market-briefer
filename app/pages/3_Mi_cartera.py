@@ -6,9 +6,11 @@ lectura del CSV la hace ``briefer.ingest.portfolio.load_portfolio_csv``.
 
 from __future__ import annotations
 
-import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
-from components.theme import apply_theme
+
+import components  # noqa: F401  (añade src/ al sys.path)
+from briefer.config import get_settings
+from briefer.logging_utils import get_logger
 from components.players import (
     handle_navigation,
     mode_badge,
@@ -18,9 +20,7 @@ from components.players import (
     show_disclaimer,
     sidebar_mode,
 )
-
-from briefer.config import get_settings
-from briefer.logging_utils import get_logger
+from components.theme import apply_theme
 
 log = get_logger("app.cartera")
 
@@ -35,7 +35,8 @@ st.title("Mi cartera")
 mode_badge(mode)
 st.caption(
     "Privacidad (RGPD): la cartera se usa solo durante esta sesión para filtrar noticias; "
-    "no se guarda en disco. Los tickers se usan para buscar noticias y precios, y los tickers con sus pesos se envían al modelo de IA para generar el análisis."
+    "no se guarda en disco. Los tickers se usan para buscar noticias y precios, y los tickers con "
+    "sus pesos se envían al modelo de IA para generar el análisis."
 )
 
 sample_path = settings.samples_path / "portfolio_ejemplo.csv"

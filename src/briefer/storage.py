@@ -536,6 +536,28 @@ def _count_files(path: Path) -> int:
     return total
 
 
+#: Atributo de Windows de los puntos de reanálisis (enlaces simbólicos y *junctions*).
+_FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+
+
+def _is_link(path: Path) -> bool:
+    """``True`` si ``path`` es un enlace simbólico o un *junction* de Windows.
+
+    ``Path.is_junction`` solo existe desde Python 3.12; en 3.11 (CI y Docker) se mira el
+    atributo de reanálisis de ``lstat``, que en Linux/macOS no existe (allí no hay junctions).
+    """
+    if path.is_symlink():
+        return True
+    is_junction = getattr(path, "is_junction", None)
+    if is_junction is not None:
+        return bool(is_junction())
+    try:
+        attrs = getattr(os.lstat(path), "st_file_attributes", 0)
+    except OSError:
+        return False
+    return bool(attrs & _FILE_ATTRIBUTE_REPARSE_POINT)
+
+
 def _unlink_link(link: Path) -> bool:
     """Quita un enlace (simbólico o junction) sin tocar su destino."""
     try:
@@ -554,7 +576,7 @@ def _remove_entry(entry: Path, root: Path) -> bool:
     import shutil
 
     # Un enlace simbólico (o junction) se quita como enlace: nunca se borra su destino.
-    if entry.is_symlink() or getattr(entry, "is_junction", lambda: False)():
+    if _is_link(entry):
         return _unlink_link(entry)
     if not _is_within(entry.resolve(), root):  # defensa extra: nada fuera de la carpeta raíz
         return False
@@ -600,7 +622,7 @@ def delete_briefing(briefing_id: str, base_dir: Path | None = None,
 
     root = _safe_data_root(_base(base_dir), _samples_root(samples_dir))
     folder = root / _check_id(briefing_id)
-    if folder.is_symlink() or folder.is_junction():
+    if _is_link(folder):
         if not _unlink_link(folder):
             raise OSError(f"No se pudo quitar el enlace {folder}")
         return True

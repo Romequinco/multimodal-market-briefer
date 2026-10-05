@@ -158,7 +158,10 @@ def check_anthropic(s: Settings) -> list[Result]:
         return out.model_dump_json(), cheap.last_usage, 0.0
 
     def describe() -> tuple[str, dict, float]:
-        out = vision.describe(SAMPLE_CHART.read_bytes(), "Describe este gráfico financiero en dos frases: tipo, tendencia y último valor.")
+        out = vision.describe(
+            SAMPLE_CHART.read_bytes(),
+            "Describe este gráfico financiero en dos frases: tipo, tendencia y último valor.",
+        )
         return out, vision.last_usage, 0.0
 
     return [

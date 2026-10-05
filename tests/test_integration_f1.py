@@ -111,7 +111,8 @@ def test_use_mock_still_means_full_mock(settings: Settings) -> None:
 def test_context_indices_are_fetched_but_not_user_tickers(
     settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from briefer.ingest import news as news_mod, prices as prices_mod
+    from briefer.ingest import news as news_mod
+    from briefer.ingest import prices as prices_mod
 
     calls: dict[str, object] = {}
 

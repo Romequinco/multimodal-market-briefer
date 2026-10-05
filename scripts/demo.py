@@ -5,7 +5,8 @@ Ejemplos::
     python scripts/demo.py --mock
     python scripts/demo.py --demo-voices          # sin claves, pero con voces reales (edge-tts)
     python scripts/demo.py --refresh              # real, ignorando la caché diaria de noticias/precios
-    python scripts/demo.py --mock --tickers santander AAPL --upload data/samples/resultados_ejemplo.pdf data/samples/grafico_ejemplo.png
+    python scripts/demo.py --mock --tickers santander AAPL \
+        --upload data/samples/resultados_ejemplo.pdf data/samples/grafico_ejemplo.png
     python scripts/demo.py --tickers SAN.MC AAPL --upload data/samples/resultados_ejemplo.pdf
     python scripts/demo.py --mock --question "¿Por qué sube el Santander?"
     python scripts/demo.py --question "¿Qué dice el PDF?" --briefing pregenerado --warmup

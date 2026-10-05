@@ -145,7 +145,7 @@ def test_mock_llm_structured_and_text() -> None:
     analysis = llm.complete("sys", [{"role": "user", "content": "hola"}], response_model=Analysis)
     assert isinstance(analysis, Analysis) and analysis.key_points
     script = llm.complete("sys", [{"role": "user", "content": "hola"}], response_model=PodcastScript)
-    assert isinstance(script, PodcastScript) and {l.speaker for l in script.lines} == {"A", "B"}
+    assert isinstance(script, PodcastScript) and {ln.speaker for ln in script.lines} == {"A", "B"}
     insight = llm.complete("sys", [{"role": "user", "content": "x"}], response_model=DocumentInsight)
     assert isinstance(insight, DocumentInsight)
     text = llm.complete("sys", [{"role": "user", "content": "¿Qué tal el IBEX?"}])

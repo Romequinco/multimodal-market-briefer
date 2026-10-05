@@ -13,14 +13,13 @@ import threading
 from pathlib import Path
 
 import pytest
+from test_llm_providers import FakeAnthropicClient, _analysis_json, _resp
 
 from briefer import pipeline
 from briefer.config import Settings
 from briefer.logging_utils import step_failed, step_fell_back
 from briefer.providers.llm.anthropic_llm import AnthropicLLM
 from briefer.schemas import Briefing, QAAnswer
-
-from test_llm_providers import FakeAnthropicClient, _analysis_json, _resp
 
 
 @pytest.fixture
@@ -190,7 +189,8 @@ def test_mock_mode_never_falls_back(settings: Settings, monkeypatch: pytest.Monk
 
 def test_news_and_prices_run_in_parallel(real_settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
     """Las dos descargas se esperan mutuamente en una barrera: solo pasa si van en paralelo."""
-    from briefer.ingest import news as news_mod, prices as prices_mod
+    from briefer.ingest import news as news_mod
+    from briefer.ingest import prices as prices_mod
 
     barrier = threading.Barrier(2, timeout=5)
     samples = news_mod.load_sample_news()
