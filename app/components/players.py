@@ -85,6 +85,26 @@ def pending(exc: BaseException, what: str) -> None:
     )
 
 
+def portfolio_error_message(exc: BaseException) -> str:
+    """Mensaje en español y sin traceback para un CSV de cartera que no se puede leer (función pura).
+
+    Los ``ValueError`` de ``load_portfolio_csv`` ya traen un texto pensado para la UI (vacío, falta la
+    columna, valor no numérico o negativo, pesos que no suman 1/100…); cualquier otro error se resume.
+    """
+    from pydantic import ValidationError
+
+    if isinstance(exc, ValidationError):
+        return ("Alguna fila del CSV tiene un ticker o un número que no es válido. Revisa que cada fila "
+                "tenga un ticker y un peso o cantidad positivos.")
+    if isinstance(exc, UnicodeError):
+        return "No se puede leer el CSV: la codificación no es válida. Guárdalo como «CSV UTF-8»."
+    if isinstance(exc, ValueError):
+        text = " ".join(redact_secrets(exc).split())  # una línea, sin saltos ni tabuladores
+        return text if len(text) <= 300 else text[:299] + "…"
+    return ("El fichero no parece un CSV de cartera válido (¿es una hoja de Excel u otro formato?). "
+            "Expórtalo como CSV e inténtalo de nuevo.")
+
+
 def _debug_enabled() -> bool:
     try:
         return get_settings().briefer_log_level.upper() == "DEBUG"

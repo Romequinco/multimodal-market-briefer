@@ -14,11 +14,15 @@ from components.players import (
     mode_badge,
     page_link,
     pending,
+    portfolio_error_message,
     show_disclaimer,
     sidebar_mode,
 )
 
 from briefer.config import get_settings
+from briefer.logging_utils import get_logger
+
+log = get_logger("app.cartera")
 
 st.set_page_config(page_title="Mi cartera · Market Briefer", page_icon=":material/account_balance_wallet:",
                    layout="wide")
@@ -42,28 +46,47 @@ if sample_path.exists():
     col2.download_button("Descargar plantilla", sample_path.read_bytes(), file_name="portfolio_ejemplo.csv")
 
 
+FORMAT_HELP = (
+    "Formato esperado: una fila de cabecera con `ticker` y `weight` (peso en tanto por uno, que sume 1, o en "
+    "porcentaje, que sume 100) y/o `quantity` (nº de acciones). Separador `,` o `;`; decimales con punto o coma. "
+    "Ejemplo:\n\n```\nticker,weight\nSAN.MC,0.6\nAAPL,0.4\n```"
+)
+ERROR_KEY = "_portfolio_error"
+
+
 def _load(source, name: str) -> None:
-    """Carga la cartera con el helper de ingest y la deja en la sesión."""
+    """Carga la cartera con el helper de ingest y la deja en la sesión (errores amables, sin traceback)."""
     from briefer.ingest.portfolio import load_portfolio_csv
 
+    st.session_state.pop(ERROR_KEY, None)
     try:
         st.session_state["portfolio"] = load_portfolio_csv(source, name=name)
         st.success(f"Cartera «{name}» cargada.")
     except NotImplementedError as exc:
         pending(exc, "la lectura de carteras CSV")
-    except Exception as exc:
-        st.error(f"No se pudo leer el CSV: {exc}")
+    except Exception as exc:  # noqa: BLE001 - nunca un traceback en la UI
+        log.info("CSV de cartera rechazado: %s", type(exc).__name__)  # sin contenido: es un dato personal
+        st.session_state[ERROR_KEY] = portfolio_error_message(exc)
 
 
 if use_sample:
     if sample_path.exists():
         _load(sample_path, "Cartera de ejemplo")
     else:
-        st.error(f"No se encuentra la cartera de ejemplo en {sample_path}.")
+        st.error("No se encuentra la cartera de ejemplo en el servidor. Sube tu propio CSV.")
 elif uploaded is not None and st.session_state.get("_portfolio_upload_id") != uploaded.file_id:
     # Solo se procesa una vez por fichero subido (no en cada recarga de la página).
     st.session_state["_portfolio_upload_id"] = uploaded.file_id
     _load(uploaded, "Mi cartera")
+elif uploaded is None:
+    st.session_state.pop(ERROR_KEY, None)  # se quitó el fichero: el aviso ya no aplica
+
+if st.session_state.get(ERROR_KEY):
+    st.error(f"No se pudo cargar la cartera: {st.session_state[ERROR_KEY]}", icon=":material/error:")
+    if st.session_state.get("portfolio") is not None:
+        st.caption("Se mantiene la cartera que tenías cargada.")
+    with st.expander("Cómo debe ser el CSV", expanded=True):
+        st.markdown(FORMAT_HELP)
 
 portfolio = st.session_state.get("portfolio")
 if portfolio is not None:
