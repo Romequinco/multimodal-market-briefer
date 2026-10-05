@@ -23,7 +23,12 @@ briefer = ["agents/prompts/*.md"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-addopts = "-ra"
+# Los tests "live" llaman a APIs reales (red + claves, cuestan dinero): excluidos por defecto.
+# Para ejecutarlos: python -m pytest -m live
+addopts = "-ra -m \"not live\""
+markers = [
+    "live: llama a proveedores reales (red, claves y coste); se excluye por defecto",
+]
 
 [tool.ruff]
 line-length = 110

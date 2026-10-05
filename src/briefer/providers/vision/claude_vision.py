@@ -1,21 +1,75 @@
 """Visión con Claude: lee capturas de gráficos y páginas de PDF con gráficos/tablas.
 
-Carril A. Implementa ``VisionProvider.describe(image: bytes, prompt) -> str``.
-Lo usan ``ingest.chart_reader`` y ``ingest.pdf_reader`` para producir ``DocumentInsight``.
-Modelo: ``BRIEFER_VISION_MODEL``.
+Implementa ``VisionProvider.describe(image: bytes, prompt) -> str`` (proveedor del carril B;
+lo usan ``ingest.chart_reader`` e ``ingest.pdf_reader`` del carril A para producir
+``DocumentInsight``). Modelo: ``BRIEFER_VISION_MODEL`` (``claude-sonnet-5-5``).
+
+- El tipo de imagen se detecta por la cabecera (``detect_media_type``), no por la extensión.
+- Imágenes de más de 5 MB o con un lado > ``MAX_SIDE_PX`` se reescalan con Pillow antes de
+  enviarlas (límite de la API y ahorro de subida).
+- ``last_usage`` recoge los tokens de la llamada; timeouts y reintentos como en ``AnthropicLLM``.
 """
 
 from __future__ import annotations
 
+import base64
+import io
+from typing import Any
+
 from briefer.config import Settings
 from briefer.providers.base import VisionProvider
+from briefer.providers.llm import _anthropic_common as common
+
+#: Límite de tamaño de imagen en base64 de la API (5 MB) y lado máximo que se envía.
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+MAX_SIDE_PX = 2_000
+MAX_TOKENS = 4_000
+DEFAULT_EFFORT = "low"
 
 
 def detect_media_type(image: bytes) -> str:
-    """Devuelve ``image/png``, ``image/jpeg``, ``image/webp`` o ``image/gif`` por cabecera."""
-    # TODO: comprobar magic bytes: b"\x89PNG" -> png; b"\xff\xd8" -> jpeg;
-    # b"RIFF....WEBP" -> webp; b"GIF8" -> gif. Si no se reconoce, ValueError.
-    raise NotImplementedError("detect_media_type: pendiente (carril A)")
+    """Devuelve ``image/png``, ``image/jpeg``, ``image/webp`` o ``image/gif`` por cabecera.
+
+    Raises:
+        ValueError: imagen vacía o formato no reconocido.
+    """
+    if not image:
+        raise ValueError("Imagen vacía")
+    if image.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if image.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if image[:4] == b"RIFF" and image[8:12] == b"WEBP":
+        return "image/webp"
+    if image[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    raise ValueError("Formato de imagen no soportado (se admiten PNG, JPEG, WEBP y GIF)")
+
+
+def prepare_image(image: bytes) -> tuple[bytes, str]:
+    """Devuelve ``(bytes, media_type)`` listos para la API, reescalando si hace falta.
+
+    Si la imagen supera ``MAX_IMAGE_BYTES`` o tiene un lado mayor que ``MAX_SIDE_PX`` se
+    reduce (manteniendo proporción) y se re-codifica: PNG si cabe, si no JPEG calidad 85.
+    """
+    media_type = detect_media_type(image)
+    try:
+        from PIL import Image
+    except ImportError:  # sin Pillow se envía tal cual
+        return image, media_type
+    with Image.open(io.BytesIO(image)) as img:
+        too_big = len(image) > MAX_IMAGE_BYTES or max(img.size) > MAX_SIDE_PX
+        if not too_big:
+            return image, media_type
+        img = img.convert("RGB") if img.mode not in ("RGB", "L") else img.copy()
+        img.thumbnail((MAX_SIDE_PX, MAX_SIDE_PX))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG", optimize=True)
+        if buf.tell() <= MAX_IMAGE_BYTES:
+            return buf.getvalue(), "image/png"
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        return buf.getvalue(), "image/jpeg"
 
 
 class ClaudeVision(VisionProvider):
@@ -23,22 +77,45 @@ class ClaudeVision(VisionProvider):
 
     provider_name = "anthropic"
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, effort: str | None = DEFAULT_EFFORT) -> None:
         super().__init__()
         self.settings = settings
         self.model = settings.briefer_vision_model
-        self._client = None
+        self.effort = effort
+        self._client: Any = None
+
+    def _get_client(self) -> Any:
+        if self._client is None:
+            self._client = common.make_client(self.settings)
+        return self._client
 
     def describe(self, image: bytes, prompt: str) -> str:
-        """Envía la imagen + prompt a Claude y devuelve el texto de respuesta."""
-        # TODO:
-        # 1. import anthropic, base64 (perezoso); cliente como en AnthropicLLM.
-        # 2. content = [{"type": "image", "source": {"type": "base64",
-        #    "media_type": detect_media_type(image), "data": base64.b64encode(image).decode()}},
-        #    {"type": "text", "text": prompt}].
-        # 3. messages.create(model=self.model, max_tokens=1500, messages=[{"role": "user",
-        #    "content": content}]) y concatenar bloques de texto.
-        # 4. last_usage desde resp.usage.
-        # Casos borde: imagen > 5 MB o lado > 8000 px -> reescalar con Pillow antes de enviar;
-        # imagen que no es un gráfico -> el prompt debe pedir que lo diga explícitamente.
-        raise NotImplementedError("ClaudeVision.describe: pendiente (carril A)")
+        """Envía la imagen + prompt a Claude y devuelve el texto de respuesta.
+
+        Raises:
+            ValueError: imagen vacía o formato no soportado.
+            anthropic.APIError / LLMResponseError: fallo de la API o respuesta inutilizable.
+        """
+        data, media_type = prepare_image(image)
+        content = [
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": base64.standard_b64encode(data).decode("ascii"),
+                },
+            },
+            {"type": "text", "text": prompt},
+        ]
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": MAX_TOKENS,
+            "messages": [{"role": "user", "content": content}],
+        }
+        options = common.request_options(self.model, self.effort)
+        if options:
+            kwargs["output_config"] = options
+        resp = self._get_client().messages.create(**kwargs)
+        self.last_usage = common.usage_dict(resp)
+        return common.response_text(resp)

@@ -21,7 +21,7 @@ Pillow>=10.0
 matplotlib>=3.8
 plotly>=5.20
 # Audio y vídeo
-edge-tts>=6.1
+edge-tts==7.2.8  # fijada: probada el 06-oct-2026 (servicio no oficial; ver providers/tts/edge_tts_provider.py)
 moviepy>=2.0
 imageio-ffmpeg>=0.5
 # Tests

@@ -1,0 +1,47 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Sin claves: todos los proveedores en mock (los tests "live" se excluyen en pyproject).
+      PYTHONDONTWRITEBYTECODE: "1"
+      BRIEFER_LLM_PROVIDER: mock
+      BRIEFER_VISION_PROVIDER: mock
+      BRIEFER_STT_PROVIDER: mock
+      BRIEFER_TTS_PROVIDER: mock
+      BRIEFER_IMAGE_GEN_PROVIDER: none
+      BRIEFER_IMAGE_CLASSIFIER_PROVIDER: none
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt && pip install -e .
+
+      - name: Tests (mock, sin red)
+        run: pytest -q

@@ -2,6 +2,11 @@
 
 Carril A. Salida: ``list[PriceSnapshot]`` con último precio, variación diaria (%) e
 histórico corto (para ``media.charts``).
+
+Modo real: una sola descarga en lote (``yf.download``) para todos los tickers que no estén en la
+caché del día (``settings.cache_path``, ver ``ingest.cache``); la divisa se pide a yfinance
+(``fast_info``) y, si no la da, se deduce con ``currency_for``. Un ticker sin datos se omite con
+aviso; nunca se rellena con precios sintéticos.
 """
 
 from __future__ import annotations
@@ -9,30 +14,195 @@ from __future__ import annotations
 import hashlib
 import math
 import random
-from datetime import date, timedelta
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta
+from typing import Any
 
+from briefer.ingest import cache
 from briefer.ingest.tickers import normalize_ticker
+from briefer.logging_utils import get_logger
 from briefer.schemas import PriceSnapshot
 
+log = get_logger("ingest.prices")
 
-def get_price_snapshot(ticker: str, period: str = "1mo") -> PriceSnapshot:
-    """Snapshot de un ticker."""
-    # TODO:
-    # 1. import yfinance as yf; hist = yf.Ticker(ticker).history(period=period, interval="1d").
-    # 2. last = hist["Close"].iloc[-1]; prev = hist["Close"].iloc[-2];
-    #    change_pct = (last / prev - 1) * 100.
-    # 3. currency = yf.Ticker(ticker).fast_info.get("currency") o currency_for(ticker).
-    # 4. history = [(idx.date(), float(close)) for idx, close in hist["Close"].items()].
-    # Casos borde: ticker inválido o mercado sin datos (hist vacío) -> ValueError claro;
-    # festivos; un solo día de histórico (change_pct = 0.0).
-    raise NotImplementedError("get_price_snapshot: pendiente (carril A, D1: requiere red)")
+#: Timeout (s) de la descarga de yfinance.
+DOWNLOAD_TIMEOUT = 10
 
 
-def get_price_snapshots(tickers: list[str], period: str = "1mo") -> list[PriceSnapshot]:
-    """Snapshots de varios tickers; los que fallen se omiten con aviso (no rompen el briefing)."""
-    # TODO: yf.download(tickers, period=period, group_by="ticker") en una sola llamada es
-    # más rápido que uno a uno; capturar errores por ticker y log.warning.
-    raise NotImplementedError("get_price_snapshots: pendiente (carril A, D1: requiere red)")
+class PriceFetchError(RuntimeError):
+    """No se ha podido obtener el precio de ninguno de los tickers pedidos."""
+
+
+def _close_series(df: Any, ticker: str) -> Any | None:
+    """Serie de cierres (``Close``) de ``ticker`` en un DataFrame de yfinance, sin NaN ni ceros.
+
+    Soporta columnas planas (un ticker, yfinance antiguo) y ``MultiIndex`` en cualquier orden
+    (``(Ticker, Price)`` con ``group_by="ticker"`` o ``(Price, Ticker)`` por defecto).
+    """
+    import pandas as pd
+
+    if df is None or getattr(df, "empty", True):
+        return None
+    sub = df
+    if isinstance(df.columns, pd.MultiIndex):
+        for level in range(df.columns.nlevels):
+            if ticker in df.columns.get_level_values(level):
+                sub = df.xs(ticker, axis=1, level=level)
+                break
+        else:
+            return None
+    column = next((c for c in ("Close", "Adj Close", "close") if c in sub.columns), None)
+    if column is None:
+        return None
+    series = sub[column]
+    if isinstance(series, pd.DataFrame):  # columnas duplicadas
+        series = series.iloc[:, 0]
+    series = pd.to_numeric(series, errors="coerce").dropna()
+    series = series[series > 0]
+    return series if len(series) else None
+
+
+def snapshot_from_closes(ticker: str, closes: Any, currency: str) -> PriceSnapshot:
+    """Construye un ``PriceSnapshot`` desde una serie de cierres indexada por fecha.
+
+    ``change_pct`` = último cierre frente al anterior (en %); con un solo día, ``0.0``.
+    Si hay varias filas con la misma fecha (barra intradía duplicada), se queda la última.
+
+    Raises:
+        ValueError: si no hay ningún cierre válido.
+    """
+    by_day: dict[date, float] = {}
+    for idx, value in closes.items():
+        day = idx.date() if isinstance(idx, datetime) or hasattr(idx, "date") else idx
+        if isinstance(day, datetime):
+            day = day.date()
+        by_day[day] = round(float(value), 4)
+    if not by_day:
+        raise ValueError(f"Sin cierres válidos para {ticker}")
+    history = sorted(by_day.items())
+    last = history[-1][1]
+    change = round((last / history[-2][1] - 1) * 100, 2) if len(history) >= 2 else 0.0
+    return PriceSnapshot(ticker=ticker, last=last, change_pct=change, currency=currency, history=history)
+
+
+def _download(tickers: list[str], period: str) -> Any:
+    """Descarga en lote de cierres diarios (una petición para todos los tickers)."""
+    import yfinance as yf
+
+    return yf.download(
+        tickers,
+        period=period,
+        interval="1d",
+        group_by="ticker",
+        auto_adjust=False,
+        progress=False,
+        threads=True,
+        timeout=DOWNLOAD_TIMEOUT,
+    )
+
+
+def _history(ticker: str, period: str) -> Any:
+    """Respaldo uno a uno: ``yf.Ticker(t).history`` (si la descarga en lote falla entera)."""
+    import yfinance as yf
+
+    return yf.Ticker(ticker).history(period=period, interval="1d", auto_adjust=False)
+
+
+def _currency(ticker: str) -> str:
+    """Divisa que reporta yfinance (``fast_info``); si no hay, ``currency_for``."""
+    try:
+        import yfinance as yf
+
+        info = yf.Ticker(ticker).fast_info
+        value = info.get("currency") if hasattr(info, "get") else info["currency"]
+        if value and isinstance(value, str):
+            return value.strip()
+    except Exception as exc:  # noqa: BLE001 - red, 404, campo ausente
+        log.debug("Divisa de %s no disponible en yfinance (%s); se deduce", ticker, exc)
+    return currency_for(ticker)
+
+
+def get_price_snapshots(
+    tickers: list[str], period: str = "1mo", *, use_cache: bool = True
+) -> list[PriceSnapshot]:
+    """Snapshots de varios tickers; los que no tengan datos se omiten con aviso.
+
+    Lee primero la caché del día (clave: ticker + periodo + fecha) y descarga en una sola
+    llamada solo los que falten; si la descarga en lote falla entera, prueba ticker a ticker.
+
+    Args:
+        tickers: tickers (se normalizan con ``normalize_ticker``; sin repetir).
+        period: histórico de yfinance (``"1mo"``, ``"3mo"``…).
+        use_cache: ``False`` ignora la caché del día (vuelve a descargar y la refresca).
+
+    Returns:
+        Snapshots en el orden de ``tickers`` (solo los que tienen datos).
+
+    Raises:
+        PriceFetchError: si se pidieron tickers y no se obtuvo precio de ninguno.
+    """
+    wanted = list(dict.fromkeys(normalize_ticker(t) for t in tickers if str(t).strip()))
+    found: dict[str, PriceSnapshot] = {}
+    for t in wanted:
+        if not use_cache:
+            break
+        cached = cache.read_cache("prices", cache.cache_key(t, period))
+        if cached:
+            try:
+                found[t] = PriceSnapshot.model_validate(cached)
+            except Exception as exc:  # noqa: BLE001 - caché de otra versión del schema
+                log.warning("Caché de precios incompatible para %s: %s", t, exc)
+
+    missing = [t for t in wanted if t not in found]
+    if missing:
+        closes: dict[str, Any] = {}
+        try:
+            df = _download(missing, period)
+            closes = {t: _close_series(df, t) for t in missing}
+        except Exception as exc:  # noqa: BLE001 - red, rate limit, cambios de yfinance
+            log.warning("Descarga en lote de precios falló (%s); se prueba uno a uno", exc)
+            for t in missing:
+                try:
+                    closes[t] = _close_series(_history(t, period), t)
+                except Exception as exc_t:  # noqa: BLE001
+                    log.warning("Sin precios para %s: %s", t, exc_t)
+                    closes[t] = None
+        with_data = [t for t in missing if closes.get(t) is not None]
+        for t in missing:
+            if t not in with_data:
+                log.warning("Ticker sin datos de precio en yfinance: %s (se omite)", t)
+        if with_data:
+            with ThreadPoolExecutor(max_workers=min(8, len(with_data))) as pool:
+                currencies = dict(zip(with_data, pool.map(_currency, with_data)))
+            for t in with_data:
+                try:
+                    snap = snapshot_from_closes(t, closes[t], currencies[t])
+                except ValueError as exc:
+                    log.warning("%s; se omite", exc)
+                    continue
+                found[t] = snap
+                cache.write_cache("prices", cache.cache_key(t, period), snap.model_dump(mode="json"))
+
+    if wanted and not found:
+        raise PriceFetchError(
+            f"No se pudo obtener el precio de ninguno de {', '.join(wanted)} "
+            "(¿sin conexión, tickers inválidos o límite de Yahoo?)"
+        )
+    return [found[t] for t in wanted if t in found]
+
+
+def get_price_snapshot(ticker: str, period: str = "1mo", *, use_cache: bool = True) -> PriceSnapshot:
+    """Snapshot de un ticker (último cierre, variación diaria en % e histórico de ``period``).
+
+    Raises:
+        ValueError: ticker inválido o sin datos en yfinance.
+    """
+    t = normalize_ticker(ticker)
+    try:
+        snaps = get_price_snapshots([t], period, use_cache=use_cache)
+    except PriceFetchError as exc:
+        raise ValueError(f"Sin datos de precio para {t}") from exc
+    return snaps[0]
 
 
 def currency_for(ticker: str) -> str:

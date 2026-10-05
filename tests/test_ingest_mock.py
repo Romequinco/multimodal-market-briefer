@@ -68,11 +68,8 @@ def test_dedupe_news_by_url_and_title() -> None:
     assert a.tickers == ["ITX.MC"]  # no muta la entrada
 
 
-def test_network_functions_still_pending() -> None:
-    with pytest.raises(NotImplementedError):
-        news.fetch_news(["SAN.MC"])
-    with pytest.raises(NotImplementedError):
-        prices.get_price_snapshots(["SAN.MC"])
+# fetch_news / get_price_snapshots (camino real) se prueban sin red en tests/test_ingest_real.py
+# y contra las fuentes reales en tests/test_ingest_live.py (RUN_LIVE=1).
 
 
 # ── tickers ───────────────────────────────────────────────────────────────────────

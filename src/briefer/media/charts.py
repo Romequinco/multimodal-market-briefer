@@ -12,6 +12,7 @@ formato español (``+1,23 %``).
 from __future__ import annotations
 
 import re
+from collections.abc import Collection
 from pathlib import Path
 
 import matplotlib
@@ -290,14 +291,22 @@ def make_portfolio_chart(
 
 
 def make_charts(
-    prices: list[PriceSnapshot], out_dir: Path, portfolio: Portfolio | None = None
+    prices: list[PriceSnapshot],
+    out_dir: Path,
+    portfolio: Portfolio | None = None,
+    *,
+    line_tickers: Collection[str] | None = None,
 ) -> list[ChartAsset]:
     """Genera todos los gráficos del briefing (overview + uno por ticker + cartera).
 
     Orden: variación del día (si hay ≥ 2 valores), una línea por ticker con histórico (en el
     orden recibido) y el reparto de la cartera si es valorable. Un fallo en un gráfico se
     registra en el log y no tumba el resto.
+
+    ``line_tickers``: si se indica, solo esos tickers tienen gráfico de cotización propio (los
+    índices de contexto, p. ej. ``^IBEX``, salen solo en el gráfico de variación del día).
     """
+    wanted_lines = {t.upper() for t in line_tickers} if line_tickers is not None else None
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     assets: list[ChartAsset] = []
@@ -307,7 +316,7 @@ def make_charts(
         except Exception as exc:
             log.warning("Gráfico de variaciones omitido: %s", exc)
     for snap in prices:
-        if not snap.history:
+        if not snap.history or (wanted_lines is not None and snap.ticker.upper() not in wanted_lines):
             continue
         try:
             assets.append(make_price_chart(snap, out_dir))

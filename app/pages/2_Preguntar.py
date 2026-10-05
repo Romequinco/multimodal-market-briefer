@@ -1,4 +1,7 @@
-"""Página "Preguntar": Agente Q&A por voz o texto (carril C, llama a ``pipeline.answer_question``)."""
+"""Página "Preguntar": Agente Q&A por voz o texto (carril C, llama a ``pipeline.answer_question``).
+
+La respuesta muestra su traza «Cómo se hizo» (``QAAnswer.metrics``: voz a texto → agente → voz).
+"""
 
 from __future__ import annotations
 
@@ -6,12 +9,12 @@ from datetime import datetime
 
 import components  # noqa: F401  (añade src/ al sys.path)
 import streamlit as st
-from components.players import pending, render_qa_answer, show_disclaimer, show_error, sidebar_controls
+from components.players import pending, render_qa_answer, show_disclaimer, show_error, sidebar_mode
 
 from briefer.config import get_settings
 
 st.set_page_config(page_title="Preguntar · Market Briefer", layout="wide")
-use_mock = sidebar_controls()
+mode = sidebar_mode()
 settings = get_settings()
 
 st.title("Pregunta sobre el briefing")
@@ -45,7 +48,7 @@ if st.button("Preguntar", type="primary", disabled=audio is None and not text.st
                 briefing,
                 speak=speak,
                 history=st.session_state.get("qa_history"),
-                use_mock=use_mock,
+                mode=mode,
             )
             st.session_state.setdefault("qa_answers", []).insert(0, answer)
             st.session_state.setdefault("qa_history", []).extend(

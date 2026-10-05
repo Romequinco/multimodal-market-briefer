@@ -1,20 +1,39 @@
 """LLM con Anthropic Claude — proveedor por defecto de los tres agentes.
 
 Carril B. Implementa ``LLMProvider.complete(system, messages, response_model)``:
-- Entrada: prompt de sistema + mensajes estilo chat.
-- Salida: ``str`` o instancia validada de ``response_model`` (``Analysis``, ``PodcastScript``…).
 
-Modelos (config): ``BRIEFER_LLM_MODEL`` (``claude-sonnet-5-5``) y, con ``cheap=True``,
-``BRIEFER_LLM_MODEL_CHEAP`` (``claude-haiku-4-5-20251001``) para tareas baratas (Q&A, resúmenes).
-Relación con clase: patrón de agente con LLM + herramientas del notebook 9 (Agents).
+- Sin ``response_model``: texto libre (bloques ``text`` concatenados).
+- Con ``response_model``: **salida estructurada** de la Messages API
+  (``output_config.format = json_schema``), con el esquema del modelo Pydantic adaptado por
+  ``anthropic.transform_schema`` (``additionalProperties: false``, sin restricciones no
+  admitidas). Los campos ``dict[str, str]`` (``DocumentInsight.key_figures``) se piden como lista
+  de pares ``{label, value}`` y se reconvierten (``_structured.encode_dict_fields``). Se valida con Pydantic y, si falla, se reintenta **una** vez enviando el error
+  (ver ``_structured.complete_structured``). Se usa este mecanismo y no ``tool_choice``
+  forzado porque Sonnet 5.5 rechaza ``tool_choice`` de tipo ``any``/``tool`` (400).
+- ``last_usage`` = tokens de entrada/salida de la llamada (sumando el reintento si lo hubo).
+- Timeouts (120 s, 10 s de conexión) y 3 reintentos automáticos del SDK ante 429/5xx/529.
+
+Modelos (config): ``BRIEFER_LLM_MODEL`` (``claude-sonnet-5-5``, razonamiento adaptativo con
+``effort="medium"``) y, con ``cheap=True``, ``BRIEFER_LLM_MODEL_CHEAP``
+(``claude-haiku-4-5-20251001``, sin razonamiento extendido) para Guionista, Q&A y resúmenes.
+Relación con clase: patrón de agente con LLM + salida estructurada del notebook 9 (Agents).
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 from pydantic import BaseModel
 
 from briefer.config import Settings
 from briefer.providers.base import LLMProvider
+from briefer.providers.llm import _anthropic_common as common
+from briefer.providers.llm._structured import complete_structured, dict_fields, encode_dict_fields
+
+#: ``max_tokens`` por tipo de salida (incluye el razonamiento adaptativo en Sonnet 5.5).
+MAX_TOKENS_TEXT = 8_000
+MAX_TOKENS_STRUCTURED = 16_000
+DEFAULT_EFFORT = "medium"
 
 
 class AnthropicLLM(LLMProvider):
@@ -22,20 +41,47 @@ class AnthropicLLM(LLMProvider):
 
     provider_name = "anthropic"
 
-    def __init__(self, settings: Settings, cheap: bool = False) -> None:
+    def __init__(self, settings: Settings, cheap: bool = False, effort: str | None = DEFAULT_EFFORT) -> None:
         super().__init__()
         self.settings = settings
+        self.cheap = cheap
         self.model = settings.briefer_llm_model_cheap if cheap else settings.briefer_llm_model
-        self._client = None  # se crea en el primer uso (ver _get_client)
+        self.effort = effort
+        self._client: Any = None  # se crea en el primer uso (ver _get_client)
+        self._schemas: dict[type[BaseModel], dict] = {}
 
-    def _get_client(self):  # -> anthropic.Anthropic
-        """Crea el cliente de forma perezosa."""
-        # TODO:
-        # - import anthropic (dentro de la función: import perezoso).
-        # - anthropic.Anthropic(api_key=self.settings.anthropic_api_key.get_secret_value(),
-        #   max_retries=3, timeout=60).
-        # - Cachear en self._client.
-        raise NotImplementedError("AnthropicLLM._get_client: pendiente (carril B)")
+    def _get_client(self) -> Any:  # -> anthropic.Anthropic
+        """Crea el cliente de forma perezosa (import del SDK solo al usarlo)."""
+        if self._client is None:
+            self._client = common.make_client(self.settings)
+        return self._client
+
+    def _schema(self, response_model: type[BaseModel]) -> dict:
+        """Esquema JSON admitido por la API para ``response_model`` (cacheado por clase)."""
+        if response_model not in self._schemas:
+            import anthropic
+
+            # Los dict libres (DocumentInsight.key_figures) viajan como lista de pares: el esquema
+            # estricto los dejaría en {} (additionalProperties: false) y llegarían siempre vacíos.
+            self._schemas[response_model] = encode_dict_fields(
+                anthropic.transform_schema(response_model), dict_fields(response_model)
+            )
+        return self._schemas[response_model]
+
+    def _create(self, system: str, messages: list[dict], max_tokens: int, fmt: dict | None) -> Any:
+        output_config: dict[str, Any] = common.request_options(self.model, self.effort)
+        if fmt is not None:
+            output_config["format"] = fmt
+        kwargs: dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": max_tokens,
+            "messages": common.to_api_messages(messages),
+        }
+        if system:
+            kwargs["system"] = system
+        if output_config:
+            kwargs["output_config"] = output_config
+        return self._get_client().messages.create(**kwargs)
 
     def complete(
         self,
@@ -43,22 +89,27 @@ class AnthropicLLM(LLMProvider):
         messages: list[dict],
         response_model: type[BaseModel] | None = None,
     ) -> str | BaseModel:
-        """Llama a la Messages API de Claude.
+        """Llama a la Messages API de Claude (ver ``LLMProvider.complete``).
 
-        Ver ``LLMProvider.complete``. Rellena ``self.last_usage`` con ``response.usage``.
+        Raises:
+            anthropic.APIError: errores de la API tras los reintentos del SDK.
+            LLMResponseError: rechazo, respuesta cortada o vacía.
+            StructuredOutputError: JSON no válido para ``response_model`` tras el reintento.
         """
-        # TODO:
-        # 1. client = self._get_client().
-        # 2. Sin response_model: client.messages.create(model=self.model, system=system,
-        #    messages=messages, max_tokens=4096) y concatenar los bloques de tipo "text".
-        # 3. Con response_model: salida estructurada. Opción A (recomendada): tool use con
-        #    input_schema=response_model.model_json_schema() y tool_choice forzado a esa
-        #    herramienta; validar con response_model.model_validate(block.input).
-        #    Opción B: pedir "solo JSON" y response_model.model_validate_json(texto).
-        # 4. Si la validación falla, reintentar 1 vez añadiendo el error de validación al
-        #    mensaje (autocorrección); si vuelve a fallar, lanzar ValueError claro.
-        # 5. self.last_usage = {"input_tokens": resp.usage.input_tokens,
-        #    "output_tokens": resp.usage.output_tokens} para costs.estimate_cost_eur.
-        # Casos borde: rate limit (429) -> el SDK reintenta; overloaded (529) -> reintento
-        # con backoff; respuesta cortada por max_tokens (stop_reason == "max_tokens").
-        raise NotImplementedError("AnthropicLLM.complete: pendiente (carril B)")
+        if response_model is None:
+            resp = self._create(system, messages, MAX_TOKENS_TEXT, None)
+            self.last_usage = common.usage_dict(resp)
+            return common.response_text(resp)
+
+        fmt = {"type": "json_schema", "schema": self._schema(response_model)}
+        # Se acumula en last_usage ANTES de leer el texto: si la respuesta no sirve
+        # (rechazo, cortada), los tokens ya se han pagado y deben contar en el coste.
+        self.last_usage = {"input_tokens": 0, "output_tokens": 0}
+
+        def call(history: list[dict]) -> tuple[str, dict[str, int]]:
+            resp = self._create(system, history, MAX_TOKENS_STRUCTURED, fmt)
+            for key, value in common.usage_dict(resp).items():
+                self.last_usage[key] += value
+            return common.response_text(resp), {}
+
+        return complete_structured(call, messages, response_model, pair_fields=dict_fields(response_model))

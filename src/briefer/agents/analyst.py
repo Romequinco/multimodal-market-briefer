@@ -13,7 +13,7 @@ elimina frases con recomendaciones de compra/venta y limita el número de puntos
 from __future__ import annotations
 
 from briefer.agents import load_prompt
-from briefer.agents.guardrails import strip_advice
+from briefer.agents.guardrails import strip_advice, strip_figures, untraceable_figures
 from briefer.logging_utils import get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import DISCLAIMER_ES, Analysis, KeyPoint, MarketContext, NewsItem
@@ -90,8 +90,10 @@ def build_user_message(context: MarketContext, max_chars: int = 40_000) -> str:
             if len(p.history) >= 2 and p.history[0][1]:
                 first = p.history[0][1]
                 trend = f" · {((p.last - first) / first) * 100:+.2f} % desde {p.history[0][0]:%d/%m}"
+            # Índices que no eligió el usuario (^IBEX, ^GSPC): solo contexto general de mercado.
+            role = " (índice de referencia, contexto)" if p.ticker.startswith("^") and p.ticker not in context.tickers else ""
             prices.append(
-                f"- {_label(p.ticker, names)}: {p.last:.2f} {p.currency} · {p.change_pct:+.2f} %{trend}"
+                f"- {_label(p.ticker, names)}{role}: {p.last:.2f} {p.currency} · {p.change_pct:+.2f} %{trend}"
             )
     else:
         prices.append("- (sin datos de precios)")
@@ -225,25 +227,109 @@ def postprocess_analysis(
     )
 
 
-def analyze(context: MarketContext, llm: LLMProvider, max_chars: int = 40_000) -> Analysis:
+def grounding_reference(context: MarketContext) -> str:
+    """Texto de referencia para el *grounding*: el contexto completo (sin recortar) más el
+    texto extraído de los documentos del usuario."""
+    parts = [build_user_message(context, max_chars=10_000_000)]
+    parts.extend(ins.extracted_text for ins in context.insights if ins.extracted_text)
+    return "\n".join(parts)
+
+
+def analysis_text(analysis: Analysis) -> str:
+    """Todo el texto libre del ``Analysis`` (titular, tono y puntos clave), una frase por línea."""
+    parts = [analysis.headline, analysis.market_mood]
+    for kp in analysis.key_points:
+        parts += [kp.title, kp.explanation]
+    return "\n".join(p for p in parts if p)
+
+
+def strip_untraceable(analysis: Analysis, figures: list[str]) -> Analysis:
+    """Quita las frases que contienen cifras no trazables (puntos que quedan vacíos -> fuera)."""
+    points: list[KeyPoint] = []
+    for kp in analysis.key_points:
+        title, _ = strip_figures(kp.title, figures)
+        explanation, _ = strip_figures(kp.explanation, figures)
+        if title.strip() and explanation.strip():
+            points.append(kp.model_copy(update={"title": title, "explanation": explanation}))
+    headline, _ = strip_figures(analysis.headline, figures)
+    mood, _ = strip_figures(analysis.market_mood, figures)
+    return analysis.model_copy(
+        update={
+            "headline": headline.strip() or f"Resumen de mercado del {analysis.date:%d/%m/%Y}",
+            "market_mood": mood.strip() or "Sin una tendencia clara.",
+            "key_points": points,
+        }
+    )
+
+
+def _as_analysis(result: object) -> Analysis:
+    if isinstance(result, Analysis):
+        return result
+    # Algunos proveedores podrían devolver dict/JSON; se valida aquí con el contrato.
+    return Analysis.model_validate_json(result) if isinstance(result, str) else Analysis.model_validate(result)
+
+
+def analyze(
+    context: MarketContext,
+    llm: LLMProvider,
+    max_chars: int = 40_000,
+    *,
+    check_figures: bool = True,
+    trace: list[str] | None = None,
+) -> Analysis:
     """Ejecuta el Agente Analista y devuelve un ``Analysis`` validado y saneado.
+
+    Puerta de *grounding* (``check_figures``): si el análisis contiene cifras que no aparecen
+    en el contexto, se pide **una** corrección al LLM con la lista; si persisten, se eliminan
+    las frases que las contienen. El resultado se anota en ``trace`` (el pipeline lo guarda en
+    ``StepMetric.detail``).
 
     Args:
         context: contexto del día (de ``pipeline.run_briefing``).
         llm: proveedor LLM (inyectado; ``MockLLM`` en tests).
         max_chars: límite de longitud del mensaje de usuario.
+        check_figures: activar la puerta de cifras trazables.
+        trace: lista opcional donde se añaden notas de calidad legibles.
     """
+    notes = trace if trace is not None else []
     system = load_prompt("analyst")
     user = build_user_message(context, max_chars=max_chars)
-    result = llm.complete(system, [{"role": "user", "content": user}], response_model=Analysis)
-    if not isinstance(result, Analysis):
-        # Algunos proveedores podrían devolver dict/JSON; se valida aquí con el contrato.
-        result = (
-            Analysis.model_validate_json(result)
-            if isinstance(result, str)
-            else Analysis.model_validate(result)
-        )
-    analysis = postprocess_analysis(result, context)
+    messages: list[dict] = [{"role": "user", "content": user}]
+    raw = _as_analysis(llm.complete(system, messages, response_model=Analysis))
+    analysis = postprocess_analysis(raw, context)
+
+    if check_figures:
+        reference = grounding_reference(context)
+        missing = untraceable_figures(analysis_text(analysis), reference)
+        if missing:
+            log.warning("Analista: cifras no trazables %s; se pide una corrección", missing)
+            fix = (
+                "Estas cifras de tu análisis no aparecen en el contexto: "
+                + ", ".join(missing)
+                + ". Corrígelas usando solo cifras del contexto o elimina las frases que las "
+                "contienen. Devuelve el análisis completo."
+            )
+            retry_messages = messages + [
+                {"role": "assistant", "content": raw.model_dump_json()},
+                {"role": "user", "content": fix},
+            ]
+            notes.append(f"grounding: {len(missing)} cifras no trazables ({', '.join(missing)}) -> 1 reintento")
+            try:
+                raw = _as_analysis(llm.complete(system, retry_messages, response_model=Analysis))
+                analysis = postprocess_analysis(raw, context)
+            except Exception as exc:  # el primer análisis sigue siendo aprovechable
+                log.warning("Analista: falló el reintento de grounding (%s); se recorta el original", exc)
+                notes.append(f"grounding: reintento fallido ({type(exc).__name__})")
+            still = untraceable_figures(analysis_text(analysis), reference)
+            if still:
+                analysis = strip_untraceable(analysis, still)
+                notes.append(f"grounding: eliminadas frases con {', '.join(still)}")
+                log.warning("Analista: eliminadas frases con cifras no trazables %s", still)
+            else:
+                notes.append("grounding: corregido en el reintento")
+        else:
+            notes.append("grounding: todas las cifras trazables")
+
     if not analysis.key_points:
         log.warning("Analista: ningún punto clave válido tras la post-validación")
     return analysis
@@ -253,7 +339,10 @@ __all__ = [
     "MAX_KEY_POINTS",
     "allowed_sources",
     "allowed_tickers",
+    "analysis_text",
     "analyze",
     "build_user_message",
+    "grounding_reference",
     "postprocess_analysis",
+    "strip_untraceable",
 ]

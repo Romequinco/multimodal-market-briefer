@@ -1,0 +1,1326 @@
+{
+  "id": "20261005-110721-a127a9",
+  "created_at": "2026-10-05T11:08:22.612748",
+  "context": {
+    "date": "2026-10-05",
+    "tickers": [
+      "SAN.MC",
+      "ITX.MC",
+      "IBE.MC",
+      "AAPL",
+      "NVDA"
+    ],
+    "news": [
+      {
+        "id": "n-b51d9c7facaad8c8",
+        "title": "Las acciones del Santander se disparan tras las elecciones brasileñas",
+        "summary": "",
+        "source": "XTB.com",
+        "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNa0J1XzBHZ1N2dW1fbDVwZjNlbVNqVFBUTExBMDRDQzJPWHJKNElraXZvQlp6cU1NcFlQUzl5WU9JXzNrYzdySHJzYWdNWVJtSWFkRzY5VG1XUHd2a1gwdDBETzJUY2pFU0hsYk8xall3RWhJQkViMUtVYlZIQU5hTFpVM3NoWWRJNWwzRzZObENMbldlTUtTOWEwRTdpNnBRZGVjWjFQaDF6clN2dEtqN0xR?oc=5",
+        "published_at": "2026-10-05T08:48:39Z",
+        "tickers": [
+          "SAN.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-d8ea3ca89d4ca810",
+        "title": "El Ibex duda con la deuda y el euro",
+        "summary": "La semana comienza con varios frentes abiertos en los mercados. El euro cae a nuevos mínimos de 17 meses en medio de los temores que generan deudas como la de Francia. El Cac francés destaca en las…",
+        "source": "Mercados // expansion",
+        "url": "https://www.expansion.com/mercados/cronica-bolsa/2026/10/05/6ac33c2f468aeb7e468b4590.html",
+        "published_at": "2026-10-05T08:37:37Z",
+        "tickers": [
+          "SAN.MC",
+          "^IBEX",
+          "TEF.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-06d9234c3670d968",
+        "title": "Nvidia demuestra que el repunte de las acciones de IA no es una burbuja, según DBS",
+        "summary": "",
+        "source": "bloomberglinea.com",
+        "url": "https://news.google.com/rss/articles/CBMivwFBVV95cUxOVHF2V1Zod0I1bi15aXhfa3RaeVFReko0YWZubDE0cXo2djREc0VOTGVuXzF0SGs2UjBVUlBKdjJzRXkwanFoajlUdXd6Q1NYSzRhZngzbWZ3WXZHOTctMVh5Z2t4RS1zU2d3T09EWWM1akNZSlpIN2c1ZDRxUW1xMXV0V1RBSkFpSFdOYVVKaWFpNGgtUjE3SEt1Q2dFSWJXQ0FrMkxfTExiT0ZNQWY2N1FHWDdjRjhkUThOczZXY9IB0wFBVV95cUxObl9sODh5T1cyZ2V2OC1LdWlDMmRMUGwzS05JQW9nTUw4Sy0xNWZHNE1tUTc2aFJGN3c1cGRpX1VXNHoxRUFDdnVUSkJrVzJ4VTA4cjM1cS01SjlCRmR4TVcybDVYUVg2UVc4UzRQNm14dDZJbGZxY0l4d3ZpMmdQZ0pkYlZYNVVGaU9LOEt2V2lEUDNIVmpRZWFDUzBzc0hBSThKUXNlOFB6NVdRVGJRYWVmazZhRTJFMmZXZnBZOEVvLWdaMEpuNDJHWU5FZ2FKNEd3?oc=5",
+        "published_at": "2026-10-05T08:25:01Z",
+        "tickers": [
+          "NVDA"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-32e2d83aedc240be",
+        "title": "El éxito de la colaboración de Zara y Galliano da alas a Inditex: potencial del 26% en Bolsa",
+        "summary": "",
+        "source": "Estrategias de Inversión",
+        "url": "https://news.google.com/rss/articles/CBMixgFBVV95cUxPZDVJbXoxLWVnSE9XbHpkTmJ4N1QtNC05Wmp3RGRBWEpmS00tQkQzUlFPcDYwZGJNMkx5c2FoNXFPbDh5a0FqSGFVaFkxeERJMTh6YlV1T1FHY3FXOUZWQ0RRZ21aazg2MkdYT0E4dExkUVVzblJOVWZldG9oWEZlUkFMd2VfQnJZY09ENk8xTS1xbTUybllYY2d1eXFmVWJCT3dweHBBZHZEeXFCTUhKbC1VZUI0ZGlzdndCblNBRnhyQUltdFHSAZ8BQVVfeXFMT0FfTm5JM0xJUDNaNEd2UU5ZNDN0bHZjTHVKVE1RY0c0SlRFXy1fZ0NzNURUMVQ2T1BUMUg4blk1N1dzaWJVRDJudU9CR3V0bU9nTTFxbEZFYWZ5cUtZal8yZ0hndmFGOF82Z0FFdHpnNmhnaFVrU2pQY3VsRWJ3dDdSSVp0VTlLdjhKeWEtR21seEpGWkRNTzA0TTVJTDJB?oc=5",
+        "published_at": "2026-10-05T08:20:00Z",
+        "tickers": [
+          "ITX.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-c17e0a830c930354",
+        "title": "Análisis de BBVA, CaixaBank, Iberdrola, Inditex, Banco Santander e IBEX 35",
+        "summary": "",
+        "source": "Investing.com España",
+        "url": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQOE5pX3lZWGJBVGo1U0lRY2VhWW5UMG5WeVUzbnlwX1VzLTFMc1hpN1RzRkVtWTlubUR2R1ZBREpBVVNwSjZjLXFmUXpoNXBiYldlNEo0b0NqaVRVczMycHBMWkczc2ZDSVpaOXBxSk14aHpzNGZJQTBLTVIwVXJ5MUhoVFRkd2NrdTA4U09NeF84Ymh6RmtJTUFBdFpmc0hkMk54dXNkMXpxMDh1TEhfa3V2ay0?oc=5",
+        "published_at": "2026-10-05T06:16:00Z",
+        "tickers": [
+          "SAN.MC",
+          "ITX.MC",
+          "IBE.MC",
+          "^IBEX",
+          "BBVA.MC",
+          "CABK.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-1da484f2577e0969",
+        "title": "Morgan Stanley fija el precio objetivo de Nvidia al nombrarla su acción favorita",
+        "summary": "",
+        "source": "Bitfinanzas",
+        "url": "https://news.google.com/rss/articles/CBMib0FVX3lxTFA5V1BsQjhNM3Z6LWhrQWV5QXJvMFVtWEJfa0RxNnRmRHR4YTF2UlExSVVvXy1vRnlaT2ZhUzhIbVk3WjRkRzlDUW5LbVVPckVJWmc4T0lzWjl0elFpMXJGeUxIcGgwRS1UUHRMQlFJbw?oc=5",
+        "published_at": "2026-10-05T04:29:34Z",
+        "tickers": [
+          "NVDA"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-dac2cf1a84e73cb4",
+        "title": "El índice S&P 500 apenas registró variaciones tras el cierre de la Bolsa de Estocolmo",
+        "summary": "",
+        "source": "MarketScreener España",
+        "url": "https://news.google.com/rss/articles/CBMi1gFBVV95cUxOMFlnT0FsbURlZDNBc2Y0cTBmMDdHQ2RnMThvTUU4SndwNmlMdXZLbDd1OXVRRHVTakRQMXdiX3ZYbFYyV1hnQUZRZWZGTUNHaV9rNU9tWVdFWHNfLXE4elhNMVljbzVQbFRXdFVGbGFocW1md2gxT2RRa1dyNlNUazV6MG9wRW1LR1BjbUU4cUV4YnBSM1MteE5rNVJxd3hiQmdjdHcyRDdSdm9lWjZ6YW92TGk5aGwxeFM0QmdvRWY5M0d5TDg2NnYzTmJ2ekk4dHpXcDRB?oc=5",
+        "published_at": "2026-10-05T04:26:27Z",
+        "tickers": [
+          "^GSPC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-ac9335044c4fb82c",
+        "title": "Tres gigantes del Ibex 35 reactivan el calendario de dividendos en octubre",
+        "summary": "",
+        "source": "Estrategias de Inversión",
+        "url": "https://news.google.com/rss/articles/CBMiowFBVV95cUxPbjFsNEY5dU5OZTRycUh3M2F4MU82ZVdRSDVOTnMwd0RmV201QmM4clVJM2tSS1VLdHJxVllQTmkzcHFqZGRLMFRKVVNZZTc1a1pyN3dTeU5xSGtScXRFSmY5WmIxWjlsWEkwOFFGaF9Qa1ppVmZmSUoxdGtXRDhRUWdGY0FIM1FnTndFQkRzelhpVXByc2hJOEJqR1lSajhrSHdN0gGjAUFVX3lxTE9uMWw0Rjl1Tk5lNHJxSHczYXgxTzZlV1FINU5OczB3RGZXbTVCYzhyVUkza1JLVUt0cnFWWVBOaTNwcWpkZEswVEpVU1llNzVrWnI3d1N5TnFIa1JxdEVKZjlaYjFaOWxYSTA4UUZoX1BrWmlWZmZJSjF0a1dEOFFRZ0ZjQUgzUWdOd0VCRHN6WGlVcHJzaEk4QmpHWVJqOGtId00?oc=5",
+        "published_at": "2026-10-05T04:20:00Z",
+        "tickers": [
+          "ITX.MC",
+          "^IBEX"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-1b8417500b8bc89b",
+        "title": "El S&P 500 entra en una semana clave: qué esperan los inversores de los balances y cuáles son los sectores que más crecerían",
+        "summary": "",
+        "source": "forbesargentina.com",
+        "url": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxPUjBQMVYxYUZUcUFQclhNWHRSa0VKMzhmeFU1TUdzWGFlZ0o4c3RBUFZRWTRWWUYxVnRTbUtIUmpsWFQzM3QteHFIbGI5YVFNQ1FfeDRJZXFscXBqNzNjV0M4cVpaQmFubHJiSVNhdURLQ1NDY29mLUVoVDBUZkE0T3VBMm9PQUxEOVZoRGFtYTJCRGFjZ0k5ZUsyUTk1eldpNm1lYlRaZ1pBVnJmVEgwZVZ3ajRyWEotV2h2SG42OTVpRVNSbmZpV1N4QTdHWFNfQmM4S0c1UdIB3AFBVV95cUxObEwwUHZCcXczYkE3RThyeWI1X1F1amlIcWlleWxDbjhHTm5FbC1HUmRINTVTMmdTWUVMRkVVSGVkLV9uUVJxVlBiRXBEdDNLOGFibkVhb0t1bTM1RmFlV2F4bk8tR0xHY0xhaUllUmtfci1UeWhvV0FHeUxaZHl1dUU3c2pGWUpXcFZlUlAwV1djYjI0aHBZd0REMlRTYmw4SERrNzFVa0ZKVnRSOFNrNnhocmVLX3FXS3VoX2owU1hUZEEtQm1aMWMzdC1wRUhhRUxaWExWak1yLVB6?oc=5",
+        "published_at": "2026-10-05T01:45:32Z",
+        "tickers": [
+          "^GSPC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-90921c0c5d0061b6",
+        "title": "Nvidia podría tener un octubre extraordinario y esta es la razón",
+        "summary": "",
+        "source": "Bitfinanzas",
+        "url": "https://news.google.com/rss/articles/CBMihAFBVV95cUxOeFc1VW43b1Nla1MyaG82ZC1pNkVFWUZCNmoyQ2tPNXJ1RThTMjhKNENhY0RpLUhPX0YzWE9panJ3el9MWWJnLTk3NTlsTzJRUFJqQ0JWLXZtUFZjN2RNbDlrR3ZBeURrcGRVcmFkWVh5Sm1lSFFUNnlpUk9NeUxKM1VUajk?oc=5",
+        "published_at": "2026-10-05T00:32:27Z",
+        "tickers": [
+          "NVDA"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-182f79a225d99012",
+        "title": "El S&P 500 roza máximos: los analistas esperan beneficios un 29,5 % mayores",
+        "summary": "",
+        "source": "Benzinga España",
+        "url": "https://news.google.com/rss/articles/CBMijgFBVV95cUxPRHdDWl9VT2tSNWxrT2I5N3FnQTM4WnlMQXd4eXFxeEo1bklBaXZiblAyV29YN2hkX1ZnbEVxMERHdE90ZTFZS2hXb0ZISTBVZ1dnSWpobnUzX2N6Z0xwQkp6blBYdE5JSmlTMFhxRkxIUlpPX1ZaSjdHZlFneEd1UWdQTzdWTjVTMlNlNUN3?oc=5",
+        "published_at": "2026-10-04T18:59:53Z",
+        "tickers": [
+          "^GSPC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-5cdd56d4c84fe745",
+        "title": "El mercado de smartphones: Apple y Samsung consolidan su liderazgo en un trimestre desafiante",
+        "summary": "",
+        "source": "IFM Noticias",
+        "url": "https://news.google.com/rss/articles/CBMixwFBVV95cUxOenU3MWpjTVdVYml6eGhrSDl5VDZsM0c1eWJ5M09QdFdKTnpLdmdGRWlKRFJXQzdiTmF2THlqUlF5ZnR2WU03NzdnUVB4UzFEa08yNTcxVlJNUkVWNnhSMDd4YzFzTEZfVmxnMWdpWV91Zk9FM0pXVmN6aUhMemxSU2RZSDdnMVhoU3JhLTh0akJ0ejJZYmR2OUNLdGdISUZrbzZ3R0M1bTZEZUtoRTQtdHVjRXlscWFaOTNrdWJORFJzQUZxaXc4?oc=5",
+        "published_at": "2026-10-04T18:13:16Z",
+        "tickers": [
+          "AAPL"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-5290964794035df1",
+        "title": "Iberdrola supera a BBVA y recupera el tercer puesto por capitalización bursátil del Ibex 35",
+        "summary": "",
+        "source": "El Periódico de la Energía",
+        "url": "https://news.google.com/rss/articles/CBMixgFBVV95cUxOM1VkaUZuUnJOQnBLMFBQMXVaMDlpcUVYeU4wRVROT3N2SGVoVnlLZDJLNVJyU3JGN25lNDh6RUVwNy1RU3N0akotRF82T1h3TktVV0xrRzJWNWxTV1JNS2dFYVpPVjZpRnJZeTV2TEdfaV9pM0ZXMDV5bzR3aTBkcjE5ZVFjb0xGWXFWY2dhb1B6QjdPVGhRZ0NzWllZQ3VRT1lnWG0xbzdqbTRtVW9rQnJDUkVFV2JQb3V6dG5US25fTXp4Nmc?oc=5",
+        "published_at": "2026-10-04T17:59:21Z",
+        "tickers": [
+          "IBE.MC",
+          "^IBEX",
+          "BBVA.MC"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-a1e4a7324cc67409",
+        "title": "Cramer recomienda comprar acciones de Apple por el iPhone Duo",
+        "summary": "",
+        "source": "Benzinga España",
+        "url": "https://news.google.com/rss/articles/CBMie0FVX3lxTE50ZjZQR2NUaXdreFV3S0J1RHV6aGtDU3dEVnlEcFFtWXItVTdyMlVqbVZvZkFRdlIyMHJJcVpBLTVfdFVMM1VVXzJQcnUyTUx4QWtKM0VScVh3ZzBoTWh1VkZRamRrck0wT1pENkVsTExHTHB5WnFoV0FCTQ?oc=5",
+        "published_at": "2026-10-04T15:00:16Z",
+        "tickers": [
+          "AAPL"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-719879d3f4e4f1e2",
+        "title": "Apple invierte US$6.800M en IA: integrar, no construir",
+        "summary": "",
+        "source": "El Ecosistema Startup",
+        "url": "https://news.google.com/rss/articles/CBMiigFBVV95cUxPNEVYWHNKQWhkdXVNMGVQQjNrNTNYdGw0QmNPdUpEVVlNNVJZbUpSMXhJdEpfMmhKQU8yQU5NM2h3RkNJeEJNVndNWEY3UEYySm9QYU43UVoxdjhxNXItUXM3aU5DaHhGRGFQcmJVbTlxNUZ1S1liU1pqcDlscXFHU0tCR0x3UE9zVWc?oc=5",
+        "published_at": "2026-10-04T14:03:57Z",
+        "tickers": [
+          "AAPL"
+        ],
+        "language": "es"
+      },
+      {
+        "id": "n-ab744e816fa3a0d9",
+        "title": "Iberdrola supera a BBVA y recupera el tercer puesto por capitalización del Ibex 35",
+        "summary": "",
+        "source": "Merca2.es",
+        "url": "https://news.google.com/rss/articles/CBMifkFVX3lxTE5VS0RsMm4wT1ZBNVBsRC1UT3FHaFBYRG1OTFEyNUJKOEtlS0pXY2JRenVrN0hRY24yXzl1eEZWU0N3dlRncnE3LXJ4Q2Q2dTR1YV9hNlF1Nk1DdFBLckdaLXg1ZmUwN2pMSUlybTV5VXlQSTZqMEFBTWhMTXQ5QQ?oc=5",
+        "published_at": "2026-10-03T16:04:15Z",
+        "tickers": [
+          "IBE.MC",
+          "^IBEX",
+          "BBVA.MC"
+        ],
+        "language": "es"
+      }
+    ],
+    "prices": [
+      {
+        "ticker": "SAN.MC",
+        "last": 12.096,
+        "change_pct": 2.44,
+        "currency": "EUR",
+        "history": [
+          [
+            "2026-09-07",
+            12.886
+          ],
+          [
+            "2026-09-08",
+            12.932
+          ],
+          [
+            "2026-09-09",
+            12.696
+          ],
+          [
+            "2026-09-10",
+            12.642
+          ],
+          [
+            "2026-09-11",
+            12.886
+          ],
+          [
+            "2026-09-14",
+            12.772
+          ],
+          [
+            "2026-09-15",
+            12.666
+          ],
+          [
+            "2026-09-16",
+            12.69
+          ],
+          [
+            "2026-09-17",
+            12.952
+          ],
+          [
+            "2026-09-18",
+            12.524
+          ],
+          [
+            "2026-09-21",
+            12.74
+          ],
+          [
+            "2026-09-22",
+            12.698
+          ],
+          [
+            "2026-09-23",
+            12.61
+          ],
+          [
+            "2026-09-24",
+            12.528
+          ],
+          [
+            "2026-09-25",
+            12.572
+          ],
+          [
+            "2026-09-28",
+            12.502
+          ],
+          [
+            "2026-09-29",
+            12.51
+          ],
+          [
+            "2026-09-30",
+            12.328
+          ],
+          [
+            "2026-10-01",
+            11.812
+          ],
+          [
+            "2026-10-02",
+            11.808
+          ],
+          [
+            "2026-10-05",
+            12.096
+          ]
+        ]
+      },
+      {
+        "ticker": "ITX.MC",
+        "last": 53.4,
+        "change_pct": 0.3,
+        "currency": "EUR",
+        "history": [
+          [
+            "2026-09-07",
+            57.56
+          ],
+          [
+            "2026-09-08",
+            56.52
+          ],
+          [
+            "2026-09-09",
+            54.48
+          ],
+          [
+            "2026-09-10",
+            54.58
+          ],
+          [
+            "2026-09-11",
+            54.02
+          ],
+          [
+            "2026-09-14",
+            53.72
+          ],
+          [
+            "2026-09-15",
+            52.58
+          ],
+          [
+            "2026-09-16",
+            52.78
+          ],
+          [
+            "2026-09-17",
+            52.4
+          ],
+          [
+            "2026-09-18",
+            51.74
+          ],
+          [
+            "2026-09-21",
+            51.78
+          ],
+          [
+            "2026-09-22",
+            53.28
+          ],
+          [
+            "2026-09-23",
+            53.02
+          ],
+          [
+            "2026-09-24",
+            52.9
+          ],
+          [
+            "2026-09-25",
+            53.26
+          ],
+          [
+            "2026-09-28",
+            53.34
+          ],
+          [
+            "2026-09-29",
+            53.28
+          ],
+          [
+            "2026-09-30",
+            53.92
+          ],
+          [
+            "2026-10-01",
+            53.06
+          ],
+          [
+            "2026-10-02",
+            53.24
+          ],
+          [
+            "2026-10-05",
+            53.4
+          ]
+        ]
+      },
+      {
+        "ticker": "IBE.MC",
+        "last": 20.9,
+        "change_pct": 0.38,
+        "currency": "EUR",
+        "history": [
+          [
+            "2026-09-07",
+            19.83
+          ],
+          [
+            "2026-09-08",
+            19.88
+          ],
+          [
+            "2026-09-09",
+            19.925
+          ],
+          [
+            "2026-09-10",
+            20.02
+          ],
+          [
+            "2026-09-11",
+            20.16
+          ],
+          [
+            "2026-09-14",
+            19.715
+          ],
+          [
+            "2026-09-15",
+            20.04
+          ],
+          [
+            "2026-09-16",
+            20.24
+          ],
+          [
+            "2026-09-17",
+            20.52
+          ],
+          [
+            "2026-09-18",
+            20.29
+          ],
+          [
+            "2026-09-21",
+            20.3
+          ],
+          [
+            "2026-09-22",
+            20.37
+          ],
+          [
+            "2026-09-23",
+            20.12
+          ],
+          [
+            "2026-09-24",
+            20.25
+          ],
+          [
+            "2026-09-25",
+            20.33
+          ],
+          [
+            "2026-09-28",
+            20.34
+          ],
+          [
+            "2026-09-29",
+            20.49
+          ],
+          [
+            "2026-09-30",
+            20.61
+          ],
+          [
+            "2026-10-01",
+            20.73
+          ],
+          [
+            "2026-10-02",
+            20.82
+          ],
+          [
+            "2026-10-05",
+            20.9
+          ]
+        ]
+      },
+      {
+        "ticker": "AAPL",
+        "last": 333.69,
+        "change_pct": 1.02,
+        "currency": "USD",
+        "history": [
+          [
+            "2026-09-03",
+            328.21
+          ],
+          [
+            "2026-09-04",
+            319.97
+          ],
+          [
+            "2026-09-08",
+            316.22
+          ],
+          [
+            "2026-09-09",
+            315.34
+          ],
+          [
+            "2026-09-10",
+            326.57
+          ],
+          [
+            "2026-09-11",
+            332.27
+          ],
+          [
+            "2026-09-14",
+            333.08
+          ],
+          [
+            "2026-09-15",
+            331.34
+          ],
+          [
+            "2026-09-16",
+            332.41
+          ],
+          [
+            "2026-09-17",
+            337.0
+          ],
+          [
+            "2026-09-18",
+            336.13
+          ],
+          [
+            "2026-09-21",
+            338.98
+          ],
+          [
+            "2026-09-22",
+            339.75
+          ],
+          [
+            "2026-09-23",
+            337.02
+          ],
+          [
+            "2026-09-24",
+            335.92
+          ],
+          [
+            "2026-09-25",
+            341.07
+          ],
+          [
+            "2026-09-28",
+            338.4
+          ],
+          [
+            "2026-09-29",
+            329.4
+          ],
+          [
+            "2026-09-30",
+            333.02
+          ],
+          [
+            "2026-10-01",
+            330.32
+          ],
+          [
+            "2026-10-02",
+            333.69
+          ]
+        ]
+      },
+      {
+        "ticker": "NVDA",
+        "last": 233.95,
+        "change_pct": 1.34,
+        "currency": "USD",
+        "history": [
+          [
+            "2026-09-03",
+            228.45
+          ],
+          [
+            "2026-09-04",
+            230.36
+          ],
+          [
+            "2026-09-08",
+            225.73
+          ],
+          [
+            "2026-09-09",
+            223.67
+          ],
+          [
+            "2026-09-10",
+            218.36
+          ],
+          [
+            "2026-09-11",
+            218.29
+          ],
+          [
+            "2026-09-14",
+            210.96
+          ],
+          [
+            "2026-09-15",
+            212.17
+          ],
+          [
+            "2026-09-16",
+            213.9
+          ],
+          [
+            "2026-09-17",
+            219.34
+          ],
+          [
+            "2026-09-18",
+            222.27
+          ],
+          [
+            "2026-09-21",
+            227.38
+          ],
+          [
+            "2026-09-22",
+            228.87
+          ],
+          [
+            "2026-09-23",
+            225.51
+          ],
+          [
+            "2026-09-24",
+            224.58
+          ],
+          [
+            "2026-09-25",
+            225.07
+          ],
+          [
+            "2026-09-28",
+            228.86
+          ],
+          [
+            "2026-09-29",
+            227.21
+          ],
+          [
+            "2026-09-30",
+            228.38
+          ],
+          [
+            "2026-10-01",
+            230.86
+          ],
+          [
+            "2026-10-02",
+            233.95
+          ]
+        ]
+      },
+      {
+        "ticker": "^IBEX",
+        "last": 19214.5996,
+        "change_pct": 0.68,
+        "currency": "EUR",
+        "history": [
+          [
+            "2026-09-07",
+            20021.8008
+          ],
+          [
+            "2026-09-08",
+            19997.0996
+          ],
+          [
+            "2026-09-09",
+            19695.3008
+          ],
+          [
+            "2026-09-10",
+            19659.8008
+          ],
+          [
+            "2026-09-11",
+            19838.5
+          ],
+          [
+            "2026-09-14",
+            19565.5
+          ],
+          [
+            "2026-09-15",
+            19555.9004
+          ],
+          [
+            "2026-09-16",
+            19635.8008
+          ],
+          [
+            "2026-09-17",
+            19831.8008
+          ],
+          [
+            "2026-09-18",
+            19513.8008
+          ],
+          [
+            "2026-09-21",
+            19724.4004
+          ],
+          [
+            "2026-09-22",
+            19754.0996
+          ],
+          [
+            "2026-09-23",
+            19632.1992
+          ],
+          [
+            "2026-09-24",
+            19573.4004
+          ],
+          [
+            "2026-09-25",
+            19700.0996
+          ],
+          [
+            "2026-09-28",
+            19600.3008
+          ],
+          [
+            "2026-09-29",
+            19517.5
+          ],
+          [
+            "2026-09-30",
+            19426.1992
+          ],
+          [
+            "2026-10-01",
+            19005.3008
+          ],
+          [
+            "2026-10-02",
+            19085.3008
+          ],
+          [
+            "2026-10-05",
+            19214.5996
+          ]
+        ]
+      },
+      {
+        "ticker": "^GSPC",
+        "last": 7722.7202,
+        "change_pct": 0.73,
+        "currency": "USD",
+        "history": [
+          [
+            "2026-09-03",
+            7747.71
+          ],
+          [
+            "2026-09-04",
+            7718.6001
+          ],
+          [
+            "2026-09-08",
+            7673.52
+          ],
+          [
+            "2026-09-09",
+            7636.3599
+          ],
+          [
+            "2026-09-10",
+            7591.7002
+          ],
+          [
+            "2026-09-11",
+            7656.98
+          ],
+          [
+            "2026-09-14",
+            7619.98
+          ],
+          [
+            "2026-09-15",
+            7585.73
+          ],
+          [
+            "2026-09-16",
+            7551.8101
+          ],
+          [
+            "2026-09-17",
+            7637.7598
+          ],
+          [
+            "2026-09-18",
+            7650.5
+          ],
+          [
+            "2026-09-21",
+            7764.7002
+          ],
+          [
+            "2026-09-22",
+            7764.6401
+          ],
+          [
+            "2026-09-23",
+            7706.0298
+          ],
+          [
+            "2026-09-24",
+            7704.1299
+          ],
+          [
+            "2026-09-25",
+            7743.4102
+          ],
+          [
+            "2026-09-28",
+            7683.6899
+          ],
+          [
+            "2026-09-29",
+            7670.8398
+          ],
+          [
+            "2026-09-30",
+            7651.54
+          ],
+          [
+            "2026-10-01",
+            7666.4502
+          ],
+          [
+            "2026-10-02",
+            7722.7202
+          ]
+        ]
+      }
+    ],
+    "insights": [
+      {
+        "source_type": "pdf",
+        "source_name": "resultados_ejemplo.pdf",
+        "extracted_text": "[Página 1]\nEJEMPLO FICTICIO · datos inventados, no reales\nResultados del tercer trimestre de 2026\nEjemplo Industrial S.A. (ticker ficticio EJMP)\nResumen ejecutivo (datos inventados):\n- Ingresos de 1.245 millones de euros, un 8,4 % más que en el 3T 2025.\n- EBITDA de 312 millones de euros (+11,2 %), con un margen del 25,1 %.\n- Beneficio neto atribuido de 158 millones de euros (+6,9 %).\n- Deuda financiera neta de 890 millones de euros, 1,6 veces EBITDA.\nLa compañía ficticia atribuye el crecimiento a la división de servicios digitales,\nque aporta ya el 34 % de los ingresos, y a la mejora de precios en Europa.\nLos costes energéticos se moderan respecto al mismo periodo del año anterior.\nPerspectivas: la dirección mantiene el objetivo de crecimiento de ingresos de un\ndígito alto para el conjunto de 2026 y un dividendo complementario de 0,42 euros\npor acción, sujeto a la aprobación de la junta.\nT odos los nombres, cifras y previsiones de este documento son ficticios y se han\ncreado únicamente para probar la lectura automática de PDFs.\nDocumento de ejemplo generado para la demo de Market Briefer. No contiene información real ni constituye asesoramiento financiero.\n\n[Página 2]\nMagnitud 3T 2025 3T 2026 Variación\nIngresos 1.149 1.245 +8,4 %\nEBITDA 281 312 +11,2 %\nMargen EBITDA 24,5 % 25,1 % +0,6 p.p.\nBeneficio neto 148 158 +6,9 %\nDeuda financiera neta 940 890 -5,3 %\nBPA (euros) 0,59 0,63 +6,8 %\nEJEMPLO FICTICIO · datos inventados, no reales\nPrincipales magnitudes (millones de euros)\nDesglose de ingresos por división (ficticio): Industrial 52 %, Servicios\ndigitales 34 %, Otros 14 %. Plantilla media: 6.480 empleados.\n\n[Página 3]\nEJEMPLO FICTICIO · datos inventados, no reales\nEvolución bursátil\n\n[Página 3 · imagen 1 (descripción por visión)]\n**Qué muestra**\n\nEs un gráfico de velas japonesas (candlestick) de la cotización diaria del valor «EJMP» entre julio y septiembre de 2026. El propio título indica que los datos son ficticios. Tiene dos paneles:\n\n- **Panel superior:** velas diarias del precio en EUR, con una línea naranja que representa la media móvil de 20 sesiones. Las velas verdes/turquesa y las rojas/salmón se distinguen por color. Por la forma del gráfico, lo habitual sería verde para subida y rojo para bajada, pero la imagen no incluye leyenda que lo confirme.\n- **Panel inferior:** volumen diario en millones (eje «Vol. (M)»), con barras coloreadas igual que las velas.\n\n**Ejes**\n\n- Eje Y del precio: EUR, con marcas de 21,5 a 24,5.\n- Eje Y del volumen: millones, con marcas de 0 a 2.\n- Eje X: fechas con marcas el 01-Jul, 15-Jul, 29-Jul, 12-Aug, 26-Aug y 09-Sep. El gráfico llega hasta finales de septiembre.\n\n**Cifras clave (lecturas aproximadas del gráfico, no valores exactos)**\n\n- **Inicio (principios de julio):** cierre en torno a 24,2–24,3 EUR.\n- **Máximo del periodo:** cerca de 24,45–24,5 EUR, a finales de agosto (alrededor del 26-Aug).\n- **Mínimo del periodo:** cerca de 21,5 EUR, hacia el 29-Jul.\n- **Final (finales de septiembre):** en torno a 22,2–22,6 EUR.\n- **Media de 20 sesiones:**\n  - Arranca cerca de 23,2 EUR a finales de julio.\n  - Baja hasta unos 22,7 EUR a comienzos de agosto.\n  - Alcanza un máximo de unos 23,5 EUR a finales de agosto.\n  - Termina en unos 22,6 EUR a finales de septiembre.\n- **Volumen:** oscila aproximadamente entre 0,8 y 2,5 millones de títulos por sesión. El máximo ronda 2,5 M a finales de septiembre y el mínimo, cerca de 0,8 M, está a principios de julio. No se indica explícitamente la unidad (se asume acciones).\n\n**Lectura general**\n\n- Caída en julio, desde unos 24,3 hasta un suelo de unos 21,5 EUR.\n- Rebote fuerte en agosto, hasta máximos de unos 24,5 EUR.\n- Corrección posterior en septiembre, con precios por debajo de la media de 20 sesiones y cierre cerca de 22,5 EUR.\n\nTodas las cifras son estimaciones visuales: la imagen no incluye tabla ni valores numéricos exactos.",
+        "key_figures": {
+          "Ingresos 3T 2026": "1.245 millones EUR (+8,4%)",
+          "EBITDA 3T 2026": "312 millones EUR (+11,2%)",
+          "Margen EBITDA": "25,1% (+0,6 p.p.)",
+          "Beneficio neto 3T 2026": "158 millones EUR (+6,9%)",
+          "Deuda financiera neta": "890 millones EUR (-5,3%)",
+          "Ratio Deuda/EBITDA": "1,6x",
+          "BPA 3T 2026": "0,63 EUR (+6,8%)",
+          "Ingresos por división": "Industrial 52%, Servicios digitales 34%, Otros 14%",
+          "Cotización EJMP (cierre 3T)": "~22,5 EUR",
+          "Dividendo complementario previsto": "0,42 EUR/acción"
+        },
+        "summary": "Documento ficticio de ejemplo con datos inventados, no reales. Ejemplo Industrial S.A. (EJMP) reportó ingresos de 1.245 millones EUR en 3T 2026 (+8,4%), con EBITDA creciendo a mayor velocidad que los ingresos (+11,2%) hasta 312 millones EUR, reflejando mejora operativa con margen del 25,1%. El crecimiento fue impulsado por la división de servicios digitales (34% de ingresos) y mejora de precios en Europa, mientras que la deuda neta disminuyó a 890 millones EUR (1,6x EBITDA). La cotización mostró volatilidad durante el trimestre, cayendo desde 24,3 EUR a mínimos de 21,5 EUR en julio y rebotando hasta 24,5 EUR en agosto, cerrando en torno a 22,5 EUR en septiembre."
+      },
+      {
+        "source_type": "chart",
+        "source_name": "grafico_ejemplo.png",
+        "extracted_text": "# Análisis del gráfico: EJMP · Ejemplo Industrial S.A.\n\n**Aviso:** el propio gráfico indica \"EJEMPLO FICTICIO · datos inventados, no reales\". Es un gráfico financiero (velas japonesas) con datos simulados, así que el análisis es solo ilustrativo.\n\n## Datos identificativos\n- **Activo:** EJMP, Ejemplo Industrial S.A.\n- **Temporalidad:** diaria (1D), en EUR.\n- **Periodo:** del 1 de julio a finales de septiembre, unas 62 sesiones. El eje marca 01-Jul, 15-Jul, 29-Jul, 12-Ago, 26-Ago y 09-Sep.\n- **Última vela:** apertura 22,20, máximo 22,62, mínimo 22,15, cierre 22,44 (+0,74 %).\n- **Indicadores:** media móvil de 20 sesiones (naranja) y volumen en millones en el panel inferior.\n\n## Estructura de la tendencia\n1. **Tramo bajista (1 jul – ~30 jul):** el precio cae desde unos 24,3 hasta un mínimo cercano a **21,55-21,6** (hacia el 30 de julio), con máximos y mínimos decrecientes.\n2. **Tramo alcista (finales de jul – ~25 ago):** rebote fuerte hasta la zona de **24,4-24,5**, el máximo del periodo (unos días antes del 26 de agosto). La media de 20 sesiones gira al alza y llega a ~23,5.\n3. **Corrección bajista (desde ~26 ago):** caída brusca de una vela roja grande desde ~24,0 hasta ~23,2. Después sigue una secuencia descendente hasta ~22,0-22,4 en septiembre, con un mínimo relativo cerca de **21,75** (mediados de septiembre y también hacia el 5 de septiembre, ~21,75).\n4. **Situación actual:** el precio cotiza en ~22,4, **por debajo de la media de 20 sesiones** (~22,6), que cae con pendiente negativa. El sesgo es bajista a corto plazo, con un posible rebote incipiente.\n\n## Niveles relevantes\n- **Soporte principal:** 21,5-21,6 (mínimo de finales de julio).\n- **Soporte intermedio:** 21,75-22,0, mínimos de septiembre.\n- **Resistencia inmediata:** ~22,6-22,7 (media de 20 sesiones y máximos recientes).\n- **Resistencias mayores:** ~23,0-23,5 (zona de ruptura bajista de finales de agosto) y 24,4-24,5 (máximo del periodo).\n\n## Volumen\n- Oscila entre ~0,8 y ~2,5 M de acciones por sesión.\n- Los picos de unos 2,4-2,5 M aparecen en velas clave: inicio de julio, caída de mediados de julio, la vela bajista del 26 de agosto y mediados de septiembre.\n- No hay una divergencia clara. El volumen es bastante uniforme, sin una confirmación contundente.\n\n## Conclusión\nEl activo muestra un rango amplio de unos 21,5 a 24,5, con un máximo de swing a finales de agosto y una corrección posterior. Mientras no recupere la media de 20 sesiones (~22,6) y los 23,0, predomina la debilidad. Una pérdida de 21,75 reabriría la zona de 21,5. Todo esto es solo un ejercicio, dado que los datos son ficticios.",
+        "key_figures": {
+          "Precio de apertura última vela": "22,20 EUR",
+          "Máximo última vela": "22,62 EUR",
+          "Mínimo última vela": "22,15 EUR",
+          "Cierre última vela": "22,44 EUR",
+          "Variación última vela": "+0,74%",
+          "Precio máximo del período": "24,4-24,5 EUR",
+          "Precio mínimo del período": "21,55-21,6 EUR",
+          "Media móvil 20 sesiones": "~22,6 EUR",
+          "Soporte principal": "21,5-21,6 EUR",
+          "Soporte intermedio": "21,75-22,0 EUR",
+          "Resistencia inmediata": "22,6-22,7 EUR",
+          "Volumen mínimo por sesión": "0,8 millones",
+          "Volumen máximo por sesión": "2,5 millones",
+          "Período del gráfico": "1 julio - finales septiembre (~62 sesiones)"
+        },
+        "summary": "EJMP cotiza en 22,44 EUR tras una secuencia de tres movimientos: caída inicial desde 24,3 a 21,55, rebote hasta máximos de 24,4-24,5 a finales de agosto, y posterior corrección bajista hacia los 22,0-22,4 actuales. El precio se sitúa por debajo de la media de 20 sesiones (~22,6 EUR) con pendiente negativa, reflejando un sesgo bajista a corto plazo, mientras se mantiene dentro de un rango de volatilidad entre los soportes en 21,5-21,6 y las resistencias en 24,4-24,5."
+      }
+    ],
+    "portfolio": null
+  },
+  "analysis": {
+    "date": "2026-10-05",
+    "headline": "Santander lidera las subidas del Ibex tras las elecciones en Brasil, con Europa pendiente de deuda y euro",
+    "key_points": [
+      {
+        "title": "Santander sube con el efecto Brasil",
+        "explanation": "Santander avanza un 2,44 % hasta 12,10 EUR, aunque sigue un 6,13 % por debajo de su nivel del 07/09. Según los titulares, la subida se relaciona con las elecciones brasileñas, y Expansión sitúa a Santander y Telefónica entre los valores más firmes por las novedades de Brasil. Las noticias no detallan el resultado electoral, así que la causa exacta es una interpretación.",
+        "tickers": [
+          "SAN.MC"
+        ],
+        "sentiment": "positivo",
+        "sources": [
+          "n-b51d9c7facaad8c8",
+          "n-d8ea3ca89d4ca810"
+        ]
+      },
+      {
+        "title": "Ibex con dudas por deuda y euro",
+        "explanation": "Según Expansión, el euro cae a mínimos de 17 meses por los temores sobre deudas como la de Francia, y el Ibex modera las dudas europeas con el adelanto electoral en España de fondo. El Ibex 35 cierra con un +0,68 % hasta 19.214,60, aunque acumula un -4,03 % desde el 07/09.",
+        "tickers": [
+          "^IBEX",
+          "SAN.MC"
+        ],
+        "sentiment": "neutral",
+        "sources": [
+          "n-d8ea3ca89d4ca810"
+        ]
+      },
+      {
+        "title": "Inditex y Iberdrola, trayectorias opuestas",
+        "explanation": "Inditex sube un 0,30 % hasta 53,40 EUR, pero cede un 7,23 % desde el 07/09. Iberdrola avanza un 0,38 % hasta 20,90 EUR y suma un 5,40 % en ese periodo. Las noticias señalan que Iberdrola ha superado a BBVA y recupera el tercer puesto del Ibex por capitalización, y que Inditex aparece entre los valores que reactivan el calendario de dividendos en octubre.",
+        "tickers": [
+          "ITX.MC",
+          "IBE.MC"
+        ],
+        "sentiment": "neutral",
+        "sources": [
+          "n-5290964794035df1",
+          "n-ab744e816fa3a0d9",
+          "n-ac9335044c4fb82c"
+        ]
+      },
+      {
+        "title": "Nvidia y Apple suben en Wall Street",
+        "explanation": "Nvidia gana un 1,34 % hasta 233,95 USD y Apple un 1,02 % hasta 333,69 USD. Según las noticias, DBS considera que el repunte de las acciones de IA no es una burbuja y Morgan Stanley la nombra su acción favorita. En Apple, los titulares mencionan una inversión de 6.800 millones de dólares en IA y el liderazgo de Apple y Samsung en smartphones. Son opiniones de terceros, no hechos contrastados.",
+        "tickers": [
+          "NVDA",
+          "AAPL"
+        ],
+        "sentiment": "positivo",
+        "sources": [
+          "n-06d9234c3670d968",
+          "n-1da484f2577e0969",
+          "n-719879d3f4e4f1e2",
+          "n-5cdd56d4c84fe745"
+        ]
+      },
+      {
+        "title": "Resultados de ejemplo de EJMP",
+        "explanation": "El PDF es un documento ficticio de ejemplo con datos inventados. Muestra para Ejemplo Industrial (EJMP) unos ingresos de 1.245 millones EUR en el 3T 2026 (+8,4 %), un EBITDA de 312 millones (+11,2 %, margen del 25,1 %) y una deuda neta de 890 millones (1,6 veces el EBITDA).",
+        "tickers": [],
+        "sentiment": "positivo",
+        "sources": [
+          "resultados_ejemplo.pdf"
+        ]
+      },
+      {
+        "title": "Gráfico de ejemplo: sesgo bajista",
+        "explanation": "El gráfico es un ejemplo ficticio de EJMP. Cotiza a 22,44 EUR, por debajo de su media de 20 sesiones (~22,6 EUR) con pendiente negativa, lo que indica un sesgo bajista a corto plazo. Su soporte principal está en 21,5-21,6 EUR y su resistencia en 24,4-24,5 EUR.",
+        "tickers": [],
+        "sentiment": "neutral",
+        "sources": [
+          "grafico_ejemplo.png"
+        ]
+      }
+    ],
+    "market_mood": "Sesión de rebote generalizado, con todos los valores de tu lista al alza, pero con cautela en Europa por la deuda y la debilidad del euro. El S&P 500 sube un 0,73 % y los analistas miran la temporada de resultados.",
+    "disclaimer": "Contenido generado automáticamente con IA con fines exclusivamente informativos y educativos. No constituye asesoramiento financiero ni una recomendación personalizada de inversión (MiFID II). Puede contener errores: contrasta siempre con fuentes oficiales."
+  },
+  "script": {
+    "title": "Santander lidera el rebote del Ibex entre dudas sobre deuda y euro",
+    "lines": [
+      {
+        "speaker": "A",
+        "text": "Hola, bienvenidos a Market Briefer. Hoy es 5 de octubre de 2026 y os contamos cómo Banco Santander se ha puesto a la cabeza de las subidas del Ibex tras las novedades electorales en Brasil."
+      },
+      {
+        "speaker": "B",
+        "text": "Buenos días. El análisis del día nos muestra un Ibex 35 que cierra con un avance moderado del 0,68 %, hasta 19.214,60 puntos. Pero aunque en la sesión hay movimiento al alza, conviene recordar que desde el 7 de septiembre acumula un descenso del 4,03 %."
+      },
+      {
+        "speaker": "A",
+        "text": "¿Y qué ha pasado con Banco Santander para que sea el valor más firme?"
+      },
+      {
+        "speaker": "B",
+        "text": "Santander ha ganado un 2,44 %, llegando a 12,10 euros. Los titulares relacionan esta subida con las elecciones brasileñas y la solidez de sus negocios en el país. Aunque sin detalles del resultado electoral exacto, el mercado parece valorar positivamente esa exposición. Dicho esto, sigue un 6,13 % por debajo del nivel que tenía a principios de septiembre."
+      },
+      {
+        "speaker": "A",
+        "text": "Así que hay rebote, pero con cierto recelo de fondo. ¿Qué preocupa en Europa?"
+      },
+      {
+        "speaker": "B",
+        "text": "El gran tema hoy es la deuda, especialmente la francesa, y el debilitamiento del euro. Según los datos, la moneda única cae a mínimos de diecisiete meses, lo que genera incertidumbre sobre la solidez de la zona euro. El Ibex amortigua esas dudas gracias al avance de Santander y otros valores, pero Europa está pendiente de cómo evoluciona todo esto."
+      },
+      {
+        "speaker": "A",
+        "text": "Y cambiando de tercio, ¿qué pasa en Madrid con las otras grandes empresas?"
+      },
+      {
+        "speaker": "B",
+        "text": "Hay un detalle interesante: Iberdrola avanza un 0,38 % hasta 20,90 euros y ha recuperado el tercer puesto del Ibex por capitalización, adelantando a BBVA. En el periodo desde el 7 de septiembre acumula incluso un 5,40 % de ganancia."
+      },
+      {
+        "speaker": "A",
+        "text": "Pero Inditex juega una partida diferente."
+      },
+      {
+        "speaker": "B",
+        "text": "Exacto. Inditex sube un 0,30 % hoy, hasta 53,40 euros, pero acumula un descenso del 7,23 % desde principios de septiembre. Los analistas señalan que es uno de los valores que reactivan el calendario de dividendos en octubre, así que hay algo de expectativa por ahí."
+      },
+      {
+        "speaker": "A",
+        "text": "¿Y qué tal en Wall Street? ¿Ha habido movimiento en las grandes tecnológicas?"
+      },
+      {
+        "speaker": "B",
+        "text": "Sí, NVIDIA sube un 1,34 % hasta 233,95 dólares y Apple gana un 1,02 % hasta 333,69 dólares. Según los analistas, DBS considera que el repunte de las acciones de inteligencia artificial no es una burbuja, y Morgan Stanley la nombra su acción favorita. Apple, por su parte, acapara atención por una inversión de 6.800 millones de dólares en IA."
+      },
+      {
+        "speaker": "A",
+        "text": "Son opiniones de terceros, claro."
+      },
+      {
+        "speaker": "B",
+        "text": "Totalmente. El análisis también incluye un ejemplo ficticio de una empresa llamada Ejemplo Industrial con unos resultados trimestrales sólidos: ingresos por 1.245 millones de euros, crecimiento del 8,4 %, y un EBITDA de 312 millones con margen del 25,1 %. Aunque es un ejemplo, sirve para ver cómo el mercado digiere los datos de resultados en esta temporada."
+      },
+      {
+        "speaker": "A",
+        "text": "¿Y cómo ve el mercado el estado general de ánimo hoy?"
+      },
+      {
+        "speaker": "B",
+        "text": "Sesión de rebote generalizado: todos los valores al alza, el S&P 500 sube un 0,73 %. Pero hay cautela en Europa por la deuda y la debilidad del euro. Los analistas siguen atentos a la temporada de resultados y a cómo evoluciona el escenario macroeconómico."
+      },
+      {
+        "speaker": "A",
+        "text": "Pues esto es Market Briefer. Un último apunte antes de terminar: este episodio ha sido generado con inteligencia artificial y las voces que escucháis son sintéticas. Se trata de información educativa, no asesoramiento financiero ni una recomendación de inversión. Ante cualquier decisión sobre vuestras inversiones, consultad siempre las fuentes oficiales y a un asesor profesional."
+      },
+      {
+        "speaker": "B",
+        "text": "Exacto. Gracias por escucharnos y nos vemos mañana con el análisis del mercado."
+      }
+    ],
+    "est_duration_s": 236.8
+  },
+  "audio": {
+    "path": "podcast.mp3",
+    "duration_s": 259.46,
+    "segments": [
+      {
+        "speaker": "A",
+        "text": "Hola, bienvenidos a Market Briefer. Hoy es 5 de octubre de 2026 y os contamos cómo Banco Santander se ha puesto a la cabeza de las subidas del Ibex tras las novedades electorales en Brasil.",
+        "start_s": 0.0,
+        "end_s": 12.96
+      },
+      {
+        "speaker": "B",
+        "text": "Buenos días. El análisis del día nos muestra un Ibex 35 que cierra con un avance moderado del 0,68 %, hasta 19.214,60 puntos. Pero aunque en la sesión hay movimiento al alza, conviene recordar que desde el 7 de septiembre acumula un descenso del 4,03 %.",
+        "start_s": 13.31,
+        "end_s": 34.62
+      },
+      {
+        "speaker": "A",
+        "text": "¿Y qué ha pasado con Banco Santander para que sea el valor más firme?",
+        "start_s": 34.97,
+        "end_s": 39.38
+      },
+      {
+        "speaker": "B",
+        "text": "Santander ha ganado un 2,44 %, llegando a 12,10 euros. Los titulares relacionan esta subida con las elecciones brasileñas y la solidez de sus negocios en el país. Aunque sin detalles del resultado electoral exacto, el mercado parece valorar positivamente esa exposición. Dicho esto, sigue un 6,13 % por debajo del nivel que tenía a principios de septiembre.",
+        "start_s": 39.73,
+        "end_s": 65.31
+      },
+      {
+        "speaker": "A",
+        "text": "Así que hay rebote, pero con cierto recelo de fondo. ¿Qué preocupa en Europa?",
+        "start_s": 65.66,
+        "end_s": 71.9
+      },
+      {
+        "speaker": "B",
+        "text": "El gran tema hoy es la deuda, especialmente la francesa, y el debilitamiento del euro. Según los datos, la moneda única cae a mínimos de diecisiete meses, lo que genera incertidumbre sobre la solidez de la zona euro. El Ibex amortigua esas dudas gracias al avance de Santander y otros valores, pero Europa está pendiente de cómo evoluciona todo esto.",
+        "start_s": 72.25,
+        "end_s": 93.82
+      },
+      {
+        "speaker": "A",
+        "text": "Y cambiando de tercio, ¿qué pasa en Madrid con las otras grandes empresas?",
+        "start_s": 94.17,
+        "end_s": 99.09
+      },
+      {
+        "speaker": "B",
+        "text": "Hay un detalle interesante: Iberdrola avanza un 0,38 % hasta 20,90 euros y ha recuperado el tercer puesto del Ibex por capitalización, adelantando a BBVA. En el periodo desde el 7 de septiembre acumula incluso un 5,40 % de ganancia.",
+        "start_s": 99.44,
+        "end_s": 117.27
+      },
+      {
+        "speaker": "A",
+        "text": "Pero Inditex juega una partida diferente.",
+        "start_s": 117.62,
+        "end_s": 120.86
+      },
+      {
+        "speaker": "B",
+        "text": "Exacto. Inditex sube un 0,30 % hoy, hasta 53,40 euros, pero acumula un descenso del 7,23 % desde principios de septiembre. Los analistas señalan que es uno de los valores que reactivan el calendario de dividendos en octubre, así que hay algo de expectativa por ahí.",
+        "start_s": 121.21,
+        "end_s": 141.73
+      },
+      {
+        "speaker": "A",
+        "text": "¿Y qué tal en Wall Street? ¿Ha habido movimiento en las grandes tecnológicas?",
+        "start_s": 142.08,
+        "end_s": 147.69
+      },
+      {
+        "speaker": "B",
+        "text": "Sí, NVIDIA sube un 1,34 % hasta 233,95 dólares y Apple gana un 1,02 % hasta 333,69 dólares. Según los analistas, DBS considera que el repunte de las acciones de inteligencia artificial no es una burbuja, y Morgan Stanley la nombra su acción favorita. Apple, por su parte, acapara atención por una inversión de 6.800 millones de dólares en IA.",
+        "start_s": 148.04,
+        "end_s": 175.61
+      },
+      {
+        "speaker": "A",
+        "text": "Son opiniones de terceros, claro.",
+        "start_s": 175.96,
+        "end_s": 179.1
+      },
+      {
+        "speaker": "B",
+        "text": "Totalmente. El análisis también incluye un ejemplo ficticio de una empresa llamada Ejemplo Industrial con unos resultados trimestrales sólidos: ingresos por 1.245 millones de euros, crecimiento del 8,4 %, y un EBITDA de 312 millones con margen del 25,1 %. Aunque es un ejemplo, sirve para ver cómo el mercado digiere los datos de resultados en esta temporada.",
+        "start_s": 179.45,
+        "end_s": 205.65
+      },
+      {
+        "speaker": "A",
+        "text": "¿Y cómo ve el mercado el estado general de ánimo hoy?",
+        "start_s": 206.0,
+        "end_s": 209.55
+      },
+      {
+        "speaker": "B",
+        "text": "Sesión de rebote generalizado: todos los valores al alza, el S&P 500 sube un 0,73 %. Pero hay cautela en Europa por la deuda y la debilidad del euro. Los analistas siguen atentos a la temporada de resultados y a cómo evoluciona el escenario macroeconómico.",
+        "start_s": 209.9,
+        "end_s": 228.59
+      },
+      {
+        "speaker": "A",
+        "text": "Pues esto es Market Briefer. Un último apunte antes de terminar: este episodio ha sido generado con inteligencia artificial y las voces que escucháis son sintéticas. Se trata de información educativa, no asesoramiento financiero ni una recomendación de inversión. Ante cualquier decisión sobre vuestras inversiones, consultad siempre las fuentes oficiales y a un asesor profesional.",
+        "start_s": 228.94,
+        "end_s": 252.77
+      },
+      {
+        "speaker": "B",
+        "text": "Exacto. Gracias por escucharnos y nos vemos mañana con el análisis del mercado.",
+        "start_s": 253.12,
+        "end_s": 259.4
+      }
+    ]
+  },
+  "transcript": {
+    "text": "Álvaro: Hola, bienvenidos a Market Briefer. Hoy es 5 de octubre de 2026 y os contamos cómo Banco Santander se ha puesto a la cabeza de las subidas del Ibex tras las novedades electorales en Brasil.\n\nElvira: Buenos días. El análisis del día nos muestra un Ibex 35 que cierra con un avance moderado del 0,68 %, hasta 19.214,60 puntos. Pero aunque en la sesión hay movimiento al alza, conviene recordar que desde el 7 de septiembre acumula un descenso del 4,03 %.\n\nÁlvaro: ¿Y qué ha pasado con Banco Santander para que sea el valor más firme?\n\nElvira: Santander ha ganado un 2,44 %, llegando a 12,10 euros. Los titulares relacionan esta subida con las elecciones brasileñas y la solidez de sus negocios en el país. Aunque sin detalles del resultado electoral exacto, el mercado parece valorar positivamente esa exposición. Dicho esto, sigue un 6,13 % por debajo del nivel que tenía a principios de septiembre.\n\nÁlvaro: Así que hay rebote, pero con cierto recelo de fondo. ¿Qué preocupa en Europa?\n\nElvira: El gran tema hoy es la deuda, especialmente la francesa, y el debilitamiento del euro. Según los datos, la moneda única cae a mínimos de diecisiete meses, lo que genera incertidumbre sobre la solidez de la zona euro. El Ibex amortigua esas dudas gracias al avance de Santander y otros valores, pero Europa está pendiente de cómo evoluciona todo esto.\n\nÁlvaro: Y cambiando de tercio, ¿qué pasa en Madrid con las otras grandes empresas?\n\nElvira: Hay un detalle interesante: Iberdrola avanza un 0,38 % hasta 20,90 euros y ha recuperado el tercer puesto del Ibex por capitalización, adelantando a BBVA. En el periodo desde el 7 de septiembre acumula incluso un 5,40 % de ganancia.\n\nÁlvaro: Pero Inditex juega una partida diferente.\n\nElvira: Exacto. Inditex sube un 0,30 % hoy, hasta 53,40 euros, pero acumula un descenso del 7,23 % desde principios de septiembre. Los analistas señalan que es uno de los valores que reactivan el calendario de dividendos en octubre, así que hay algo de expectativa por ahí.\n\nÁlvaro: ¿Y qué tal en Wall Street? ¿Ha habido movimiento en las grandes tecnológicas?\n\nElvira: Sí, NVIDIA sube un 1,34 % hasta 233,95 dólares y Apple gana un 1,02 % hasta 333,69 dólares. Según los analistas, DBS considera que el repunte de las acciones de inteligencia artificial no es una burbuja, y Morgan Stanley la nombra su acción favorita. Apple, por su parte, acapara atención por una inversión de 6.800 millones de dólares en IA.\n\nÁlvaro: Son opiniones de terceros, claro.\n\nElvira: Totalmente. El análisis también incluye un ejemplo ficticio de una empresa llamada Ejemplo Industrial con unos resultados trimestrales sólidos: ingresos por 1.245 millones de euros, crecimiento del 8,4 %, y un EBITDA de 312 millones con margen del 25,1 %. Aunque es un ejemplo, sirve para ver cómo el mercado digiere los datos de resultados en esta temporada.\n\nÁlvaro: ¿Y cómo ve el mercado el estado general de ánimo hoy?\n\nElvira: Sesión de rebote generalizado: todos los valores al alza, el S&P 500 sube un 0,73 %. Pero hay cautela en Europa por la deuda y la debilidad del euro. Los analistas siguen atentos a la temporada de resultados y a cómo evoluciona el escenario macroeconómico.\n\nÁlvaro: Pues esto es Market Briefer. Un último apunte antes de terminar: este episodio ha sido generado con inteligencia artificial y las voces que escucháis son sintéticas. Se trata de información educativa, no asesoramiento financiero ni una recomendación de inversión. Ante cualquier decisión sobre vuestras inversiones, consultad siempre las fuentes oficiales y a un asesor profesional.\n\nElvira: Exacto. Gracias por escucharnos y nos vemos mañana con el análisis del mercado.",
+    "srt_path": "podcast.srt"
+  },
+  "charts": [
+    {
+      "path": "charts/overview_change.png",
+      "ticker": null,
+      "kind": "overview_bar"
+    },
+    {
+      "path": "charts/SAN_MC_price.png",
+      "ticker": "SAN.MC",
+      "kind": "price_line"
+    },
+    {
+      "path": "charts/ITX_MC_price.png",
+      "ticker": "ITX.MC",
+      "kind": "price_line"
+    },
+    {
+      "path": "charts/IBE_MC_price.png",
+      "ticker": "IBE.MC",
+      "kind": "price_line"
+    },
+    {
+      "path": "charts/AAPL_price.png",
+      "ticker": "AAPL",
+      "kind": "price_line"
+    },
+    {
+      "path": "charts/NVDA_price.png",
+      "ticker": "NVDA",
+      "kind": "price_line"
+    }
+  ],
+  "cover_path": null,
+  "video": null,
+  "metrics": [
+    {
+      "step": "ingest.news",
+      "provider": "yfinance+rss",
+      "model": "-",
+      "latency_s": 0.1654,
+      "est_cost_eur": 0.0,
+      "error": null,
+      "detail": null
+    },
+    {
+      "step": "ingest.prices",
+      "provider": "yfinance",
+      "model": "-",
+      "latency_s": 0.1659,
+      "est_cost_eur": 0.0,
+      "error": null,
+      "detail": null
+    },
+    {
+      "step": "ingest.tickers",
+      "provider": "local",
+      "model": "-",
+      "latency_s": 0.0059,
+      "est_cost_eur": 0.0,
+      "error": null,
+      "detail": "16 de 20 noticias relevantes (3 de índices de contexto)"
+    },
+    {
+      "step": "ingest.pdf",
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "latency_s": 20.8019,
+      "est_cost_eur": 0.014961,
+      "error": null,
+      "detail": null
+    },
+    {
+      "step": "ingest.chart",
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "latency_s": 21.8185,
+      "est_cost_eur": 0.017295,
+      "error": null,
+      "detail": null
+    },
+    {
+      "step": "agents.analyst",
+      "provider": "anthropic",
+      "model": "claude-sonnet-5-5",
+      "latency_s": 11.3081,
+      "est_cost_eur": 0.02456,
+      "error": null,
+      "detail": "grounding: todas las cifras trazables"
+    },
+    {
+      "step": "agents.scriptwriter",
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "latency_s": 13.2779,
+      "est_cost_eur": 0.008278,
+      "error": null,
+      "detail": "guion: 18 intervenciones, ~3.9 min"
+    },
+    {
+      "step": "media.podcast",
+      "provider": "edge",
+      "model": "edge-tts",
+      "latency_s": 13.1469,
+      "est_cost_eur": 0.0,
+      "error": null,
+      "detail": null
+    },
+    {
+      "step": "media.transcript",
+      "provider": "local",
+      "model": "-",
+      "latency_s": 0.0035,
+      "est_cost_eur": 0.0,
+      "error": null,
+      "detail": null
+    },
+    {
+      "step": "media.charts",
+      "provider": "matplotlib",
+      "model": "-",
+      "latency_s": 1.4932,
+      "est_cost_eur": 0.0,
+      "error": null,
+      "detail": null
+    },
+    {
+      "step": "storage.save",
+      "provider": "local",
+      "model": "-",
+      "latency_s": 0.0068,
+      "est_cost_eur": 0.0,
+      "error": null,
+      "detail": null
+    }
+  ],
+  "deliveries": [
+    {
+      "channel": "web",
+      "ok": true,
+      "detail": "Disponible en la app"
+    }
+  ]
+}

@@ -17,22 +17,46 @@ Tolerancia a fallos:
 - Un paso **opcional** que falla no rompe el briefing: su ``StepMetric`` queda marcado como
   fallido (campo ``StepMetric.error``, ver ``logging_utils.step_failed``), se registra en el log y se sigue. En la
   entrega, además, el canal aparece en ``Briefing.deliveries`` con ``ok=False``.
-- Un paso **núcleo** que falla lanza ``PipelineStepError`` (o ``StepNotImplementedError``,
-  que además es ``NotImplementedError`` para que la UI lo muestre como «Pendiente») con el
-  nombre del paso y la causa encadenada.
+- Un paso **núcleo** con proveedor real que falla (tras los reintentos del SDK) se repite con
+  un **sustituto** si ``BRIEFER_FALLBACK_TO_MOCK=true``: LLM/TTS mock, noticias de
+  ``data/samples`` o precios sintéticos. El ``StepMetric`` queda con ``provider`` = sustituto y
+  ``error = "Fallback a <sustituto> tras <Tipo>: <mensaje>"`` (``logging_utils.step_fell_back``)
+  para que la UI avise de que ese paso usó datos simulados. El Guionista tiene además su propio
+  respaldo determinista (``fallback_script``), marcado igual.
+- Si no hay sustituto (pasos locales, modo mock o fallback desactivado), el paso núcleo lanza
+  ``PipelineStepError`` (o ``StepNotImplementedError``, que además es ``NotImplementedError``
+  para que la UI lo muestre como «Pendiente») con el nombre del paso y la causa encadenada.
 
-Con ``use_mock=True`` todos los proveedores de IA son mocks y las noticias/precios salen de
-``data/samples`` / datos sintéticos (sin red ni claves).
+Concurrencia: noticias, precios y las subidas del usuario (PDF, gráfico, voz) se procesan en
+paralelo (``ThreadPoolExecutor``); la latencia de la ingesta es ≈ la del más lento y se ve en la
+traza (``StepMetric`` de cada uno). El podcast sintetiza ``PODCAST_TTS_WORKERS`` líneas a la vez.
+El Guionista y el Q&A usan el LLM barato (``providers.llm_cheap``, Haiku).
+
+Modos de ejecución (``mode``; ``use_mock=True`` equivale a ``mode="mock"``):
+
+- ``"real"``: proveedores de ``.env``, noticias y precios reales (con caché diaria; ``use_cache=False``
+  la ignora y la refresca).
+- ``"mock"``: todos los proveedores de IA son mocks y las noticias/precios salen de ``data/samples``
+  / datos sintéticos (sin red ni claves). El audio es un WAV mudo.
+- ``"demo_voices"``: como ``"mock"`` pero el podcast y la respuesta del Q&A se sintetizan con
+  **edge-tts real** (gratis, sin clave; necesita red). Si edge-tts no responde, cae al TTS mock
+  (marcado como fallback). Es la demo «sin claves» que no suena a silencio.
+
+Índices de contexto (``settings.context_tickers``, por defecto ``^IBEX`` y ``^GSPC``): se piden sus
+precios y noticias junto a los del usuario, pero no cuentan como tickers del usuario
+(``MarketContext.tickers``); salen en el gráfico de variación del día, no con gráfico propio.
 """
 
 from __future__ import annotations
 
+import time
 from collections.abc import Callable, Iterator, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
-from typing import TypeVar
+from typing import Literal, TypeVar, get_args
 
 from pydantic import BaseModel
 
@@ -42,9 +66,10 @@ from briefer.config import Settings, get_settings
 from briefer.delivery import email_sender, telegram_sender
 from briefer.ingest import chart_reader, news as news_mod, pdf_reader, prices as prices_mod
 from briefer.ingest import tickers as tickers_mod, voice
-from briefer.logging_utils import StepHandle, get_logger, step_error, track_step
+from briefer.logging_utils import StepHandle, fallback_error, get_logger, step_error, track_step
 from briefer.media import charts as charts_mod, cover as cover_mod, podcast, transcript as transcript_mod
 from briefer.media import video as video_mod
+from briefer.media.speech import normalize_for_speech
 from briefer.providers import registry
 from briefer.providers.base import (
     ImageClassifier,
@@ -55,10 +80,13 @@ from briefer.providers.base import (
     VisionProvider,
 )
 from briefer.schemas import (
+    Analysis,
+    AudioAsset,
     Briefing,
     DeliveryResult,
     DocumentInsight,
     MarketContext,
+    PodcastScript,
     Portfolio,
     QAAnswer,
     StepMetric,
@@ -76,6 +104,28 @@ DELIVERY_CHANNELS: tuple[str, ...] = ("email", "telegram")
 
 ProgressFn = Callable[[str], None]
 T = TypeVar("T")
+
+#: Modo de ejecución del pipeline (ver docstring del módulo).
+RunMode = Literal["real", "mock", "demo_voices"]
+RUN_MODES: tuple[str, ...] = get_args(RunMode)
+#: Hilos de síntesis del podcast (edge-tts es I/O: 6 líneas a la vez bajan la latencia sin saturar).
+PODCAST_TTS_WORKERS = 6
+#: Subidas (PDF, gráfico, voz) procesadas a la vez, en paralelo también con noticias y precios.
+UPLOAD_WORKERS = 4
+
+
+def resolve_mode(mode: str | None = None, use_mock: bool = False) -> str:
+    """Normaliza ``mode``/``use_mock``: ``mode`` manda si se indica; si no, ``use_mock`` -> ``"mock"``.
+
+    Raises:
+        ValueError: modo desconocido.
+    """
+    if mode is None:
+        return "mock" if use_mock else "real"
+    value = str(mode).strip().lower()
+    if value not in RUN_MODES:
+        raise ValueError(f"Modo desconocido: {mode!r}. Válidos: {', '.join(RUN_MODES)}.")
+    return value
 
 
 # ── Errores ───────────────────────────────────────────────────────────────────────
@@ -108,6 +158,19 @@ class Providers:
     tts: TTSProvider
     image_gen: ImageGenProvider | None
     classifier: ImageClassifier | None
+
+
+def demo_voice_tts(settings: Settings) -> TTSProvider:
+    """TTS del modo ``demo_voices``: edge-tts real (no necesita clave), con rate/pitch de ``settings``."""
+    return registry.get_tts(settings.model_copy(update={"briefer_tts_provider": "edge"}))
+
+
+def _providers_for_mode(settings: Settings, mode: str) -> Providers:
+    """Proveedores de un modo: mocks fuera de ``"real"``; en ``"demo_voices"`` el TTS es edge-tts."""
+    providers = get_providers(settings, use_mock=mode != "real")
+    if mode == "demo_voices":
+        providers.tts = demo_voice_tts(settings)
+    return providers
 
 
 def get_providers(settings: Settings, use_mock: bool = False) -> Providers:
@@ -153,12 +216,17 @@ class _MeteredLLM(LLMProvider):
         self.provider_name = inner.provider_name
         self.model = inner.model
         self.meter = _UsageMeter()
+        #: Excepciones lanzadas por el proveedor (aunque el agente las haya absorbido).
+        self.errors: list[BaseException] = []
 
     def complete(
         self, system: str, messages: list[dict], response_model: type[BaseModel] | None = None
     ) -> str | BaseModel:
         try:
             return self.inner.complete(system, messages, response_model=response_model)
+        except Exception as exc:
+            self.errors.append(exc)
+            raise
         finally:
             self.last_usage = dict(self.inner.last_usage)
             self.meter.add(self.last_usage)
@@ -212,6 +280,80 @@ def _core_step(
         raise StepNotImplementedError(step, exc) from exc
     except Exception as exc:
         raise PipelineStepError(step, exc) from exc
+
+
+@dataclass
+class _Fallback:
+    """Sustituto de un paso núcleo cuando su proveedor real falla."""
+
+    provider: str
+    model: str
+    fn: Callable[[StepHandle], object]
+    label: str  # cómo se nombra en StepMetric.error: "mock", "data/samples"…
+
+
+def _llm_fallback(
+    settings: Settings, *, cheap: bool, fn_factory: Callable[[LLMProvider], Callable[[StepHandle], T]]
+) -> _Fallback:
+    """Sustituto de un paso de agente: el mismo trabajo con el ``MockLLM``."""
+    mock_llm = registry.get_llm(settings, cheap=cheap, force_mock=True)
+    return _Fallback(mock_llm.provider_name, mock_llm.model, fn_factory(mock_llm), "mock")
+
+
+def _join_details(*details: str | None) -> str | None:
+    text = " · ".join(d for d in details if d)
+    return text or None
+
+
+def _run_core(
+    step: str,
+    provider: str,
+    model: str,
+    metrics: list[StepMetric],
+    fn: Callable[[StepHandle], T],
+    fallback: _Fallback | None = None,
+) -> T:
+    """Paso núcleo con caída a sustituto.
+
+    Ejecuta ``fn``; si lanza y hay ``fallback``, ejecuta el sustituto y registra **un**
+    ``StepMetric`` con el proveedor sustituto, la latencia total, el coste de ambos intentos y
+    ``error = "Fallback a <label> tras <causa>"``. Sin ``fallback`` (o si el sustituto también
+    falla) lanza ``PipelineStepError`` / ``StepNotImplementedError`` como ``_core_step``.
+    """
+    start = time.perf_counter()
+    first: list[StepMetric] = []
+    try:
+        with track_step(step, provider, model, first) as handle:
+            result = fn(handle)
+        metrics.extend(first)
+        return result
+    except Exception as exc:
+        if fallback is None:
+            metrics.extend(first)
+            if isinstance(exc, NotImplementedError):
+                raise StepNotImplementedError(step, exc) from exc
+            raise PipelineStepError(step, exc) from exc
+        cause = exc
+    log.warning("Paso núcleo «%s»: %s falló (%s); se usa %s", step, provider, cause, fallback.label)
+    second: list[StepMetric] = []
+    try:
+        with track_step(step, fallback.provider, fallback.model, second) as handle:
+            result = fallback.fn(handle)
+    except Exception as exc:
+        metrics.extend(first + second)
+        raise PipelineStepError(step, exc) from exc
+    failed, used = first[-1], second[-1]
+    metrics.append(
+        used.model_copy(
+            update={
+                "latency_s": round(time.perf_counter() - start, 4),
+                "est_cost_eur": round(failed.est_cost_eur + used.est_cost_eur, 6),
+                "error": fallback_error(fallback.label, cause),
+                "detail": _join_details(failed.detail, used.detail),
+            }
+        )
+    )
+    return result  # type: ignore[return-value]
 
 
 def _optional_step(
@@ -339,6 +481,8 @@ def run_briefing(
     *,
     make_cover: bool = False,
     use_mock: bool = False,
+    mode: RunMode | None = None,
+    use_cache: bool = True,
     settings: Settings | None = None,
     progress: ProgressFn | None = None,
 ) -> Briefing:
@@ -352,7 +496,11 @@ def run_briefing(
         deliver: canales extra de entrega: ``"email"``, ``"telegram"`` (``"web"`` se ignora:
             siempre está incluido).
         make_cover: generar portada con texto a imagen (si hay proveedor configurado).
-        use_mock: forzar proveedores mock y datos de ejemplo (sin red ni claves).
+        use_mock: forzar proveedores mock y datos de ejemplo (sin red ni claves). Equivale a
+            ``mode="mock"``; se mantiene por compatibilidad.
+        mode: ``"real"``, ``"mock"`` o ``"demo_voices"`` (datos de ejemplo + LLM mock + edge-tts
+            real). Si se indica, manda sobre ``use_mock``.
+        use_cache: ``False`` ignora la caché diaria de noticias y precios (botón «Refrescar datos»).
         settings: configuración (por defecto ``get_settings()``).
         progress: callback opcional; recibe un texto por paso con el formato ``"(n/N) …"``.
 
@@ -361,13 +509,21 @@ def run_briefing(
         PipelineStepError: falló un paso núcleo (``StepNotImplementedError`` si está pendiente).
     """
     s = settings or get_settings()
+    run_mode = resolve_mode(mode, use_mock)
+    offline_data = run_mode != "real"  # noticias de data/samples y precios sintéticos
     channels = _normalize_channels(deliver)
     all_tickers = _normalize_tickers(tickers, portfolio)
     if not all_tickers:
         raise ValueError("Indica al menos un ticker o una cartera con posiciones.")
+    # Índices de contexto: precios y noticias de mercado, sin contar como tickers del usuario.
+    context_tickers = [
+        t for t in dict.fromkeys(tickers_mod.normalize_ticker(c) for c in s.context_tickers if c.strip())
+        if t not in all_tickers
+    ]
+    fetch_tickers = all_tickers + context_tickers
     upload_paths = [Path(u) for u in uploads or []]
 
-    providers = get_providers(s, use_mock=use_mock)
+    providers = _providers_for_mode(s, run_mode)
     metrics: list[StepMetric] = []
     briefing_id = new_briefing_id()
     out_dir = s.output_path / briefing_id
@@ -378,38 +534,92 @@ def run_briefing(
         total=5 + len(upload_paths) + int(want_cover) + int(make_video) + len(channels) + 1,
     )
 
-    # 1. Noticias y precios (núcleo)
+    # 1. Noticias ∥ precios (núcleo, en paralelo). Con proveedor real caído: data/samples y
+    #    precios sintéticos, marcados en el StepMetric.
     notify("Recopilando noticias y precios…")
-    with _core_step("ingest.news", "samples" if use_mock else "yfinance+rss", "-", metrics):
-        if use_mock:
-            raw_news = news_mod.load_sample_news()
-        else:
-            raw_news = news_mod.fetch_news(
-                all_tickers, max_items=s.briefer_news_max_items, rss_feeds=s.rss_feeds
-            )
-    with _core_step("ingest.tickers", "local", "-", metrics):
-        relevant_news = tickers_mod.filter_by_tickers(raw_news, all_tickers)
-        if use_mock and not relevant_news:
-            # En modo demo, si los tickers elegidos no salen en las noticias de ejemplo,
-            # se usan todas para que el briefing no quede vacío (son ficticias y lo indican).
-            log.info("Modo mock: ninguna noticia de ejemplo para %s; se usan todas", all_tickers)
-            relevant_news = list(raw_news)
-    with _core_step("ingest.prices", "synthetic" if use_mock else "yfinance", "-", metrics):
-        if use_mock:
-            prices = prices_mod.synthetic_snapshots(all_tickers)
-        else:
-            prices = prices_mod.get_price_snapshots(all_tickers)
 
-    # 2. Documentos del usuario (opcional: una subida fallida no rompe el briefing)
-    insights: list[DocumentInsight] = []
+    # 2 (en paralelo con 1). Documentos del usuario: cada subida en su hilo y con sus propias
+    #    instancias de LLM/visión (``last_usage`` es por instancia: el coste no se mezcla).
+    upload_pool = (
+        ThreadPoolExecutor(max_workers=min(UPLOAD_WORKERS, len(upload_paths)), thread_name_prefix="upload")
+        if upload_paths else None
+    )
+    upload_jobs: list[tuple[Path, list[StepMetric], object]] = []
     for upload in upload_paths:
         notify(f"Leyendo {upload.name}…")
+        own_metrics: list[StepMetric] = []
+        own_providers = providers if len(upload_paths) == 1 else replace(
+            providers,
+            llm_cheap=registry.get_llm(s, cheap=True, force_mock=run_mode != "real"),
+            vision=registry.get_vision(s, force_mock=run_mode != "real"),
+        )
+        assert upload_pool is not None
+        future = upload_pool.submit(process_upload, upload, own_providers, own_metrics, s.briefer_language)
+        upload_jobs.append((upload, own_metrics, future))
+    can_fallback = s.briefer_fallback_to_mock and not offline_data
+    news_fallback = _Fallback("samples", "-", lambda _h: news_mod.load_sample_news(), "data/samples")
+    prices_fallback = _Fallback(
+        "synthetic", "-", lambda _h: prices_mod.synthetic_snapshots(fetch_tickers), "precios sintéticos"
+    )
+
+    def _news(_h: StepHandle) -> list:
+        if offline_data:
+            return news_mod.load_sample_news()
+        return news_mod.fetch_news(
+            fetch_tickers, max_items=s.briefer_news_max_items, rss_feeds=s.rss_feeds, use_cache=use_cache
+        )
+
+    def _prices(_h: StepHandle) -> list:
+        if offline_data:
+            return prices_mod.synthetic_snapshots(fetch_tickers)
+        return prices_mod.get_price_snapshots(fetch_tickers, use_cache=use_cache)
+
+    news_metrics: list[StepMetric] = []
+    prices_metrics: list[StepMetric] = []
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="ingest") as pool:
+        news_future = pool.submit(
+            _run_core, "ingest.news", "samples" if offline_data else "yfinance+rss", "-", news_metrics,
+            _news, news_fallback if can_fallback else None,
+        )
+        prices_future = pool.submit(
+            _run_core, "ingest.prices", "synthetic" if offline_data else "yfinance", "-", prices_metrics,
+            _prices, prices_fallback if can_fallback else None,
+        )
+        news_exc, prices_exc = news_future.exception(), prices_future.exception()
+    metrics.extend(news_metrics + prices_metrics)
+    if news_exc or prices_exc:
+        raise news_exc or prices_exc  # type: ignore[misc]
+    raw_news = news_future.result()
+    prices = prices_future.result()
+    sample_news = offline_data or any(m.provider == "samples" for m in news_metrics)
+
+    with _core_step("ingest.tickers", "local", "-", metrics) as tickers_step:
+        # Noticias de los tickers del usuario + las de los índices de contexto que pasen el filtro.
+        relevant_news = tickers_mod.filter_by_tickers(raw_news, fetch_tickers)
+        n_index = sum(1 for n in relevant_news if not set(n.tickers) & set(all_tickers))
+        tickers_step.detail = (
+            f"{len(relevant_news)} de {len(raw_news)} noticias relevantes"
+            + (f" ({n_index} de índices de contexto)" if n_index else "")
+        )
+        if sample_news and not relevant_news:
+            # Con noticias de ejemplo (modo demo o fallback), si los tickers elegidos no salen
+            # en ellas, se usan todas para que el briefing no quede vacío (son ficticias y lo indican).
+            log.info("Noticias de ejemplo: ninguna para %s; se usan todas", all_tickers)
+            relevant_news = list(raw_news)
+
+    # 2. Documentos del usuario (opcional: una subida fallida no rompe el briefing). Se recogen
+    #    en el orden de subida; sus métricas, también.
+    insights: list[DocumentInsight] = []
+    for upload, own_metrics, future in upload_jobs:
         try:
-            insights.append(process_upload(upload, providers, metrics, s.briefer_language))
+            insights.append(future.result())  # type: ignore[attr-defined]
         except Exception:
             log.exception("No se pudo procesar la subida %s; se continúa sin ella", upload.name)
+        metrics.extend(own_metrics)
+    if upload_pool is not None:
+        upload_pool.shutdown(wait=True)
 
-    # 3. Agente Analista (núcleo)
+    # 3. Agente Analista (núcleo; LLM principal). Fallback: LLM mock.
     context = MarketContext(
         date=date.today(),
         tickers=all_tickers,
@@ -419,40 +629,90 @@ def run_briefing(
         portfolio=portfolio,
     )
     notify("Analizando el mercado…")
-    llm = _MeteredLLM(providers.llm)
-    with _core_step("agents.analyst", llm.provider_name, llm.model, metrics) as step:
-        try:
-            analysis = analyst.analyze(context, llm)
-        finally:
-            step.est_cost_eur = llm.cost_eur()
 
-    # 4. Agente Guionista (núcleo)
+    def _analyze_with(inner: LLMProvider) -> Callable[[StepHandle], Analysis]:
+        def run(step: StepHandle) -> Analysis:
+            metered = _MeteredLLM(inner)
+            trace: list[str] = []
+            try:
+                return analyst.analyze(
+                    context, metered, check_figures=inner.provider_name != "mock", trace=trace
+                )
+            finally:
+                step.est_cost_eur = metered.cost_eur()
+                step.detail = _join_details(*trace)
+
+        return run
+
+    llm_main = providers.llm
+    analysis = _run_core(
+        "agents.analyst", llm_main.provider_name, llm_main.model, metrics,
+        _analyze_with(llm_main),
+        _llm_fallback(s, cheap=False, fn_factory=_analyze_with)
+        if s.briefer_fallback_to_mock and llm_main.provider_name != "mock" else None,
+    )
+
+    # 4. Agente Guionista (núcleo; LLM BARATO). Si el LLM falla, write_script usa su guion de
+    #    respaldo determinista (marcado como fallback); si aun así lanza, LLM mock.
     notify("Escribiendo el guion del podcast…")
-    llm = _MeteredLLM(providers.llm)
-    with _core_step("agents.scriptwriter", llm.provider_name, llm.model, metrics) as step:
-        try:
-            script = scriptwriter.write_script(
-                analysis,
-                llm,
-                target_minutes=s.briefer_podcast_target_minutes,
-                speaker_names=(s.briefer_speaker_a_name, s.briefer_speaker_b_name),
-                # El MockLLM devuelve un guion fijo corto: no tiene sentido pedirle que lo alargue.
-                length_tolerance=None if llm.provider_name == "mock" else scriptwriter.LENGTH_TOLERANCE,
-            )
-        finally:
-            step.est_cost_eur = llm.cost_eur()
 
-    # 5. Audio a 2 voces + transcripción (núcleo)
+    def _write_with(inner: LLMProvider) -> Callable[[StepHandle], PodcastScript]:
+        def run(step: StepHandle) -> PodcastScript:
+            metered = _MeteredLLM(inner)
+            trace: list[str] = []
+            try:
+                script = scriptwriter.write_script(
+                    analysis,
+                    metered,
+                    target_minutes=s.briefer_podcast_target_minutes,
+                    speaker_names=(s.briefer_speaker_a_name, s.briefer_speaker_b_name),
+                    # El MockLLM devuelve un guion fijo corto: no tiene sentido pedirle que lo alargue.
+                    length_tolerance=None if inner.provider_name == "mock" else scriptwriter.LENGTH_TOLERANCE,
+                    trace=trace,
+                )
+            finally:
+                step.est_cost_eur = metered.cost_eur()
+                step.detail = _join_details(*trace)
+            if scriptwriter.FALLBACK_NOTE in trace and inner.provider_name != "mock":
+                # Guion de respaldo: se marca como fallback aunque no haya excepción.
+                step.provider, step.model = "local", "fallback_script"
+                cause = metered.errors[-1] if metered.errors else RuntimeError("guion no válido")
+                step.error = fallback_error("guion de respaldo", cause)
+            return script
+
+        return run
+
+    llm_cheap = providers.llm_cheap
+    script = _run_core(
+        "agents.scriptwriter", llm_cheap.provider_name, llm_cheap.model, metrics,
+        _write_with(llm_cheap),
+        _llm_fallback(s, cheap=True, fn_factory=_write_with)
+        if s.briefer_fallback_to_mock and llm_cheap.provider_name != "mock" else None,
+    )
+
+    # 5. Audio a 2 voces + transcripción (núcleo). Fallback del TTS: TTS mock (marcado).
     notify("Grabando el podcast a dos voces…")
-    with _core_step("media.podcast", providers.tts.provider_name, providers.tts.model, metrics) as step:
-        audio = podcast.synthesize_podcast(
-            script, providers.tts, out_dir, voice_a=s.briefer_voice_a, voice_b=s.briefer_voice_b
-        )
-        step.est_cost_eur = costs.estimate_cost_eur(
-            providers.tts.provider_name,
-            providers.tts.model,
-            n_chars=sum(len(line.text) for line in script.lines),
-        )
+    n_chars = sum(len(line.text) for line in script.lines)
+
+    def _podcast_with(tts: TTSProvider) -> Callable[[StepHandle], AudioAsset]:
+        def run(step: StepHandle) -> AudioAsset:
+            asset = podcast.synthesize_podcast(
+                script, tts, out_dir, voice_a=s.briefer_voice_a, voice_b=s.briefer_voice_b,
+                max_workers=PODCAST_TTS_WORKERS,
+            )
+            step.est_cost_eur = costs.estimate_cost_eur(tts.provider_name, tts.model, n_chars=n_chars)
+            return asset
+
+        return run
+
+    tts_fallback = None
+    if s.briefer_fallback_to_mock and providers.tts.provider_name != "mock":
+        mock_tts = registry.get_tts(s, force_mock=True)
+        tts_fallback = _Fallback(mock_tts.provider_name, mock_tts.model, _podcast_with(mock_tts), "mock")
+    audio = _run_core(
+        "media.podcast", providers.tts.provider_name, providers.tts.model, metrics,
+        _podcast_with(providers.tts), tts_fallback,
+    )
     with _core_step("media.transcript", "local", "-", metrics):
         transcript = transcript_mod.build_transcript(
             script,
@@ -464,7 +724,9 @@ def run_briefing(
     # 6. Gráficos (núcleo) y portada (opcional)
     notify("Dibujando los gráficos del día…")
     with _core_step("media.charts", "matplotlib", "-", metrics):
-        chart_assets = charts_mod.make_charts(prices, out_dir / "charts", portfolio=portfolio)
+        chart_assets = charts_mod.make_charts(
+            prices, out_dir / "charts", portfolio=portfolio, line_tickers=all_tickers
+        )
     cover_path: Path | None = None
     if want_cover:
         notify("Generando la portada…")
@@ -565,6 +827,7 @@ def answer_question(
     speak: bool = True,
     history: list[dict] | None = None,
     use_mock: bool = False,
+    mode: RunMode | None = None,
     settings: Settings | None = None,
 ) -> QAAnswer:
     """Responde una pregunta en texto o por voz (``Path`` a un audio): STT -> Q&A -> TTS.
@@ -574,7 +837,9 @@ def answer_question(
         briefing: briefing de referencia (contexto del agente). Puede ser ``None``.
         speak: sintetizar también la respuesta en audio. Si el TTS falla, se devuelve la
             respuesta en texto con ``audio_path=None`` (paso opcional; el fallo queda en
-            ``QAAnswer.metrics`` con ``error``).
+            ``QAAnswer.metrics`` con ``error``). El texto pasa antes por
+            ``media.speech.normalize_for_speech`` (cifras, tickers y siglas como las diría un locutor).
+        use_mock / mode: como en ``run_briefing`` (``"demo_voices"``: LLM mock + edge-tts real).
 
     Returns:
         ``QAAnswer`` con ``metrics`` (``qa.stt`` si es voz, ``agents.qa``, ``qa.tts``) para medir
@@ -586,7 +851,7 @@ def answer_question(
         ValueError: la pregunta está vacía.
     """
     s = settings or get_settings()
-    providers = get_providers(s, use_mock=use_mock)
+    providers = _providers_for_mode(s, resolve_mode(mode, use_mock))
     metrics: list[StepMetric] = []
 
     if isinstance(question, Path):
@@ -597,24 +862,33 @@ def answer_question(
     if not question_text.strip():
         raise ValueError("La pregunta está vacía (o no se ha entendido el audio).")
 
-    llm = _MeteredLLM(providers.llm_cheap)
-    with _core_step("agents.qa", llm.provider_name, llm.model, metrics) as step:
-        try:
-            result = qa.answer(question_text, briefing, llm, history=history)
-        finally:
-            step.est_cost_eur = llm.cost_eur()
+    def _qa_with(inner: LLMProvider) -> Callable[[StepHandle], QAAnswer]:
+        def run(step: StepHandle) -> QAAnswer:
+            metered = _MeteredLLM(inner)
+            try:
+                return qa.answer(question_text, briefing, metered, history=history)
+            finally:
+                step.est_cost_eur = metered.cost_eur()
+
+        return run
+
+    llm_cheap = providers.llm_cheap
+    result = _run_core(
+        "agents.qa", llm_cheap.provider_name, llm_cheap.model, metrics, _qa_with(llm_cheap),
+        _llm_fallback(s, cheap=True, fn_factory=_qa_with)
+        if s.briefer_fallback_to_mock and llm_cheap.provider_name != "mock" else None,
+    )
 
     if speak:
         qa_dir = s.output_path / (briefing.id if briefing else "sin_briefing") / "qa"
 
         def _speak(step: StepHandle) -> Path:
             qa_dir.mkdir(parents=True, exist_ok=True)
+            spoken = normalize_for_speech(result.answer_text) or result.answer_text
             step.est_cost_eur = costs.estimate_cost_eur(
-                providers.tts.provider_name, providers.tts.model, n_chars=len(result.answer_text)
+                providers.tts.provider_name, providers.tts.model, n_chars=len(spoken)
             )
-            return providers.tts.synthesize(
-                result.answer_text, s.briefer_voice_b, qa_dir / f"respuesta_{new_briefing_id()}"
-            )
+            return providers.tts.synthesize(spoken, s.briefer_voice_b, qa_dir / f"respuesta_{new_briefing_id()}")
 
         audio_path = _optional_step(
             "qa.tts", providers.tts.provider_name, providers.tts.model, metrics, _speak
@@ -628,12 +902,17 @@ def answer_question(
 
 __all__ = [
     "DELIVERY_CHANNELS",
+    "PODCAST_TTS_WORKERS",
+    "RUN_MODES",
     "PipelineStepError",
     "ProgressFn",
     "Providers",
+    "RunMode",
     "StepNotImplementedError",
     "answer_question",
+    "demo_voice_tts",
     "get_providers",
     "process_upload",
+    "resolve_mode",
     "run_briefing",
 ]

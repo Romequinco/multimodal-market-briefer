@@ -26,6 +26,10 @@ log = get_logger("agents.scriptwriter")
 
 WORDS_PER_MINUTE = 150  # ritmo de locución aproximado en español
 LENGTH_TOLERANCE = 0.4  # desviación relativa de duración que dispara una reescritura
+MAX_SAME_SPEAKER_RUN = 2  # intervenciones seguidas del mismo locutor que se toleran
+#: Nota que ``write_script`` añade a ``trace`` cuando usa ``fallback_script`` (el pipeline la
+#: detecta para marcar el paso como fallback).
+FALLBACK_NOTE = "guion: respaldo determinista (el LLM no devolvió un guion válido)"
 
 CLOSING_LINE_ES = (
     "Y antes de despedirnos, un recordatorio importante: este episodio lo ha generado "
@@ -79,6 +83,39 @@ def _has_closing(lines: list[ScriptLine]) -> bool:
     return any(h in tail for h in _DISCLAIMER_HINTS) and any(h in f" {tail} " for h in _SYNTHETIC_HINTS)
 
 
+def same_speaker_runs(lines: list[ScriptLine], min_len: int = MAX_SAME_SPEAKER_RUN + 1) -> list[tuple[int, int]]:
+    """Tramos ``(inicio, longitud)`` con ``min_len`` o más intervenciones seguidas del mismo locutor."""
+    runs: list[tuple[int, int]] = []
+    start = 0
+    for i in range(1, len(lines) + 1):
+        if i == len(lines) or lines[i].speaker != lines[start].speaker:
+            if i - start >= min_len:
+                runs.append((start, i - start))
+            start = i
+    return runs
+
+
+def merge_long_runs(lines: list[ScriptLine], max_run: int = MAX_SAME_SPEAKER_RUN) -> list[ScriptLine]:
+    """Reparación determinista: une en una sola intervención cada tramo de más de ``max_run``
+    líneas seguidas del mismo locutor (el diálogo vuelve a alternar)."""
+    runs = same_speaker_runs(lines, max_run + 1)
+    if not runs:
+        return lines
+    out: list[ScriptLine] = []
+    i = 0
+    run_starts = {start: length for start, length in runs}
+    while i < len(lines):
+        length = run_starts.get(i)
+        if length:
+            text = " ".join(line.text.strip() for line in lines[i : i + length])
+            out.append(ScriptLine(speaker=lines[i].speaker, text=text))
+            i += length
+        else:
+            out.append(lines[i])
+            i += 1
+    return out
+
+
 def script_problems(
     script: PodcastScript, target_minutes: float, length_tolerance: float | None = LENGTH_TOLERANCE
 ) -> list[str]:
@@ -92,6 +129,12 @@ def script_problems(
     speakers = {line.speaker for line in lines if line.text.strip()}
     if lines and speakers != {"A", "B"}:
         problems.append('Solo habla un locutor; deben alternarse "A" y "B".')
+    elif runs := same_speaker_runs(lines):
+        where = ", ".join(f"líneas {s + 1}-{s + n}" for s, n in runs[:5])
+        problems.append(
+            f"Hay {len(runs)} tramo(s) con 3 o más intervenciones seguidas del mismo locutor ({where}); "
+            "alterna A y B."
+        )
     if length_tolerance is not None and lines:
         target_s = target_minutes * 60
         duration = estimate_duration_s(lines)
@@ -104,11 +147,24 @@ def script_problems(
     return problems
 
 
+# Homoglifos cirílicos que a veces cuela el LLM barato en palabras españolas («suба»): el TTS
+# los leería mal. Se sustituyen por su letra latina equivalente.
+_HOMOGLYPHS = str.maketrans({
+    "а": "a", "б": "b", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x", "і": "i",
+    "А": "A", "Е": "E", "О": "O", "Р": "P", "С": "C", "Т": "T", "Н": "H", "К": "K", "М": "M", "В": "B",
+})
+
+
+def fix_homoglyphs(text: str) -> str:
+    """Sustituye letras cirílicas con aspecto latino por las latinas (``"suба"`` -> ``"suba"``)."""
+    return text.translate(_HOMOGLYPHS)
+
+
 def _repair(lines: list[ScriptLine]) -> list[ScriptLine]:
-    """Reparación determinista: quita vacíos, frases de recomendación y fuerza 2 locutores."""
+    """Reparación determinista: homoglifos, vacíos, frases de recomendación y 2 locutores."""
     cleaned: list[ScriptLine] = []
     for line in lines:
-        text, changed = strip_advice(" ".join(line.text.split()))
+        text, changed = strip_advice(" ".join(fix_homoglyphs(line.text).split()))
         if changed:
             log.warning("Guionista: eliminada una frase con recomendación de inversión")
         if text:
@@ -138,7 +194,7 @@ def fallback_script(analysis: Analysis, speaker_names: tuple[str, str] = ("Álva
 
 def _finalize(script: PodcastScript, analysis: Analysis) -> PodcastScript:
     """Repara, añade el cierre obligatorio si falta y recalcula la duración."""
-    lines = _repair(script.lines)
+    lines = merge_long_runs(_repair(script.lines))
     if not lines:
         log.warning("Guionista: guion vacío tras reparar; se usa el guion de respaldo")
         lines = _repair(fallback_script(analysis).lines)
@@ -176,6 +232,7 @@ def write_script(
     *,
     max_retries: int = 1,
     length_tolerance: float | None = LENGTH_TOLERANCE,
+    trace: list[str] | None = None,
 ) -> PodcastScript:
     """Genera el guion del episodio (A/B alternando, apertura y cierre con disclaimer).
 
@@ -187,7 +244,10 @@ def write_script(
         max_retries: reescrituras como máximo si el guion tiene problemas (por defecto 1).
         length_tolerance: desviación relativa de duración tolerada; ``None`` desactiva esa
             comprobación (útil con ``MockLLM``, que devuelve un guion fijo corto).
+        trace: lista opcional donde se añaden notas de calidad (reintentos, respaldo); el
+            pipeline las guarda en ``StepMetric.detail``.
     """
+    notes = trace if trace is not None else []
     system = _render_system(target_minutes, speaker_names)
     messages: list[dict] = [{"role": "user", "content": build_user_message(analysis)}]
     best: PodcastScript | None = None
@@ -205,6 +265,7 @@ def write_script(
             break
         if attempt < max_retries:
             log.warning("Guionista: reintento %d por: %s", attempt + 1, " ".join(problems))
+            notes.append(f"guion: reintento {attempt + 1} ({' '.join(problems)[:200]})")
             messages = messages[:1] + [
                 {
                     "role": "assistant",
@@ -217,17 +278,24 @@ def write_script(
             ]
     if best is None:
         log.warning("Guionista: sin guion del LLM; se usa el guion de respaldo")
+        notes.append(FALLBACK_NOTE)
         best = fallback_script(analysis, speaker_names)
-    return _finalize(best, analysis)
+    final = _finalize(best, analysis)
+    notes.append(f"guion: {len(final.lines)} intervenciones, ~{final.est_duration_s / 60:.1f} min")
+    return final
 
 
 __all__ = [
     "CLOSING_LINE_ES",
+    "FALLBACK_NOTE",
     "LENGTH_TOLERANCE",
     "WORDS_PER_MINUTE",
     "build_user_message",
     "estimate_duration_s",
+    "MAX_SAME_SPEAKER_RUN",
     "fallback_script",
+    "merge_long_runs",
+    "same_speaker_runs",
     "script_problems",
     "write_script",
 ]

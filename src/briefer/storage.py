@@ -145,4 +145,122 @@ def list_briefings(base_dir: Path | None = None, limit: int = 50) -> list[Path]:
     return sorted(paths, key=lambda p: p.parent.name, reverse=True)[: max(0, limit)]
 
 
-__all__ = ["BRIEFING_FILE", "briefing_dir", "list_briefings", "load_briefing", "save_briefing"]
+# ── Briefing destacado (portada de la app) ─────────────────────────────────────────
+
+DEMO_BRIEFING_DIRNAME = "demo_briefing"
+
+
+def demo_briefing_dir(samples_dir: Path | None = None) -> Path:
+    """Carpeta del briefing pregenerado versionado: ``data/samples/demo_briefing/`` (no la crea)."""
+    if samples_dir is None:
+        from briefer.config import get_settings
+
+        samples_dir = get_settings().samples_path
+    return Path(samples_dir) / DEMO_BRIEFING_DIRNAME
+
+
+def load_demo_briefing(samples_dir: Path | None = None) -> Briefing | None:
+    """Carga el briefing pregenerado, o ``None`` si aún no existe (la UI muestra un aviso).
+
+    Raises:
+        ValueError / pydantic.ValidationError: si existe pero el JSON está corrupto o no cumple
+            el contrato (mejor fallar alto que enseñar un briefing roto).
+    """
+    folder = demo_briefing_dir(samples_dir)
+    if not (folder / BRIEFING_FILE).is_file():
+        return None
+    return load_briefing(folder)
+
+
+def latest_briefing(base_dir: Path | None = None, max_tries: int = 5) -> Briefing | None:
+    """El briefing guardado más reciente que se pueda cargar (salta JSON corruptos), o ``None``."""
+    for path in list_briefings(base_dir, limit=max_tries):
+        try:
+            return load_briefing(path)
+        except Exception:  # un JSON a medias no debe tapar a los anteriores
+            continue
+    return None
+
+
+def load_featured_briefing(
+    base_dir: Path | None = None, samples_dir: Path | None = None
+) -> tuple[Briefing, str] | None:
+    """Briefing para la portada: el último guardado y, si no hay, el pregenerado.
+
+    Returns:
+        ``(briefing, origen)`` con origen ``"guardado"`` o ``"pregenerado"``; ``None`` si no hay
+        ninguno (la portada lo explica y ofrece generar uno).
+    """
+    latest = latest_briefing(base_dir)
+    if latest is not None:
+        return latest, "guardado"
+    try:
+        demo = load_demo_briefing(samples_dir)
+    except Exception:
+        demo = None
+    return (demo, "pregenerado") if demo is not None else None
+
+
+def _copy_into(src: Path | None, folder: Path, rel: str) -> Path | None:
+    """Copia ``src`` a ``folder/rel`` si existe y devuelve la ruta nueva (``None`` si no existe)."""
+    if src is None or not Path(src).is_file():
+        return None
+    import shutil
+
+    dest = folder / rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if Path(src).resolve() != dest.resolve():
+        shutil.copy2(src, dest)
+    return dest
+
+
+def export_briefing(briefing: Briefing, dest_dir: Path) -> Path:
+    """Copia un briefing y sus ficheros a ``dest_dir`` (autocontenido) y escribe su JSON.
+
+    Pensado para crear ``data/samples/demo_briefing/`` a partir de un briefing real:
+    ``export_briefing(b, demo_briefing_dir())``. Copia audio, SRT, gráficos (``charts/``),
+    portada y vídeo con nombres estables; las rutas del JSON quedan relativas. Los ficheros que no
+    existan se quitan del briefing exportado (sin enlaces rotos). Devuelve la ruta del JSON.
+    """
+    folder = Path(dest_dir)
+    folder.mkdir(parents=True, exist_ok=True)
+    update: dict[str, Any] = {}
+    if briefing.audio is not None:
+        new = _copy_into(briefing.audio.path, folder, "podcast" + Path(briefing.audio.path).suffix)
+        update["audio"] = briefing.audio.model_copy(update={"path": new}) if new else None
+    if briefing.transcript is not None:
+        srt = _copy_into(briefing.transcript.srt_path, folder, "podcast.srt")
+        update["transcript"] = briefing.transcript.model_copy(update={"srt_path": srt})
+    charts = []
+    for chart in briefing.charts:
+        new = _copy_into(chart.path, folder, f"charts/{Path(chart.path).name}")
+        if new:
+            charts.append(chart.model_copy(update={"path": new}))
+    update["charts"] = charts
+    update["cover_path"] = _copy_into(briefing.cover_path, folder,
+                                      "cover" + Path(briefing.cover_path).suffix) if briefing.cover_path else None
+    if briefing.video is not None:
+        new = _copy_into(briefing.video.path, folder, "video" + Path(briefing.video.path).suffix)
+        update["video"] = briefing.video.model_copy(update={"path": new}) if new else None
+    exported = briefing.model_copy(update=update)
+    data = _map_paths(exported.model_dump(mode="json"), _to_relative(folder))
+    target = folder / BRIEFING_FILE
+    tmp = target.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, target)
+    return target
+
+
+__all__ = [
+    "BRIEFING_FILE",
+    "DEMO_BRIEFING_DIRNAME",
+    "briefing_dir",
+    "demo_briefing_dir",
+    "export_briefing",
+    "latest_briefing",
+    "list_briefings",
+    "load_briefing",
+    "load_demo_briefing",
+    "load_featured_briefing",
+    "save_briefing",
+]

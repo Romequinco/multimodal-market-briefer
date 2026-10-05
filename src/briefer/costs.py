@@ -1,11 +1,20 @@
 """Estimación de costes de inferencia por proveedor/modelo (para StepMetric y viabilidad).
 
-Carril B (transversal para docs de viabilidad). Las tarifas son **aproximadas** y están en
-USD como las publican los proveedores; se convierten a EUR con ``USD_TO_EUR``.
+Carril B (transversal para docs de viabilidad). Las tarifas están en USD como las publican los
+proveedores y se convierten a EUR con ``USD_TO_EUR``.
 
-TODO: verificar todas las tarifas en las páginas oficiales de precios antes de la entrega
-(Anthropic, OpenAI, Google, ElevenLabs) y anotar la fecha de consulta en
-``docs/04_viabilidad_costes_latencia_compliance.md``.
+Estado de verificación (05-oct-2026):
+- **Claude** (Sonnet 5.5: 2 $ / 10 $; Haiku 4.5: 1 $ / 5 $ por millón de tokens de entrada /
+  salida): tabla de precios de la documentación oficial de la API de Anthropic (consultada el
+  05-oct-2026, datos del 25-sep-2026). Los ids ``claude-sonnet-5-5`` y
+  ``claude-haiku-4-5-20251001`` responden en la API (``scripts/smoke_real.py``).
+- **Gemini, OpenAI, Whisper, ElevenLabs y tipo de cambio**: *estimación a verificar* en las
+  páginas oficiales antes de la entrega (anotar la fecha en ``docs/04``).
+
+El coste de una llamada LLM/visión se calcula con ``provider.last_usage``
+(``{"input_tokens", "output_tokens"}``): ``estimate_cost_eur(provider, model, **last_usage)``.
+Los tokens de razonamiento (Sonnet 5.5 adaptativo, Gemini *thinking*) se facturan como salida y
+ya vienen incluidos en ``output_tokens``.
 """
 
 from __future__ import annotations
@@ -14,37 +23,46 @@ from collections.abc import Iterable
 
 from briefer.schemas import StepMetric
 
-# TODO: verificar tipo de cambio (aprox.).
+# Estimación a verificar (≈ 0,86 €/$ en oct-2026).
 USD_TO_EUR = 0.86
 
-# USD por millón de tokens: (entrada, salida). TODO: verificar cada valor.
+# USD por millón de tokens: (entrada, salida).
 LLM_PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
-    "claude-sonnet-5-5": (3.00, 15.00),  # TODO: verificar (aprox. gama Sonnet)
-    "claude-haiku-4-5-20251001": (1.00, 5.00),  # TODO: verificar
-    "gemini-2.5-flash": (0.30, 2.50),  # TODO: verificar
-    "gpt-4o-mini": (0.15, 0.60),  # TODO: verificar
+    # Anthropic — documentación oficial de precios (verificado 05-oct-2026)
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-haiku-4-5": (1.00, 5.00),  # también cubre claude-haiku-4-5-20251001 (prefijo)
+    "claude-opus-5-5": (4.00, 20.00),
+    # Google — estimación a verificar
+    "gemini-2.5-flash": (0.30, 2.50),
+    "gemini-3.8-flash": (0.50, 3.00),  # estimación a verificar: sin tarifa pública confirmada
+    # OpenAI — estimación a verificar (LLM no implementado en el MVP)
+    "gpt-4o-mini": (0.15, 0.60),
 }
 
-# USD por minuto de audio. TODO: verificar.
+# USD por minuto de audio. Estimación a verificar.
 STT_PRICES_USD_PER_MIN: dict[str, float] = {
     "whisper-1": 0.006,
     "gpt-4o-mini-transcribe": 0.003,
 }
 
-# USD por 1.000 caracteres. edge-tts es gratuito (servicio no oficial, sin SLA). TODO: verificar.
+# USD por 1.000 caracteres. edge-tts es gratuito (servicio no oficial, sin SLA); resto:
+# estimación a verificar.
 TTS_PRICES_USD_PER_1K_CHARS: dict[str, float] = {
     "edge": 0.0,
     "elevenlabs": 0.18,  # depende del plan; aprox.
     "openai-tts-1": 0.015,
 }
 
-# USD por imagen generada. TODO: verificar si se usa una API de imagen.
+# USD por imagen generada (solo modelos locales en el MVP).
 IMAGE_GEN_PRICES_USD_PER_IMAGE: dict[str, float] = {
     "sdxl_turbo": 0.0,  # local
 }
 
-# Proveedores que corren en local: coste marginal 0 (se ignora electricidad/GPU).
-LOCAL_PROVIDERS = {"mock", "qwen_local", "whisper_local", "sdxl_turbo", "clip", "edge", "none"}
+# Proveedores sin coste marginal: locales (se ignora electricidad/GPU), datos de ejemplo y mocks.
+LOCAL_PROVIDERS = {
+    "mock", "qwen_local", "whisper_local", "sdxl_turbo", "clip", "edge", "none",
+    "local", "samples", "synthetic", "matplotlib", "moviepy", "-",
+}
 
 
 def estimate_tokens(text: str) -> int:
@@ -57,9 +75,21 @@ def estimate_image_tokens(width: int, height: int) -> int:
     return max(1, (width * height) // 750)
 
 
+def llm_price_usd_per_mtok(model: str) -> tuple[float, float] | None:
+    """Tarifa ``(entrada, salida)`` en USD por millón de tokens; ``None`` si no se conoce.
+
+    Admite ids con sufijo de fecha (``claude-haiku-4-5-20251001`` -> ``claude-haiku-4-5``)
+    buscando el prefijo conocido más largo.
+    """
+    if model in LLM_PRICES_USD_PER_MTOK:
+        return LLM_PRICES_USD_PER_MTOK[model]
+    matches = [k for k in LLM_PRICES_USD_PER_MTOK if model.startswith(k)]
+    return LLM_PRICES_USD_PER_MTOK[max(matches, key=len)] if matches else None
+
+
 def estimate_llm_cost_eur(model: str, input_tokens: int = 0, output_tokens: int = 0) -> float:
     """Coste en EUR de una llamada LLM/visión. Modelo desconocido -> 0.0."""
-    price_in, price_out = LLM_PRICES_USD_PER_MTOK.get(model, (0.0, 0.0))
+    price_in, price_out = llm_price_usd_per_mtok(model) or (0.0, 0.0)
     usd = (input_tokens * price_in + output_tokens * price_out) / 1_000_000
     return round(usd * USD_TO_EUR, 6)
 
@@ -84,8 +114,9 @@ def estimate_image_cost_eur(provider: str, n_images: int = 1) -> float:
 def estimate_cost_eur(provider: str, model: str, **usage: float) -> float:
     """Despachador genérico usado por el pipeline.
 
-    ``usage`` admite: ``input_tokens``, ``output_tokens`` (LLM/visión), ``duration_s`` (STT),
-    ``n_chars`` (TTS), ``n_images`` (imagen). Proveedores locales devuelven 0.0.
+    ``usage`` admite: ``input_tokens``, ``output_tokens`` (LLM/visión, p. ej.
+    ``**llm.last_usage``), ``duration_s`` (STT), ``n_chars`` (TTS), ``n_images`` (imagen).
+    Proveedores locales, mocks y datos de ejemplo devuelven 0.0.
     """
     if provider in LOCAL_PROVIDERS:
         return 0.0

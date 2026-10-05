@@ -1,5 +1,7 @@
 # Market Briefer
 
+[![tests](https://github.com/Romequinco/multimodal-market-briefer/actions/workflows/tests.yml/badge.svg)](https://github.com/Romequinco/multimodal-market-briefer/actions/workflows/tests.yml)
+
 **Tu podcast diario de mercados, hecho a medida de tu cartera.**
 
 Market Briefer es el MVP de una startup FinTech de IA multimodal (práctica MIAX, taller B5-T4). Cada día
@@ -8,15 +10,16 @@ recoge las noticias de mercado relevantes para los tickers que sigue el usuario,
 corto**. El usuario puede además subir una captura de gráfico o un PDF de resultados para que entren en el
 análisis, y **preguntar por voz** sobre el briefing a un agente que le responde también por voz.
 
-> **Estado (05-oct-2026, noche · Fase 0 cerrada):** el producto funciona de punta a punta **en modo mock, sin
-> red ni claves** (UI y `python scripts/demo.py --mock`): noticias de ejemplo → Agente Analista → Agente
-> Guionista → podcast a dos voces → transcripción SRT → gráficos → `briefing.json`, más el Q&A, con
-> guardarraíles de compliance, tolerancia a fallos por paso y métricas de latencia/coste por paso. Pendiente
-> (todo lo que necesita red o claves): noticias y precios reales, Claude texto y visión, edge-tts, Whisper,
-> vídeo, portada y envíos. Plan hasta la entrega en [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md)
-> (revisado según [docs/07_revision_critica.md](docs/07_revision_critica.md)): **mar 6** núcleo real y demo
-> que no falla · **mié 7** multimodalidad, orquestación visible y vídeo (*feature freeze* 22:00) · **jue 8**
-> capturas, demo grabada y pitch (*code freeze* 11:00, entrega 16:30). Estado vivo en
+> **Estado (05-oct-2026 · Fase 1, camino real, cerrada):** el producto funciona **de punta a punta con datos y
+> modelos reales**: noticias de Google News, Yahoo Finance, Expansión y Europa Press + precios de yfinance (con
+> caché diaria) → lectura de PDF y gráfico con Claude visión → Agente Analista (Claude Sonnet 5.5, con puerta de
+> *grounding* de cifras) → Agente Guionista (Claude Haiku 4.5) → podcast a dos voces con edge-tts → transcripción
+> SRT → gráficos → `briefing.json`, más el Agente Q&A (texto → respuesta hablada). **Medido:** ≈ 0,065 € y
+> ≈ 62 s por briefing con PDF + gráfico; Q&A ≈ 0,005 € y 6-7 s (11-13 s en frío). La app abre con un **briefing
+> real pregenerado** y funciona también **sin claves**. Pendiente: pregunta por voz (Whisper), Q&A < 10 s en
+> frío, vídeo, portada, envíos por email/Telegram y captura de cartera. Plan en
+> [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md) (**mar 6-mié 7** latencia, voz, vídeo y caminos de revisión;
+> *feature freeze* mié 22:00 · **jue 8** capturas, demo grabada y pitch, entrega 16:30). Estado vivo en
 > [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
 > **Aviso legal.** Market Briefer genera **información financiera genérica con fines educativos**. No es
@@ -134,22 +137,27 @@ Arquitectura completa, diagramas de secuencia y mapeo caja → módulo en
 
 ## Modalidades y modelos
 
-| # | Modalidad | Dirección | Uso en la app | Modelo / herramienta por defecto | Alternativas (por config) |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Texto → texto | Entrada → razonamiento | Noticias filtradas → análisis (Agente Analista) | Claude Sonnet (`BRIEFER_LLM_MODEL`) | Gemini, OpenAI, `mock` |
-| 2 | Texto → texto | Razonamiento → guion | Análisis → diálogo a dos voces (Agente Guionista) | Claude Sonnet (`BRIEFER_LLM_MODEL`) | Gemini, OpenAI, `mock` |
-| 3 | Imagen → texto | Entrada | Captura de gráfico de cotización → descripción y cifras | Claude visión | Qwen2.5-VL-3B local, `mock` |
-| 4 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku (`BRIEFER_LLM_MODEL_CHEAP`) | Qwen2.5-VL local |
-| 5 | Imagen → etiqueta | Enrutado | ¿La imagen subida es velas, tabla u otra cosa? (zero-shot) | CLIP *(opcional, desactivado por defecto)* | `none`, `mock` |
-| 6 | Audio → texto | Entrada | Pregunta por voz del usuario | Whisper API | `faster-whisper` local, `mock` |
-| 7 | Texto → audio | Salida | Podcast a dos voces y respuesta hablada del Q&A | `edge-tts` (gratis, voces es-ES) | ElevenLabs, `mock` |
-| 8 | Datos → imagen | Salida | Gráficos del día por ticker | matplotlib | — |
-| 9 | Texto → imagen | Salida | Portada del episodio *(opcional, desactivada por defecto)* | SDXL-Turbo | `none`, `mock` |
-| 10 | Imagen + audio → vídeo | Salida | Vídeo corto con gráficos, audio y subtítulos *(opcional)* | `moviepy` + ffmpeg | Stable Video Diffusion *(extra, no previsto)* |
-| 11 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos del TTS | Whisper sobre el audio final |
+La columna **«Activo en la demo»** dice con honestidad qué se ve funcionar hoy (05-oct, Fase 1) y en qué modo:
+**real** = con claves y red · **sin claves** = demo con voces reales · **offline** = todo mock.
 
-El Agente Q&A usa el modelo barato (`BRIEFER_LLM_MODEL_CHEAP`, Claude Haiku). Proveedores por defecto según
-`.env.example`; en el código, sin `.env`, todo es `mock`.
+| # | Modalidad | Dirección | Uso en la app | Modelo / herramienta por defecto | Alternativas (por config) | Activo en la demo |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | Texto → texto | Entrada → razonamiento | Noticias filtradas → análisis (Agente Analista) con puerta de *grounding* de cifras | Claude Sonnet 5.5 (`BRIEFER_LLM_MODEL`) | Gemini, `mock` | **Sí** (real); simulado en sin claves/offline |
+| 2 | Texto → texto | Razonamiento → guion | Análisis → diálogo a dos voces (Agente Guionista) | Claude Haiku 4.5 (`BRIEFER_LLM_MODEL_CHEAP`) | Gemini, `mock` | **Sí** (real); simulado en sin claves/offline |
+| 3 | Texto → texto | Conversación | Preguntas sobre el briefing (Agente Q&A) | Claude Haiku 4.5 | Gemini, `mock` | **Sí** (real, por texto); simulado en sin claves/offline |
+| 4 | Imagen → texto | Entrada | Captura de gráfico de cotización → descripción y cifras | Claude Sonnet 5.5 visión + Haiku (estructura) | Qwen2.5-VL-3B local *(stub)*, `mock` | **Sí** (real) |
+| 5 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku | Qwen2.5-VL local *(stub)* | **Sí** (real) |
+| 6 | Imagen → etiqueta | Enrutado | ¿La imagen subida es velas, tabla u otra cosa? (zero-shot) | CLIP *(opcional, desactivado)* | `none`, `mock` | **No** (pendiente, D2) |
+| 7 | Audio → texto | Entrada | Pregunta por voz del usuario y notas de voz subidas | Whisper API | `faster-whisper` local, `mock` | **No** en real (Whisper pendiente, D2); solo simulado |
+| 8 | Texto → audio | Salida | Podcast a dos voces y respuesta hablada del Q&A | `edge-tts` (gratis, voces es-ES) + normalización para locución | ElevenLabs *(stub)*, `mock` | **Sí** (real y sin claves); silencio en offline |
+| 9 | Datos → imagen | Salida | Gráficos del día (variación con índices, cotización por ticker, cartera) | matplotlib | — | **Sí** (todos los modos) |
+| 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS | Whisper sobre el audio final | **Sí** (todos los modos) |
+| 11 | Texto → imagen | Salida | Portada del episodio *(opcional)* | API texto→imagen (Gemini image) prevista | `none`, `mock` | **No** (pendiente, D2) |
+| 12 | Imagen + audio → vídeo | Salida | Vídeo corto con gráficos, audio y subtítulos *(opcional)* | ffmpeg | — | **No** (pendiente, D2) |
+
+Proveedores por defecto según `.env.example`; en el código, sin `.env`, todo es `mock`. Si un proveedor real
+falla durante un briefing, el paso se completa con un sustituto (mock o datos de ejemplo) **marcado** en la UI y
+en la traza.
 
 La gracia no está en cada modelo por separado sino en **encadenarlos**: imagen/PDF/voz → texto estructurado →
 análisis → guion → audio → vídeo, con contratos tipados entre cada paso.
@@ -181,7 +189,7 @@ flowchart TB
 | Capa | Ubicación | Responsabilidad | No hace |
 | --- | --- | --- | --- |
 | UI | `app/` | Formularios, reproductores, histórico, subida de ficheros | Llamar a modelos o APIs directamente |
-| Orquestación | `src/briefer/pipeline.py` | Resolver proveedores, encadenar pasos, medir latencia y coste (tolerar fallos parciales: previsto) | Lógica de prompts o de formato |
+| Orquestación | `src/briefer/pipeline.py` | Resolver proveedores según el modo, encadenar pasos (ingesta y subidas en paralelo), medir latencia y coste, tolerar fallos (opcional → se omite; núcleo → sustituto marcado) | Lógica de prompts o de formato |
 | Negocio | `ingest/`, `agents/`, `media/`, `delivery/` | Transformar datos entre contratos (`schemas.py`); reciben el proveedor por parámetro | Conocer qué proveedor concreto hay detrás |
 | Proveedores | `providers/` | Hablar con cada API/modelo detrás de una interfaz común | Lógica de negocio |
 
@@ -196,22 +204,23 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 ├── app/                         # UI Streamlit (solo presentación; llama a briefer.pipeline / storage)
 │   ├── main.py                  # portada y navegación
 │   ├── pages/                   # 1_Briefing.py · 2_Preguntar.py · 3_Mi_cartera.py · 4_Historico.py
-│   └── components/              # __init__.py (añade src/ al path) · players.py (disclaimer, barra lateral, reproductores)
+│   └── components/              # __init__.py (añade src/ al path) · players.py (modos, insignias, reproductores) · trace.py («Cómo se hizo»)
 ├── src/briefer/
 │   ├── config.py                # Settings desde .env (pydantic-settings)
-│   ├── schemas.py               # contratos de datos (Pydantic v2) + DISCLAIMER_ES
-│   ├── pipeline.py              # run_briefing() y answer_question()
-│   ├── costs.py                 # coste estimado por paso (tarifas aproximadas)
-│   ├── logging_utils.py         # logger y track_step() → StepMetric
-│   ├── storage.py               # guardar/cargar briefings en data/outputs/
+│   ├── schemas.py               # contratos de datos (Pydantic v2, v0.3) + DISCLAIMER_ES
+│   ├── pipeline.py              # run_briefing() y answer_question() (modos real / mock / demo_voices)
+│   ├── costs.py                 # coste estimado por paso (tarifas Anthropic verificadas 05-oct)
+│   ├── logging_utils.py         # logger, track_step() → StepMetric, step_fell_back()
+│   ├── storage.py               # guardar/cargar/exportar briefings; briefing destacado de la portada
 │   ├── providers/               # base.py · registry.py · mock.py · llm/ · vision/ · stt/ · tts/ · image/
-│   ├── ingest/                  # news, tickers, prices, pdf_reader, chart_reader, portfolio, voice
-│   ├── agents/                  # analyst, scriptwriter, qa + prompts/{analyst,scriptwriter,qa}.md
-│   ├── media/                   # charts, podcast, transcript, video, cover
+│   ├── ingest/                  # news, cache, tickers, prices, pdf_reader, chart_reader, portfolio, voice
+│   ├── agents/                  # analyst, scriptwriter, qa, guardrails + prompts/{analyst,scriptwriter,qa}.md
+│   ├── media/                   # charts, podcast, speech (normalización para TTS), transcript, video, cover
 │   └── delivery/                # email_sender, telegram_sender
-├── tests/                       # conftest.py · test_schemas.py · test_pipeline_mock.py
-├── scripts/                     # run.ps1 · run.sh · demo.py
-├── data/samples/                # portfolio_ejemplo.csv · noticias_ejemplo.json · README.md (versionado)
+├── tests/                       # 419 tests sin red (mock y fixtures) + 7 «live» (-m live)
+├── scripts/                     # run.ps1 · run.sh · demo.py · smoke_real.py
+├── .github/workflows/tests.yml  # CI: pytest en modo mock en cada push a main y PR
+├── data/samples/                # ejemplos versionados (CSV, JSON, PDF, PNG) + demo_briefing/ (briefing real pregenerado)
 ├── data/cache/ data/outputs/    # generados en ejecución (ignorados por git)
 ├── notebooks/                   # pruebas exploratorias de modelos (README con ideas)
 ├── pitch/                       # pitch deck técnico (README con el contenido previsto)
@@ -261,27 +270,50 @@ Requiere **Docker Compose ≥ 2.24** (usa `env_file` con `required: false`: si n
 mock). La imagen incluye ffmpeg pero no los modelos locales; `data/outputs/` y `data/cache/` se montan como
 volúmenes.
 
-### Modo mock (sin claves ni red)
+### Lo primero que se ve: el briefing pregenerado
 
-Todo el pipeline está pensado para funcionar con proveedores falsos que devuelven datos deterministas. Hay
-tres formas de activarlo:
+Al abrir la app, la portada muestra el **último briefing guardado** o, si no hay ninguno, un **briefing real
+pregenerado** que viene en el repo (`data/samples/demo_briefing/`: generado el 05-oct-2026 con Claude y
+edge-tts para SAN.MC, ITX.MC, IBE.MC, AAPL y NVDA más un PDF y un gráfico de ejemplo; podcast de ~4 min, SRT,
+gráficos y traza «Cómo se hizo»). Se ve y se escucha **sin claves ni red**.
 
-- **UI:** interruptor «Modo demo (mocks, sin red ni claves)» en la barra lateral, **activado por defecto**.
-- **CLI:** `python scripts/demo.py --mock`.
-- **`.env`:** `BRIEFER_*_PROVIDER=mock` (es también el valor por defecto del código si no hay `.env`).
+### Modos de ejecución
+
+| Modo | Qué hace | Necesita | UI | CLI |
+| --- | --- | --- | --- | --- |
+| **Real** | Noticias y precios reales (caché diaria en `data/cache/`), Claude para análisis, guion, visión y Q&A, edge-tts | `ANTHROPIC_API_KEY` en `.env` + red | Interruptor «Modo real (APIs de .env)» en la barra lateral (bloqueado si faltan claves, con el motivo) | `python scripts/demo.py` |
+| **Demo sin claves (voces reales)** | Noticias de ejemplo, precios sintéticos y modelos simulados, pero el podcast y la respuesta del Q&A **suenan** con edge-tts | Red (edge-tts es gratis y sin clave) | «Tipo de demo» → demo sin claves | `python scripts/demo.py --demo-voices` |
+| **Mock offline** | Todo simulado y determinista; el audio es un WAV mudo | Nada | «Tipo de demo» → demo offline | `python scripts/demo.py --mock` |
+
+En modo real, si un proveedor falla en un paso núcleo, el briefing termina igualmente con un sustituto (datos de
+ejemplo o mock) **y la UI lo avisa** (insignias, avisos y nodo naranja en «Cómo se hizo»). El botón «Refrescar
+datos» (o `--refresh`) ignora la caché del día.
 
 ```bash
-python scripts/demo.py --mock                                   # briefing completo con mocks
-python scripts/demo.py --mock --question "¿Por qué sube el Santander?"
-python scripts/demo.py --tickers SAN.MC AAPL --portfolio data/samples/portfolio_ejemplo.csv
-python -m pytest -q                                             # tests sin red
+python scripts/demo.py --demo-voices                              # sin claves, con voces reales (~6 s, 0 €)
+python scripts/demo.py --mock                                     # todo mock, sin red
+python scripts/demo.py --tickers SAN.MC AAPL --upload data/samples/resultados_ejemplo.pdf data/samples/grafico_ejemplo.png
+python scripts/demo.py --refresh                                  # real, ignorando la caché diaria
+python scripts/demo.py --question "¿Por qué ha subido hoy el Santander?"
+python scripts/smoke_real.py                                      # prueba de humo de cada proveedor con clave (< 0,01 €)
+python -m pytest -q                                               # 419 tests sin red (los «live» con -m live)
 ```
 
-Flags de `scripts/demo.py`: `--tickers T [T ...]` (por defecto `BRIEFER_DEFAULT_TICKERS`),
-`--portfolio CSV`, `--upload [FICHERO ...]` (PDF, imagen o audio), `--video`, `--cover`,
-`--deliver [email|telegram ...]`, `--mock` y `--question TEXTO` (en vez del briefing, pregunta al Agente Q&A).
-`demo.py --mock` funciona de punta a punta; sin `--mock`, los pasos que aún son *stubs* (ingesta y
-proveedores reales) terminan con «Pendiente de implementar: …» (código de salida 2) mientras no estén hechos.
+Flags de `scripts/demo.py`: `--tickers T [T ...]` (por defecto `BRIEFER_DEFAULT_TICKERS`; admite nombres como
+«santander»), `--portfolio CSV`, `--upload [FICHERO ...]` (PDF, imagen o audio), `--video`, `--cover`,
+`--deliver [email|telegram ...]`, `--mock` o `--demo-voices` (excluyentes; sin ninguno, modo real),
+`--refresh` (ignora la caché de noticias y precios) y `--question TEXTO` (en vez del briefing, pregunta al
+Agente Q&A). Imprime la tabla de pasos con proveedor, latencia, coste estimado y caídas a sustituto. Si un paso
+núcleo aún es un *stub*, termina con «Pendiente de implementar: …» (código de salida 2).
+
+`scripts/smoke_real.py` hace una llamada mínima real por proveedor configurado (`anthropic.text`,
+`anthropic.structured`, `anthropic.vision`, `gemini.structured`, TTS y STT) e imprime `OK` / `FAIL` / `SKIP` /
+`PEND` con latencia y coste; nunca imprime claves. Opciones: `--only anthropic gemini audio`, `--gemini-model`.
+Hoy el STT sale `PEND` (Whisper API pendiente).
+
+Medido el 05-oct-2026 (detalle en [docs/04](docs/04_viabilidad_costes_latencia_compliance.md)): briefing real
+con PDF + gráfico **≈ 0,065 € y ≈ 61-64 s**; pregunta al Q&A con respuesta hablada **≈ 0,005 € y 6-7 s** (11-13 s
+la primera de cada proceso).
 
 ---
 
@@ -311,8 +343,8 @@ queda al copiar la plantilla.
 
 | Variable | Por defecto (código y `.env.example`) | Para qué |
 | --- | --- | --- |
-| `BRIEFER_LLM_MODEL` | `claude-sonnet-5-5` | Analista y guionista (Anthropic) |
-| `BRIEFER_LLM_MODEL_CHEAP` | `claude-haiku-4-5-20251001` | Q&A y resúmenes de documentos (`get_llm(cheap=True)`) |
+| `BRIEFER_LLM_MODEL` | `claude-sonnet-5-5` | Agente Analista (Anthropic) |
+| `BRIEFER_LLM_MODEL_CHEAP` | `claude-haiku-4-5-20251001` | Guionista, Q&A y estructurado de PDF/gráfico (`get_llm(cheap=True)`) |
 | `BRIEFER_GEMINI_MODEL` | `gemini-2.5-flash` | LLM si `BRIEFER_LLM_PROVIDER=gemini` |
 | `BRIEFER_OPENAI_MODEL` | `gpt-4o-mini` | LLM si `BRIEFER_LLM_PROVIDER=openai` |
 | `BRIEFER_VISION_MODEL` | `claude-sonnet-5-5` | Visión con Claude |
@@ -334,8 +366,10 @@ Los modelos locales requieren `requirements-local.txt`.
 | `BRIEFER_SPEAKER_A_NAME` · `BRIEFER_SPEAKER_B_NAME` | `Álvaro` · `Elvira` | Nombres de los presentadores en guion y transcripción |
 | `ELEVENLABS_VOICE_A` · `ELEVENLABS_VOICE_B` | vacío | Ids de voz si `BRIEFER_TTS_PROVIDER=elevenlabs` |
 | `ELEVENLABS_MODEL` | `eleven_multilingual_v2` | Modelo de ElevenLabs |
-| `BRIEFER_DEFAULT_TICKERS` | `SAN.MC,ITX.MC,IBE.MC,AAPL,MSFT,NVDA` | Tickers por defecto (formato Yahoo, separados por comas) |
-| `BRIEFER_NEWS_RSS_FEEDS` | vacío | Feeds RSS adicionales, separados por comas |
+| `BRIEFER_TTS_RATE` · `BRIEFER_TTS_PITCH` | vacío (`+0%` · `+0Hz`) | Velocidad y tono de edge-tts (p. ej. `+8%`, `-2Hz`) |
+| `BRIEFER_DEFAULT_TICKERS` | `SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA` | Tickers por defecto (formato Yahoo, separados por comas) |
+| `BRIEFER_CONTEXT_TICKERS` | `^IBEX,^GSPC` | Índices de referencia: precios y noticias de mercado en todo briefing, sin contar como tickers del usuario |
+| `BRIEFER_NEWS_RSS_FEEDS` | vacío | Feeds RSS generalistas; vacío = Expansión «Mercados» + Europa Press (además, por ticker: Google News es-ES, RSS de Yahoo y yfinance) |
 | `BRIEFER_NEWS_MAX_ITEMS` | `20` | Máximo de noticias por briefing |
 | `BRIEFER_PODCAST_TARGET_MINUTES` | `4` | Duración objetivo del podcast |
 
@@ -361,8 +395,9 @@ Los modelos locales requieren `requirements-local.txt`.
 | `BRIEFER_LOG_LEVEL` | `INFO` | `DEBUG` · `INFO` · `WARNING` · `ERROR` |
 
 Sin `ANTHROPIC_API_KEY` (u otra clave necesaria) la app sigue arrancando: con `BRIEFER_FALLBACK_TO_MOCK=true`
-el `registry` cae a `mock` y lo deja en el log; la barra lateral de la UI muestra la configuración activa
-(«Proveedores configurados»).
+el `registry` cae a `mock` y lo deja en el log; la barra lateral de la UI muestra una insignia por familia
+(«real» o «MOCK (falta X)») y bloquea el modo real con el motivo. `BRIEFER_LLM_PROVIDER=openai` está
+reservado (*stub* documentado; el paso cae a mock marcado).
 
 ---
 
@@ -384,7 +419,9 @@ el `registry` cae a `mock` y lo deja en el log; la barra lateral de la UI muestr
 
 ## Demo
 
-> TODO: enlace a la demo grabada (vídeo de 3-5 min) y, si se despliega, URL pública.
+> TODO: enlace a la demo grabada (vídeo de 3-5 min) y, si se despliega, URL pública. Mientras tanto, la
+> portada de la app enseña el briefing real pregenerado de `data/samples/demo_briefing/` sin necesidad de
+> claves.
 
 Guion previsto de la demo:
 

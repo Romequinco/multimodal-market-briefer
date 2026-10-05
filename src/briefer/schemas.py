@@ -14,6 +14,8 @@ Todos los modelos son serializables a JSON (``model_dump_json``) para guardarlos
 
 Versión de contratos: ``CONTRACTS_VERSION`` (detalle y changelog en ``docs/03_contratos_modulos.md``).
 v0.2 (aditiva): ``StepMetric.error`` y ``QAAnswer.metrics``.
+v0.3 (aditiva): ``StepMetric.detail`` (notas de calidad para la traza: grounding, reintentos). Un
+``briefing.json`` v0.2 (sin ``detail``) se sigue cargando: el campo vale ``None``.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 #: Versión de los contratos de este módulo. Menor = cambio aditivo; mayor = cambio que rompe.
-CONTRACTS_VERSION = "0.2"
+CONTRACTS_VERSION = "0.3"
 
 # Disclaimer MiFID II: el producto informa, no asesora. Se muestra en la UI, en el
 # análisis, en el email/Telegram y se lee al final del podcast.
@@ -199,6 +201,11 @@ class StepMetric(_Model):
     """Métrica de un paso del pipeline (latencia y coste estimado).
 
     ``error`` (v0.2): ``"Tipo: mensaje"`` si el paso lanzó una excepción; ``None`` si fue bien.
+    Si el proveedor real falló y el paso se completó con un sustituto (mock, ``data/samples``,
+    precios sintéticos), ``error`` empieza por ``"Fallback a "`` y ``provider`` es el sustituto
+    (ver ``logging_utils.step_fell_back``).
+    ``detail`` (v0.3, aditivo): notas de calidad del paso para la traza de la UI (p. ej.
+    reintentos del Analista por cifras no trazables); ``None`` si no hay nada que contar.
     """
 
     step: str
@@ -207,6 +214,7 @@ class StepMetric(_Model):
     latency_s: float
     est_cost_eur: float = 0.0
     error: str | None = None
+    detail: str | None = None
 
 
 class DeliveryResult(_Model):

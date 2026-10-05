@@ -3,6 +3,8 @@
 Ejemplos::
 
     python scripts/demo.py --mock
+    python scripts/demo.py --demo-voices          # sin claves, pero con voces reales (edge-tts)
+    python scripts/demo.py --refresh              # real, ignorando la caché diaria de noticias/precios
     python scripts/demo.py --mock --tickers santander AAPL --upload data/samples/resultados_ejemplo.pdf data/samples/grafico_ejemplo.png
     python scripts/demo.py --tickers SAN.MC AAPL --upload data/samples/resultados_ejemplo.pdf
     python scripts/demo.py --mock --question "¿Por qué sube el Santander?"
@@ -27,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from briefer import costs  # noqa: E402
 from briefer.config import get_settings  # noqa: E402
+from briefer.logging_utils import step_fell_back  # noqa: E402
 from briefer.schemas import DISCLAIMER_ES, Briefing, StepMetric  # noqa: E402
 
 
@@ -41,7 +44,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--video", action="store_true", help="Generar también el vídeo")
     parser.add_argument("--cover", action="store_true", help="Generar portada (texto a imagen)")
     parser.add_argument("--deliver", nargs="*", default=[], choices=["email", "telegram"])
-    parser.add_argument("--mock", action="store_true", help="Forzar proveedores mock (sin red ni claves)")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--mock", action="store_true", help="Forzar proveedores mock (sin red ni claves)")
+    modes.add_argument(
+        "--demo-voices",
+        action="store_true",
+        help="Demo sin claves con voces reales: datos de ejemplo + LLM mock + edge-tts (necesita red)",
+    )
+    parser.add_argument(
+        "--refresh", action="store_true", help="Ignorar la caché diaria de noticias y precios (modo real)"
+    )
     parser.add_argument("--question", help="En vez de un briefing, hacer una pregunta al Agente Q&A")
     return parser.parse_args(argv)
 
@@ -50,7 +62,11 @@ def print_metrics(metrics: list[StepMetric]) -> None:
     """Tabla de pasos: latencia, coste estimado y error (si lo hubo)."""
     print(f"\n{'Paso':<22} {'Proveedor':<14} {'Latencia':>9} {'Coste €':>9}  Estado")
     for m in metrics:
-        status = "OK" if not m.error else f"ERROR: {m.error}"
+        status = "OK" if not m.error else (
+            f"SUSTITUTO: {m.error}" if step_fell_back(m) else f"ERROR: {m.error}"
+        )
+        if m.detail:
+            status += f" · {m.detail}"
         print(f"{m.step:<22} {m.provider[:14]:<14} {m.latency_s:>8.2f}s {m.est_cost_eur:>9.5f}  {status}")
     summary = costs.summarize_metrics(metrics)
     n_failed = sum(1 for m in metrics if m.error)
@@ -99,10 +115,11 @@ def main(argv: list[str] | None = None) -> int:
     from briefer import pipeline
     from briefer.ingest.portfolio import load_portfolio_csv
 
+    mode = "mock" if args.mock else "demo_voices" if args.demo_voices else "real"
     print(DISCLAIMER_ES, "\n")
     try:
         if args.question:
-            answer = pipeline.answer_question(args.question, None, use_mock=args.mock)
+            answer = pipeline.answer_question(args.question, None, mode=mode)
             print("Pregunta:", answer.question)
             print("Respuesta:", answer.answer_text)
             print("Audio:", answer.audio_path or "-")
@@ -117,7 +134,8 @@ def main(argv: list[str] | None = None) -> int:
             make_video=args.video,
             deliver=args.deliver,
             make_cover=args.cover,
-            use_mock=args.mock,
+            mode=mode,
+            use_cache=not args.refresh,
             progress=lambda msg: print("·", msg),
         )
     except NotImplementedError as exc:

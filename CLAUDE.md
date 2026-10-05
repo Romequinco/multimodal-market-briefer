@@ -28,12 +28,12 @@ Diagrama de la idea: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | Capa | Elección | Alternativa por config |
 |---|---|---|
 | UI | Streamlit multipágina (`app/`) | — |
-| LLM (analista, guionista, Q&A) | Anthropic Claude | Gemini, OpenAI, mock |
+| LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A) | Gemini, mock (OpenAI: *stub*) |
 | Visión (gráficos, páginas PDF) | Claude visión | Qwen2.5-VL local, mock |
 | STT | Whisper (API o local) | mock |
 | TTS 2 voces | `edge-tts` (gratis, voces es-ES) | ElevenLabs, mock |
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
-| Gráficos / vídeo | matplotlib-plotly / `moviepy`+ffmpeg | — |
+| Gráficos / vídeo | matplotlib / ffmpeg vía `imageio-ffmpeg` (vídeo pendiente, D2) | — |
 | Config | `.env` → `src/briefer/config.py` | — |
 
 ## Mapa del repo
@@ -47,8 +47,9 @@ src/briefer/ingest/       entradas y procesado (noticias, tickers, precios, PDF,
 src/briefer/agents/       analista, guionista, Q&A (+ prompts/*.md)
 src/briefer/media/        gráficos, podcast, transcripción, vídeo, portada
 src/briefer/delivery/     email, Telegram
-tests/                    sin red, con providers mock
-data/samples/             ejemplos versionados · data/cache, data/outputs ignorados
+tests/                    sin red, con providers mock y fixtures (+ tests "live" marcados, excluidos por defecto)
+scripts/                  run.ps1 · run.sh · demo.py · smoke_real.py
+data/samples/             ejemplos versionados + demo_briefing/ (pregenerado) · data/cache, data/outputs ignorados
 docs/                     documentación del proyecto (índice en docs/README.md)
 docs/clase/               resúmenes temáticos de la asignatura (contexto de modelos)
 docs/raw/                 material de clase original — IGNORADO por git, nunca versionar
@@ -85,9 +86,17 @@ Carriles de trabajo paralelos (sin asignar personas): **A** entradas/procesado �
 ## Comandos
 
 ```bash
-scripts/run.sh                 # Linux/macOS: venv + deps + streamlit
-scripts/run.ps1                # Windows
-docker compose up --build      # contenedor, http://localhost:8501
-python -m pytest -q            # tests (mock, sin red)
-python scripts/demo.py --mock  # briefing de punta a punta por CLI
+scripts/run.sh                        # Linux/macOS: venv + deps + streamlit
+scripts/run.ps1                       # Windows
+docker compose up --build             # contenedor, http://localhost:8501
+python -m pytest -q                   # tests sin red (mock/fixtures); los "live" (red + claves + coste) con -m live
+python scripts/demo.py --mock         # briefing de punta a punta por CLI, todo mock (sin red)
+python scripts/demo.py --demo-voices  # sin claves: datos de ejemplo + LLM mock + edge-tts real (necesita red)
+python scripts/demo.py [--refresh]    # modo real con claves de .env (--refresh ignora la caché diaria)
+python scripts/smoke_real.py          # humo real y barato de cada proveedor con clave (< 0,01 €)
 ```
+
+Modos del pipeline: `run_briefing(..., mode="real"|"mock"|"demo_voices", use_cache=True)` (ver
+`docs/03_contratos_modulos.md`). Las llamadas reales cuestan dinero (≈ 0,065 € por briefing con PDF + gráfico):
+para iterar, caché diaria o modo mock. `data/samples/demo_briefing/` es el briefing real pregenerado de la
+portada: no se edita a mano (se regenera con `storage.export_briefing`).

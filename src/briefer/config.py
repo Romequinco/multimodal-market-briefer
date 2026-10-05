@@ -93,12 +93,17 @@ class Settings(BaseSettings):
     briefer_voice_b: str = "es-ES-ElviraNeural"
     briefer_speaker_a_name: str = "Álvaro"
     briefer_speaker_b_name: str = "Elvira"
+    # Velocidad y tono de edge-tts (opcionales): "+0%", "+8%", "-5%" / "+0Hz", "-2Hz".
+    briefer_tts_rate: str | None = None
+    briefer_tts_pitch: str | None = None
     elevenlabs_voice_a: str | None = None
     elevenlabs_voice_b: str | None = None
     elevenlabs_model: str = "eleven_multilingual_v2"
 
     # ── Contenido ───────────────────────────────────────────────────────────────
-    briefer_default_tickers: str = "SAN.MC,ITX.MC,IBE.MC,AAPL,MSFT,NVDA"
+    briefer_default_tickers: str = "SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA"
+    # Índices de contexto: se piden sus precios y noticias, pero no cuentan como tickers del usuario.
+    briefer_context_tickers: str = "^IBEX,^GSPC"
     briefer_news_rss_feeds: str = ""
     briefer_news_max_items: int = 20
     briefer_podcast_target_minutes: float = 4.0
@@ -128,6 +133,11 @@ class Settings(BaseSettings):
     @property
     def default_tickers(self) -> list[str]:
         return [t.upper() for t in _split_csv(self.briefer_default_tickers)]
+
+    @property
+    def context_tickers(self) -> list[str]:
+        """Índices de referencia (``^IBEX``, ``^GSPC``) que acompañan a todo briefing."""
+        return [t.upper() for t in _split_csv(self.briefer_context_tickers)]
 
     @property
     def rss_feeds(self) -> list[str]:

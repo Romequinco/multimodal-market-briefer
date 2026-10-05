@@ -15,6 +15,11 @@ Decisiones:
   solo la stdlib (``wave``); en cualquier otro caso (MP3 de edge-tts, mezclas, distintas
   frecuencias) se usa el ffmpeg de ``imageio-ffmpeg`` con el filtro ``concat`` y ``apad``
   para la pausa, re-codificando todo al formato de salida. No se asume ffmpeg en el PATH.
+- Cada línea pasa por ``normalize_for_speech`` (``media.speech``) **antes** del TTS: tickers,
+  cifras, porcentajes, periodos y siglas se leen como lo diría un locutor. Los ``segments`` (y por
+  tanto la transcripción y el SRT) conservan el texto **original** del guion.
+- Transparencia (AI Act art. 50): el MP3 final lleva metadatos ID3 que lo identifican como voz
+  sintética generada por IA (``AI_AUDIO_METADATA``), además del aviso hablado del cierre del guion.
 """
 
 from __future__ import annotations
@@ -28,6 +33,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from briefer.logging_utils import get_logger
+from briefer.media.speech import normalize_for_speech
 from briefer.providers.base import TTSProvider
 from briefer.schemas import AudioAsset, AudioSegment, PodcastScript
 
@@ -37,6 +43,16 @@ log = get_logger("media.podcast")
 OUTPUT_SAMPLE_RATE = 24_000
 OUTPUT_MP3_BITRATE = "64k"
 DEFAULT_MAX_WORKERS = 4
+
+# Metadatos del audio final (AI Act art. 50: contenido sintético marcado de forma detectable).
+SYNTHETIC_VOICE_NOTICE = "Voces sintéticas generadas por IA. No constituye asesoramiento financiero."
+AI_AUDIO_METADATA: dict[str, str] = {
+    "artist": "Market Briefer (voces sintéticas IA)",
+    "album": "Market Briefer",
+    "genre": "Podcast",
+    "comment": SYNTHETIC_VOICE_NOTICE,
+    "copyright": "Contenido generado por IA",
+}
 
 
 # ── ffmpeg ─────────────────────────────────────────────────────────────────────────
@@ -136,7 +152,18 @@ def _concat_wav_stdlib(paths: list[Path], out_path: Path, pause_s: float) -> Pat
     return out_path
 
 
-def _concat_ffmpeg(paths: list[Path], out_path: Path, pause_s: float) -> Path:
+def _metadata_args(metadata: dict[str, str] | None) -> list[str]:
+    """Argumentos ``-metadata clave=valor`` de ffmpeg (ID3v2.3 en MP3)."""
+    args: list[str] = []
+    for key, value in (metadata or {}).items():
+        if value:
+            args += ["-metadata", f"{key}={value}"]
+    return args
+
+
+def _concat_ffmpeg(
+    paths: list[Path], out_path: Path, pause_s: float, metadata: dict[str, str] | None = None
+) -> Path:
     """Concatena cualquier mezcla de formatos con ffmpeg re-codificando a ``out_path``.
 
     Cada entrada se normaliza (mono, ``OUTPUT_SAMPLE_RATE``, s16) y se le añade ``pause_s`` de
@@ -154,7 +181,7 @@ def _concat_ffmpeg(paths: list[Path], out_path: Path, pause_s: float) -> Path:
 
     ext = out_path.suffix.lower()
     if ext == ".mp3":
-        codec = ["-c:a", "libmp3lame", "-b:a", OUTPUT_MP3_BITRATE]
+        codec = ["-c:a", "libmp3lame", "-b:a", OUTPUT_MP3_BITRATE, "-id3v2_version", "3"]
     elif ext == ".wav":
         codec = ["-c:a", "pcm_s16le"]
     else:
@@ -168,7 +195,8 @@ def _concat_ffmpeg(paths: list[Path], out_path: Path, pause_s: float) -> Path:
         for p in paths:
             inputs += ["-i", str(p)]
         _run_ffmpeg(
-            ["-y", *inputs, "-filter_complex_script", str(graph_file), "-map", "[out]", "-vn", *codec, str(tmp)]
+            ["-y", *inputs, "-filter_complex_script", str(graph_file), "-map", "[out]", "-vn", *codec,
+             *_metadata_args(metadata), str(tmp)]
         )
         tmp.replace(out_path)
     finally:
@@ -177,11 +205,19 @@ def _concat_ffmpeg(paths: list[Path], out_path: Path, pause_s: float) -> Path:
     return out_path
 
 
-def concat_audio(paths: list[Path], out_path: Path, pause_s: float = 0.35) -> Path:
+def concat_audio(
+    paths: list[Path],
+    out_path: Path,
+    pause_s: float = 0.35,
+    *,
+    metadata: dict[str, str] | None = None,
+) -> Path:
     """Concatena audios con una pausa corta entre intervenciones; devuelve ``out_path``.
 
     Elige automáticamente la vía: stdlib si todo es WAV PCM homogéneo y la salida es ``.wav``;
     ffmpeg en el resto de casos (MP3, mezclas de formatos o frecuencias distintas).
+    ``metadata`` (p. ej. ``AI_AUDIO_METADATA``) se escribe como etiquetas del fichero cuando se
+    usa ffmpeg (ID3 en MP3); la vía WAV de la stdlib no admite etiquetas.
     """
     paths = [Path(p) for p in paths]
     if not paths:
@@ -197,7 +233,7 @@ def concat_audio(paths: list[Path], out_path: Path, pause_s: float = 0.35) -> Pa
         params = [_wav_params(p) for p in paths]
         if all(params) and len(set(params)) == 1 and params[0][3] == "NONE":  # type: ignore[index]
             return _concat_wav_stdlib(paths, out_path, pause_s)
-    return _concat_ffmpeg(paths, out_path, pause_s)
+    return _concat_ffmpeg(paths, out_path, pause_s, metadata)
 
 
 # ── Podcast ────────────────────────────────────────────────────────────────────────
@@ -230,6 +266,8 @@ def synthesize_podcast(
     max_workers: int = DEFAULT_MAX_WORKERS,
     retries: int = 2,
     keep_parts: bool = False,
+    normalize: bool = True,
+    metadata: dict[str, str] | None = None,
 ) -> AudioAsset:
     """Genera el audio completo del episodio.
 
@@ -243,6 +281,9 @@ def synthesize_podcast(
         max_workers: líneas sintetizadas en paralelo (1 = secuencial).
         retries: reintentos por línea ante errores del TTS.
         keep_parts: conservar ``out_dir/parts`` (útil para depurar); por defecto se borra.
+        normalize: pasar cada línea por ``normalize_for_speech`` antes del TTS (los segmentos
+            guardan siempre el texto original).
+        metadata: etiquetas del fichero final; por defecto ``AI_AUDIO_METADATA`` + el título.
     """
     lines = [line for line in script.lines if line.text.strip()]
     if not lines:
@@ -252,19 +293,25 @@ def synthesize_podcast(
     parts_dir.mkdir(parents=True, exist_ok=True)
     voices = {"A": voice_a, "B": voice_b}
 
-    def _job(i: int) -> Path:
+    def _job(i: int) -> tuple[Path, float]:
+        """Sintetiza la línea ``i`` y mide su duración (en el mismo hilo: ffmpeg también va en paralelo)."""
         line = lines[i]
         target = parts_dir / f"{i:03d}_{line.speaker}{tts.audio_extension}"
-        return _synthesize_with_retry(tts, line.text.strip(), voices[line.speaker], target, retries)
+        text = line.text.strip()
+        if normalize:
+            text = normalize_for_speech(text) or text
+        written = _synthesize_with_retry(tts, text, voices[line.speaker], target, retries)
+        return written, audio_duration_s(written)
 
     workers = max(1, min(int(max_workers), len(lines)))
     if workers == 1:
-        parts = [_job(i) for i in range(len(lines))]
+        results = [_job(i) for i in range(len(lines))]
     else:
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="tts") as pool:
-            parts = list(pool.map(_job, range(len(lines))))  # map conserva el orden
+            results = list(pool.map(_job, range(len(lines))))  # map conserva el orden
+    parts = [path for path, _ in results]
+    durations = [dur for _, dur in results]
 
-    durations = [audio_duration_s(p) for p in parts]
     segments: list[AudioSegment] = []
     cursor = 0.0
     for i, (line, dur) in enumerate(zip(lines, durations, strict=True)):
@@ -274,7 +321,10 @@ def synthesize_podcast(
         cursor = end + (pause_s if i < len(lines) - 1 else 0.0)
 
     ext = parts[0].suffix or tts.audio_extension
-    final = concat_audio(parts, out_dir / f"podcast{ext}", pause_s)
+    tags = dict(AI_AUDIO_METADATA if metadata is None else metadata)
+    if metadata is None and script.title:
+        tags["title"] = script.title
+    final = concat_audio(parts, out_dir / f"podcast{ext}", pause_s, metadata=tags)
     try:
         total = audio_duration_s(final)
     except Exception:  # medir es secundario: usar la suma teórica
@@ -285,4 +335,12 @@ def synthesize_podcast(
     return AudioAsset(path=final, duration_s=round(total, 3), segments=segments)
 
 
-__all__ = ["audio_duration_s", "concat_audio", "ffmpeg_exe", "synthesize_podcast"]
+__all__ = [
+    "AI_AUDIO_METADATA",
+    "SYNTHETIC_VOICE_NOTICE",
+    "audio_duration_s",
+    "concat_audio",
+    "ffmpeg_exe",
+    "normalize_for_speech",
+    "synthesize_podcast",
+]

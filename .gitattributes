@@ -3,3 +3,6 @@
 Dockerfile text eol=lf
 *.png binary
 *.pdf binary
+*.mp3 binary
+*.wav binary
+*.mp4 binary

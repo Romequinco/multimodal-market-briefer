@@ -4,94 +4,99 @@
 > como hecho lo que alguien del equipo ha ejecutado y visto funcionar; lo no comprobado se marca **NO
 > VERIFICADO**. Las cifras de coste y latencia que no salgan de un `StepMetric` real se marcan **NO MEDIDO**.
 
-**Fecha:** lun 5-oct-2026, noche · **Fase:** F0 cerrada (camino mock fin a fin) · **Siguiente:** D1, núcleo
-real · **Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.2 · **Plan:**
-[05](05_roadmap_TODO.md), revisado según [07](07_revision_critica.md)
+**Fecha:** lun 5-oct-2026, cierre de la Fase 1 (camino real) · **Fase:** F0 y D1 cerradas (D1 adelantado) ·
+**Siguiente:** D2 (mar 6 - mié 7) + [caminos de revisión](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) ·
+**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3 ([03](03_contratos_modulos.md)) ·
+**Plan:** [05](05_roadmap_TODO.md)
 
 ## Resumen
 
-Todo el producto funciona **en modo mock, sin red ni claves**: la UI y `scripts/demo.py --mock` generan un
-briefing completo (noticias de ejemplo → Analista → Guionista → podcast a dos voces → SRT → gráficos →
-`briefing.json`) y el Q&A responde. **Nada que necesite red o claves está implementado todavía**: los
-proveedores reales y la ingesta real son *stubs*. El riesgo pasa de diseño a ejecución: D1 es el día del
-núcleo real.
+El **núcleo real funciona de punta a punta**: noticias reales en español e inglés → filtro por tickers →
+lectura de PDF y gráfico con Claude visión → Agente Analista (Sonnet 5.5) con puerta de *grounding* →
+Agente Guionista (Haiku 4.5) → podcast a dos voces con edge-tts → SRT → gráficos → `briefing.json`, y el Q&A
+responde por texto con voz. Medido el 05-oct: **≈ 0,065 € y ≈ 61-64 s** por briefing con PDF + gráfico;
+Q&A **≈ 0,005 €** y **6-7 s** en caliente (11-13 s en frío). La app abre con un **briefing real pregenerado**,
+tiene tres modos (real · demo sin claves con voces reales · mock offline) y la pestaña «Cómo se hizo». Faltan:
+**STT (Whisper)**, la latencia del Q&A en frío, vídeo, portada, envíos y las piezas de multimodalidad extra
+(CLIP, captura de cartera).
 
 ## Qué funciona
 
 | Elemento | Estado | Evidencia |
 | --- | --- | --- |
-| Idea, diagrama, propuesta de valor, stack | Hecho | [01](01_producto_y_propuesta_valor.md), [ADR-001](decisiones/ADR-001-stack-mvp.md), [ADR-002](decisiones/ADR-002-proveedores-intercambiables.md) |
-| Contratos v0.2 | Hecho | `schemas.py` (`StepMetric.error`, `QAAnswer.metrics`), [03](03_contratos_modulos.md), [ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md) |
-| Interfaces, `registry`, proveedores mock | Hecho | `providers/base.py`, `registry.py`, `mock.py` |
-| Ingesta en modo mock (carril A) | Hecho | `load_sample_news`, `dedupe_news`, `synthetic_snapshots`, `normalize_ticker` / `extract_tickers` / `filter_by_tickers` con alias, `load_portfolio_csv`; `tests/test_ingest_mock.py` |
-| Lectores de PDF, gráfico y voz | Hecho con mocks | `read_pdf`, `read_chart` (+ `validate_image`), `voice_to_insight`; probados con `MockVision` / `MockSTT` / `MockLLM` sobre los ficheros de ejemplo. Con proveedores reales: NO VERIFICADO |
-| Datos de ejemplo | Hecho | `data/samples/`: CSV, JSON, `grafico_ejemplo.png`, `resultados_ejemplo.pdf`, `generar_muestras.py` |
-| Agentes Analista, Guionista, Q&A (carril B) | Hecho con `MockLLM` | Prompts de producción en `agents/prompts/`; `postprocess_analysis` (fuentes y tickers trazables), Guionista con reintento y guion de respaldo, Q&A con citas; `tests/test_agents_mock.py` |
-| Guardarraíles MiFID II | Hecho | `agents/guardrails.py` aplicado en los tres agentes; tests con negaciones |
-| Tolerancia a fallos por paso | Hecho (opcionales) | Portada, vídeo, entregas, subidas y guardado no rompen el briefing; un paso núcleo lanza `PipelineStepError` con su nombre. Caída a mock de un paso núcleo: **pendiente** (D1) |
-| Métricas por paso | Hecho (mock) | Un `StepMetric` por paso, `storage.save` incluido en `Briefing.metrics` (bug corregido), `error` en el paso fallido. Latencias y costes reales: NO MEDIDO |
-| Podcast, transcripción, gráficos (carril C) | Hecho con `MockTTS` | TTS por línea en paralelo con reintentos, concatenación con ffmpeg/stdlib, SRT, gráficos matplotlib 1920×1080; `tests/test_media_mock.py` |
-| Persistencia | Hecho | `storage.py` con rutas relativas portables; `tests/test_storage.py` (round-trip y carpeta movida) |
-| Textos de email y Telegram | Hecho (funciones puras) | `build_email_html`, `build_caption`; el envío es *stub* |
-| UI | Hecho en modo demo | «Generar briefing» pinta titular, audio, transcripción, gráficos y métricas; Mi cartera carga el CSV; Histórico reabre briefings |
-| e2e mock | Hecho | `tests/test_pipeline_mock.py` sin `skip` (verificado en integración Fase 0) |
-| Instalación | Hecho | `pip install -r requirements.txt` + `pip install -e .` en un venv nuevo con Python 3.13 |
-| Docker y scripts de arranque | Creados | NO VERIFICADOS en clon limpio (D2 Sync 4 y D3) |
+| Contratos v0.3 | Hecho | `schemas.CONTRACTS_VERSION = "0.3"` (`StepMetric.detail`, semántica «Fallback a …»), [03](03_contratos_modulos.md), [ADR-004](decisiones/ADR-004-salida-estructurada-json-schema.md) |
+| Noticias reales | Hecho, verificado en real | `ingest/news.py`: Google News RSS es-ES por empresa + RSS de titulares de Yahoo + Expansión «Mercados» + Europa Press, en paralelo, dedupe, ventana 48 h → 7 días. Briefing real: 20 obtenidas, 16 relevantes. **yfinance news da 404 hoy** (se desactiva sola; queda el RSS de Yahoo) |
+| Precios reales | Hecho, verificado en real | `ingest/prices.py`: una descarga en lote (`yf.download`), divisa de yfinance, ticker sin datos se omite; `PriceFetchError` si no hay ninguno |
+| Caché diaria | Hecho, medido | `ingest/cache.py` (`data/cache/`): ingesta de ~6 s → ~0,3 s en la 2.ª ejecución del día; `use_cache=False` / «Refrescar datos» / `demo.py --refresh` |
+| Índices de contexto | Hecho | `^IBEX` y `^GSPC` (`BRIEFER_CONTEXT_TICKERS`): precios y noticias de mercado, fuera de los tickers del usuario |
+| LLM Anthropic | Hecho, verificado en real | `AnthropicLLM`: salida estructurada con `output_config` JSON Schema + 1 reintento autocorrectivo; `key_figures` como pares `{label, value}` ([ADR-004](decisiones/ADR-004-salida-estructurada-json-schema.md)). Sonnet 5.5 (analista, visión) y Haiku 4.5 (guionista, Q&A, estructurado de documentos) |
+| Visión | Hecho, verificado en real | `ClaudeVision`: PDF (páginas pobres en texto) y captura de gráfico → `DocumentInsight` con 10 y 14 cifras en el pregenerado |
+| LLM alternativo Gemini | Hecho (humo) | `GeminiLLM`: `smoke_real.py` `gemini.structured` OK. Briefing completo con Gemini: NO VERIFICADO |
+| Agentes | Hecho, verificado en real | Analista con *grounding* de cifras (`guardrails.untraceable_figures`, resultado en `StepMetric.detail`); Guionista con reparación determinista (homoglifos, tramos del mismo locutor) y respaldo; Q&A con citas y guardarraíles MiFID |
+| TTS real | Hecho, verificado en real | `EdgeTTS` (`edge-tts==7.2.8`, reintentos propios), 6 hilos, `normalize_for_speech` (cifras, tickers, periodos, siglas), metadatos ID3 de voz sintética |
+| Fallback núcleo → sustituto marcado | Hecho (tests) | noticias → `data/samples`, precios → sintéticos, agentes → mock, guion → respaldo, TTS → mock; `StepMetric.error = "Fallback a …"`, aviso en la UI y nodo naranja en la traza. `tests/test_pipeline_fallback.py`. Fallo real provocado en vivo: NO VERIFICADO |
+| Paralelismo | Hecho, medido | Noticias ∥ precios ∥ subidas: pared 61-64 s frente a 82-100 s de suma de pasos |
+| Modos de ejecución | Hecho | `run_briefing(mode="real"\|"mock"\|"demo_voices")`; barra lateral con interruptor «Modo real» (bloqueado si faltan claves) y tipo de demo; insignias por proveedor |
+| Briefing pregenerado | Hecho | `data/samples/demo_briefing/` (briefing real `20261005-110721-a127a9`, 2,7 MB, rutas relativas, extractos ≤ 200 caracteres), exportado con `storage.export_briefing`; portada de la app con `load_featured_briefing` |
+| Pestaña «Cómo se hizo» | Hecho | `app/components/trace.py`: grafo DOT con modelo, latencia, coste, *detail* y estado de cada paso; `tests/test_app_trace.py` |
+| CLI | Hecho | `scripts/demo.py` (`--mock`, `--demo-voices`, `--refresh`, `--question`…), `scripts/smoke_real.py` (OK/FAIL/SKIP/PEND por proveedor, ≈ 0,005 €) |
+| Tests y CI | Hecho | **419 tests sin red** en verde + 7 `live` (`-m live`); `.github/workflows/tests.yml` en mock. Primera ejecución en GitHub: NO VERIFICADA desde aquí |
+| Lo de la Fase 0 | Hecho | Camino mock, persistencia portable, UI multipágina, textos de email/Telegram, instalación limpia (ver registro) |
+
+## Mediciones (05-oct-2026)
+
+Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de-medición): 3 briefings reales con
+5 tickers + PDF + gráfico (1 sin caché, 2 con caché) y 4 preguntas.
+
+| Qué | Medido |
+| --- | --- |
+| Briefing con PDF + gráfico | **≈ 0,065 €** (0,0640-0,0660) · **61,1-63,6 s** de pared |
+| Desglose de coste | Analista 0,0248 € · gráfico 0,0170 € · PDF 0,0152 € · Guionista 0,0081 € · resto 0 € |
+| Desglose de latencia | visión PDF/gráfico 20-25 s (en paralelo con la ingesta) → Analista ~11 s → Guionista ~13-15 s → TTS ~12-13 s |
+| Podcast | 3:58-4:20 min, 18-20 intervenciones |
+| Q&A texto → respuesta hablada | **≈ 0,005 €** · **6,0-7,0 s** en caliente · **11,0-13,2 s** en frío (1.ª pregunta del proceso) |
+| Demo sin claves con voces reales | 6,2 s, 0 € |
+| Gasto real de la sesión de integración | ≈ 0,35 € (estimado con `costs.py`) |
 
 ## Qué no funciona todavía
 
-Todo lo que necesita red o claves. Con `BRIEFER_FALLBACK_TO_MOCK=true` (por defecto) la falta de clave cae a
-mock **en silencio** (solo log); las insignias de la UI que lo delatan son tarea de D1.
-
 | Elemento | Fichero / función | Fase |
 | --- | --- | --- |
-| Noticias reales | `ingest/news.py`: `fetch_news`, `fetch_rss_news`, `fetch_yfinance_news` | D1 |
-| Precios reales y caché | `ingest/prices.py`: `get_price_snapshots`, `get_price_snapshot` | D1 |
-| LLM real | `providers/llm/anthropic_llm.py`: `AnthropicLLM.complete` | D1 |
-| TTS real | `providers/tts/edge_tts_provider.py`: `EdgeTTS.synthesize` | D1 |
-| Visión real | `providers/vision/claude_vision.py`: `ClaudeVision.describe`, `detect_media_type` | D1 |
-| STT real | `providers/stt/whisper_api.py`: `WhisperAPI.transcribe` | D2 |
-| Vídeo | `media/video.make_video` | D2 |
-| Portada | `media/cover.py`, proveedor texto→imagen | D2 (Should) |
+| STT (pregunta por voz, notas de voz reales) | `providers/stt/whisper_api.py`: `WhisperAPI.transcribe` (*stub*; `smoke_real.py` lo marca PEND) | D2 |
+| Q&A con audio < 10 s en frío | `pipeline.answer_question` (precalentar clientes, respuesta más corta) | D2 |
+| Rótulo de los índices en el gráfico de variación | `media/charts.make_overview_chart` (pinta `^IBEX`/`^GSPC` como si fueran valores) | D2 |
+| Calidad estable del Guionista (Haiku) | `prompts/scriptwriter.md`, `scriptwriter.write_script` (fallos ocasionales → reintento o respaldo) | D2 + camino 2 |
+| Vídeo | `media/video.make_video` (*stub*) | D2 |
+| Portada texto→imagen | `media/cover.py` (*stub*); Gemini image disponible con la clave actual | D2 (Should) |
+| Router CLIP, captura de cartera | `providers/image/clip_classifier.py`, `portfolio_from_image` (nueva) | D2 (Should) |
 | Envíos | `send_briefing_telegram` (Should), `send_briefing_email` (Could) | D2 |
-| Fallback núcleo → mock marcado, insignias, modos Ejemplo / Sin claves / Real | `pipeline.py`, `app/components/players.py` | D1 |
-| Briefing pregenerado | `data/samples/demo_briefing/` | D1 (v1), D3 (final) |
-| Orquestación visible: router CLIP, puertas de calidad, WER, traza | ver [05 · D2](05_roadmap_TODO.md#d2--miércoles-7-oct--multimodalidad-orquestación-visible-y-vídeo) | D2 |
-| CI, prueba de humo real | `.github/workflows/`, `scripts/smoke_real.py` | D1, primera hora |
-| Proveedores alternativos (Gemini, OpenAI, Qwen, SDXL, ElevenLabs, Whisper local, CLIP) | *stubs* | Could / Won't; se retiran del registry en D3 si no se implementan |
-| Capturas, demo grabada, pitch, costes y latencias medidos | — | D3 (hoy al 0 %) |
+| RGPD en la UI | consentimiento de cartera, borrado del audio de la pregunta | D2 |
+| Proveedores sin implementar | `OpenAILLM` (*stub* documentado, recorte), Qwen-VL, Whisper local, ElevenLabs, SDXL | Won't; limpieza D3 |
+| Docker y scripts en clon limpio | `Dockerfile`, `scripts/run.*` | D2 Sync 4 / D3 |
+| Capturas, demo grabada, pitch | — | D3 |
 
 ## Riesgos principales
 
-Detalle y costes en [07 §2](07_revision_critica.md#2-hallazgos-críticos-ordenados-por-impacto-en-nota--riesgo-de-entrega).
-
-| Riesgo | Impacto | Mitigación prevista |
+| Riesgo | Impacto | Mitigación |
 | --- | --- | --- |
-| Orquestación lineal: el evaluador ve «un LLM con pasos» | Nota de 4.2 | Router CLIP, puertas de calidad con reintento, WER, paralelismo y pestaña «Cómo se hizo» (D2) |
-| Demo sin claves pobre (noticias ficticias, podcast de silencio) y sin briefing real de respaldo | Primeros 30 s del evaluador | Pregenerado real en la portada, modo «Sin claves» con edge-tts real, insignias (D1) |
-| Claves / IDs de modelo sin verificar (`claude-sonnet-5-5` en `.env.example` y `costs.py`) | 404 en la primera llamada real | Prueba de humo a primera hora de D1, clave con límite de gasto |
-| yfinance pobre en `.MC` y con *rate limit* | Briefing vacío o en inglés | Google News RSS en español por empresa + caché diaria; sin precio → se omite (nunca sintético en real) |
-| edge-tts no oficial, *throttling*, sin uso comercial | Sin audio | Versión fijada, ≤ 4 hilos, reintentos (ya en `synthesize_podcast`), pregenerado; Azure Speech en producción (docs/04) |
-| TTS lee mal tickers y cifras | Se oye en la demo | `normalize_for_speech` + instrucción en el prompt del Guionista (D1) |
-| Vídeo lento/frágil con moviepy 1080×1920 | Demo sin vídeo | ffmpeg directo, 720×1280, fps bajo, opcional (D2) |
-| Modalidades prometidas > demostradas | Credibilidad | Tabla del README con columna «Activo en la demo» (D3) |
+| Q&A por voz sin STT real y > 10 s en frío | Criterio de latencia y modalidad audio → texto en la demo | Whisper API primero en D2; precalentar; si no llega, Q&A por texto con respuesta hablada (ya medido) |
+| Fuentes sin SLA: yfinance (news ya da 404), Google News RSS, edge-tts | Briefing con menos noticias o sin audio | Varias fuentes en paralelo, caché diaria, fallback marcado a `data/samples` / `MockTTS`, pregenerado en la portada; Azure Speech y noticias licenciadas en producción (04) |
+| Guionista en Haiku irregular | Podcast con formato raro o guion de respaldo en la demo | Reintento + reparación determinista + respaldo; camino 2 decide si pasa a Sonnet (+~0,02 €) |
+| Extractos de noticias de hasta 600 caracteres en la ingesta | Derechos de autor | Pregenerado recortado a ≤ 200; acotar lo que se muestra/exporta (D2) |
+| Variabilidad de la API de visión (un PDF tardó 63 s en una ejecución) | Demo en vivo lenta | Subidas en paralelo, barra de progreso, pregenerado; en la demo grabada usar caché |
+| Modalidades prometidas > demostradas (vídeo, portada, CLIP, envíos) | Nota de 4.2 | Columna «Activo en la demo» honesta en el README; recortes ordenados en [05](05_roadmap_TODO.md#recortes-si-no-da-tiempo) |
 | Capturas, demo y pitch al 0 % | Entregable | Code freeze jue 11:00; D3 dedicado |
-| Carril C sobrecargado | Retrasos | Rebalanceo de [05](05_roadmap_TODO.md#carriles-rebalanceados): Telegram a A, calidad y métricas a B |
 
-## Próximos pasos (D1, en orden)
+## Próximos pasos (D2, en orden)
 
-1. **09:00** · Prueba de humo real (Anthropic texto + visión, Whisper, edge-tts), IDs de modelo verificados,
-   clave de grupo con límite de gasto; CI con `pytest -q`.
-2. **09:00-13:00** · A: noticias RSS en español + precios con caché. B: `AnthropicLLM.complete`, Analista real,
-   Guionista en Haiku. C: `EdgeTTS.synthesize` + `normalize_for_speech`.
-3. **13:00 Sync 1** · `demo.py --tickers SAN.MC AAPL` real con audio real. Desde aquí, contratos solo aditivos.
-4. **13:00-18:00** · A: `ClaudeVision` + `read_chart` real. B: fallback núcleo → mock marcado, insignias,
-   paralelismo, métricas verificadas. C: modos Ejemplo / Sin claves / Real, `MockLLM` realista, portada de la app.
-5. **18:00 Sync 2** · briefing real e2e desde la UI y **pregenerado v1** en `data/samples/demo_briefing/`.
-6. **18:00-22:00** · A: `read_pdf` real. B: prompts con 3 carteras. C: transcripción con locutores, métricas
-   visuales.
-7. **22:00 go/no-go** · si el e2e real no funciona, el miércoles se cancelan las Should salvo fallbacks y
-   pregenerado.
+1. **Martes mañana** · Whisper API (`WhisperAPI.transcribe`) y Q&A por voz medido; precalentar clientes para
+   bajar el Q&A en frío de 10 s; rótulo de índices en el gráfico; calidad del Guionista.
+2. **En paralelo** · repartir los [caminos de revisión](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2)
+   (el 1, evaluación de briefings, es el recomendado).
+3. **mar 13:00 Sync 1** · go/no-go de las Should.
+4. **Hasta mié 18:00** · vídeo con ffmpeg, portada (Gemini image), Telegram, RGPD en la UI, `docs/04` reforzado,
+   Docker probado.
+5. **mié 22:00** · *feature freeze*.
 
 ## Registro de jornadas
 
@@ -99,3 +104,4 @@ Detalle y costes en [07 §2](07_revision_critica.md#2-hallazgos-críticos-ordena
 | --- | --- |
 | 05-oct-2026 (tarde) | Idea cerrada, stack decidido, contratos v0.1. Esqueleto de código: schemas, mocks, registry, config, costs, logging, pipeline, UI esbozada, scripts y Docker. `pytest`: 38 passed / 2 skipped. |
 | 05-oct-2026 (noche) | Revisión crítica ([07](07_revision_critica.md)) y plan revisado. Fase 0 por tres carriles: ingesta mock, agentes con guardarraíles, tolerancia a fallos, media, storage portable, UI en modo demo, datos de ejemplo extra. Contratos v0.2 ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md)). e2e mock sin `skip`. Instalación limpia verificada (Python 3.13). |
+| 05-oct-2026 (cierre F1) | Camino real integrado (D1 adelantado): noticias RSS + Yahoo con caché, precios en lote, Claude texto/visión con salida estructurada ([ADR-004](decisiones/ADR-004-salida-estructurada-json-schema.md)), Gemini alternativo, edge-tts real con normalización y metadatos ID3, fallback núcleo marcado, *grounding*, modos real/demo/mock, índices de contexto, subidas en paralelo, pregenerado real en la portada, pestaña «Cómo se hizo», `smoke_real.py`, CI. Contratos v0.3. 419 tests sin red + 7 `live`. Medido: ≈ 0,065 € y ≈ 62 s por briefing con PDF + gráfico; Q&A ≈ 0,005 €, 6-13 s. |

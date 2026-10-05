@@ -77,26 +77,27 @@ Anthropic, Gemini, Mistral, ElevenLabs, Whisper…) o modelos propios. Modalidad
 
 ## Checklist de rúbrica → repo
 
-Estado al cierre de la Fase 0 (05-oct-2026, noche). Se actualiza en [06_estado_actual.md](06_estado_actual.md);
-el análisis de huecos por criterio está en [07 §5](07_revision_critica.md#5-checklist-de-rúbrica--evidencia-que-verá-el-evaluador).
+Estado al cierre de la Fase 1 (05-oct-2026, camino real integrado). Se actualiza en
+[06_estado_actual.md](06_estado_actual.md); el análisis de huecos por criterio está en
+[07 §5](07_revision_critica.md#5-checklist-de-rúbrica--evidencia-que-verá-el-evaluador).
 Leyenda: **Hecho** · **Parcial** (existe, falta lo que se pide) · **Pendiente**.
 
 | # | Criterio | Dónde se cubre | Estado | Hueco a cerrar (fase) |
 | --- | --- | --- | --- | --- |
 | R1 | Esquema visual del producto | `docs/assets/arquitectura_mvp_podcast_financiero.png`, mermaid en `README.md` y [01](01_producto_y_propuesta_valor.md) | Hecho | — |
 | R2 | Problema, público (B2C/B2B/B2B2C), valor de la multimodalidad | [01](01_producto_y_propuesta_valor.md), `README.md` | Hecho (borrador) | Una diapositiva del pitch; B2B2C como motor principal (D3) |
-| R3 | Costes de inferencia y APIs | [04](04_viabilidad_costes_latencia_compliance.md), `costs.py`, `StepMetric.est_cost_eur` por paso | Parcial | Tarifas verificadas con fecha, coste **medido** por briefing, costes fijos de datos/licencias (D2-D3) |
-| R4 | Latencias para UX fluida | [04](04_viabilidad_costes_latencia_compliance.md), `StepMetric` en `Briefing.metrics` y `QAAnswer.metrics` | Pendiente (NO MEDIDO) | p50/p95 medidos de briefing y Q&A, visibles en la UI (D2-D3) |
-| R5 | Compliance y privacidad | [04](04_viabilidad_costes_latencia_compliance.md), `DISCLAIMER_ES`, `agents/guardrails.py`, cierre hablado del Guionista | Parcial | MAR, AI Act art. 50, transferencias RGPD; borrado del audio de la pregunta y consentimiento en la UI (D2) |
-| R6 | Monetización | [01](01_producto_y_propuesta_valor.md), [04](04_viabilidad_costes_latencia_compliance.md) | Parcial | Costes fijos y punto de equilibrio (D2) |
-| R7 | Diversidad de modalidades | Tabla de modalidades en `README.md` | Parcial (prometido > demostrado) | Texto→imagen por API, captura de cartera, columna «Activo en la demo» (D2-D3) |
-| R8 | Encadenamiento multi-modelo | `pipeline.py` (pasos núcleo/opcionales, métricas por paso) | Parcial (lineal; solo mock) | Proveedores reales (D1); router CLIP, puertas de calidad, WER, traza «Cómo se hizo» (D2) |
-| R9 | MVP ejecutable | `app/`, `scripts/demo.py` | Parcial: completo en modo mock | Núcleo real fin a fin (D1) |
-| R10 | UI / UX / navegación / robustez | `app/` multipágina en modo demo; tolerancia a fallos por paso ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md)) | Parcial | Portada de 30 s, modos e insignias, fallback núcleo → mock, pregenerado (D1-D2) |
-| R11 | Plug-and-play | `requirements.txt` + `pip install -e .` verificados (Python 3.13, venv limpio); `Dockerfile`, `docker-compose.yml`, `scripts/run.ps1`, `scripts/run.sh` | Parcial | Docker y scripts en clon limpio (D2 Sync 4, D3) |
-| R12 | README exhaustivo con capturas | `README.md` | Parcial | Capturas, enlace a la demo arriba, resultados medidos, configuración a un anexo (D3) |
-| R13 | Diagrama de flujo multimodal | `README.md`, [02](02_arquitectura_y_flujo_datos.md) | Hecho | Diagrama de **orquestación** con ramas y decisiones (D3) |
-| R14 | Descripción de arquitectura | `README.md`, [02](02_arquitectura_y_flujo_datos.md), [ADRs](decisiones/README.md) | Hecho | — |
+| R3 | Costes de inferencia y APIs | [04](04_viabilidad_costes_latencia_compliance.md) con columna «Medido», `costs.py` (tarifas Anthropic verificadas 05-oct), `StepMetric.est_cost_eur` por paso | Parcial (medido) | ≈ 0,065 € por briefing con PDF + gráfico y ≈ 0,005 € por pregunta, medidos en 3 + 4 ejecuciones. Falta: contraste con la consola del proveedor, costes fijos de datos/licencias (D2-D3) |
+| R4 | Latencias para UX fluida | [04](04_viabilidad_costes_latencia_compliance.md), `Briefing.metrics` y `QAAnswer.metrics` visibles en la UI y en «Cómo se hizo» | Parcial (medido) | Briefing 61-64 s; Q&A 6-7 s en caliente pero **11-13 s en frío** (> 10 s). Falta: precalentar, STT, p50/p95 con ≥ 5 ejecuciones (D2-D3) |
+| R5 | Compliance y privacidad | [04](04_viabilidad_costes_latencia_compliance.md) (tabla riesgo → control en código), `DISCLAIMER_ES`, `agents/guardrails.py` (recomendaciones y *grounding* de cifras), cierre hablado, metadatos ID3 de voz sintética, extractos de noticias ≤ 200 caracteres en el pregenerado | Parcial | MAR, transferencias RGPD; borrado del audio de la pregunta y consentimiento en la UI; red-team (camino 4) (D2) |
+| R6 | Monetización | [01](01_producto_y_propuesta_valor.md), [04](04_viabilidad_costes_latencia_compliance.md) (recalculada con costes medidos) | Parcial | Costes fijos y punto de equilibrio (D2) |
+| R7 | Diversidad de modalidades | Tabla de modalidades en `README.md` con columna «Activo en la demo» | Parcial | Activas en real: texto→texto (3 agentes), imagen→texto, documento→texto, texto→audio, datos→imagen, subtítulos. Faltan audio→texto real (Whisper), texto→imagen, vídeo, CLIP (D2) |
+| R8 | Encadenamiento multi-modelo | `pipeline.py` (pasos núcleo/opcionales, paralelismo, fallback marcado), puerta de *grounding* con reintento, pestaña «Cómo se hizo» (`app/components/trace.py`) | Parcial (real) | Cadena real: Sonnet visión → Haiku (estructura) → Sonnet (Analista) → Haiku (Guionista) → edge-tts (TTS). Falta: router CLIP, WER del podcast, notebook de recorrido (camino 6) (D2) |
+| R9 | MVP ejecutable | `app/`, `scripts/demo.py`, `scripts/smoke_real.py`; modos real / demo sin claves / mock | Hecho (núcleo real) | Q&A por voz real (D2) |
+| R10 | UI / UX / navegación / robustez | Portada con briefing pregenerado, modos e insignias, avisos de fallback, traza; tolerancia a fallos ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md)) | Parcial | Preguntar pulida, estados de carga, latencia del Q&A (D2) |
+| R11 | Plug-and-play | `requirements.txt` + `pip install -e .` verificados (Python 3.13, venv limpio); CI en GitHub Actions; `Dockerfile`, `docker-compose.yml`, `scripts/run.ps1`, `scripts/run.sh` | Parcial | Docker y scripts en clon limpio (D2 Sync 4, D3) |
+| R12 | README exhaustivo con capturas | `README.md` (estado, modos, mediciones, insignia de CI) | Parcial | Capturas, enlace a la demo arriba, configuración a un anexo (D3) |
+| R13 | Diagrama de flujo multimodal | `README.md`, [02](02_arquitectura_y_flujo_datos.md), grafo «Cómo se hizo» generado por briefing | Hecho | Diagrama de **orquestación** con ramas y decisiones para el pitch (D3) |
+| R14 | Descripción de arquitectura | `README.md`, [02](02_arquitectura_y_flujo_datos.md), [ADRs](decisiones/README.md) (001-004) | Hecho | — |
 | R15 | Pitch deck técnico | `pitch/` | Pendiente | PDF de 10-12 diapositivas (D2 esqueleto, D3) |
-| R16 | Separación modelos / negocio / UI | `providers/` · `ingest/agents/media/delivery` · `app/`; inyección de dependencias; tests sin red | Hecho | Retirar *stubs* no implementados del registry (D3) |
-| R17 | Demo funcional | Vídeo enlazado en `README.md#demo` | Pendiente | Demo grabada de 3-4 min + pregenerado (D3) |
+| R16 | Separación modelos / negocio / UI | `providers/` · `ingest/agents/media/delivery` · `app/`; inyección de dependencias; 419 tests sin red | Hecho | Retirar *stubs* no implementados del registry (D3) |
+| R17 | Demo funcional | Briefing real pregenerado en la portada; vídeo enlazado en `README.md#demo` | Parcial | Demo grabada de 3-4 min (D3) |

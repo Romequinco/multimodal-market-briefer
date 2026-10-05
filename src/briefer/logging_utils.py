@@ -62,6 +62,8 @@ class StepHandle:
     est_cost_eur: float = 0.0
     metric: StepMetric | None = field(default=None)
     error: str | None = None
+    #: Notas de calidad que acaban en ``StepMetric.detail`` (reintentos, cifras eliminadas…).
+    detail: str | None = None
 
 
 @contextmanager
@@ -99,6 +101,7 @@ def track_step(
             latency_s=round(latency, 4),
             est_cost_eur=round(handle.est_cost_eur, 6),
             error=handle.error,
+            detail=handle.detail,
         )
         if metrics is not None:
             metrics.append(handle.metric)
@@ -114,9 +117,29 @@ def track_step(
         )
 
 
+#: Prefijo de ``StepMetric.error`` cuando el paso se completó con un sustituto del proveedor real.
+FALLBACK_PREFIX = "Fallback a "
+
+
+def fallback_error(substitute: str, exc: BaseException) -> str:
+    """Texto de ``StepMetric.error`` para un paso caído a sustituto.
+
+    Ejemplo: ``"Fallback a mock tras RateLimitError: 429 rate_limit_error"``.
+    """
+    detail = " ".join(str(exc).split())[:_ERROR_DETAIL_CHARS]
+    cause = f"{type(exc).__name__}: {detail}" if detail else type(exc).__name__
+    return f"{FALLBACK_PREFIX}{substitute} tras {cause}"
+
+
 def step_failed(metric: StepMetric) -> bool:
-    """``True`` si el ``StepMetric`` corresponde a un paso que lanzó una excepción."""
+    """``True`` si el proveedor del paso lanzó una excepción (también si luego hubo fallback)."""
     return bool(metric.error)
+
+
+def step_fell_back(metric: StepMetric) -> bool:
+    """``True`` si el paso se completó con un sustituto (mock, ``data/samples``, sintéticos)
+    porque el proveedor real falló. La UI debe avisar: «este paso usó mock»."""
+    return bool(metric.error) and str(metric.error).startswith(FALLBACK_PREFIX)
 
 
 def step_error(metric: StepMetric) -> str | None:

@@ -318,7 +318,7 @@ def stub_lanes(monkeypatch: pytest.MonkeyPatch, sample_context: MarketContext) -
         ],
     )
 
-    def fake_podcast(script, tts, out_dir, voice_a, voice_b, pause_s=0.35):
+    def fake_podcast(script, tts, out_dir, voice_a, voice_b, pause_s=0.35, **_kwargs):
         path = Path(out_dir) / "podcast.wav"
         path.write_bytes(b"RIFF")
         segs = [AudioSegment(speaker=l.speaker, text=l.text, start_s=i, end_s=i + 1)
@@ -334,7 +334,7 @@ def stub_lanes(monkeypatch: pytest.MonkeyPatch, sample_context: MarketContext) -
     monkeypatch.setattr(
         pipeline.charts_mod,
         "make_charts",
-        lambda prices, out_dir, portfolio=None: [ChartAsset(path=Path(out_dir) / "c.png", kind="overview_bar")],
+        lambda prices, out_dir, portfolio=None, **_k: [ChartAsset(path=Path(out_dir) / "c.png", kind="overview_bar")],
     )
 
     def fake_save(briefing, base_dir=None):

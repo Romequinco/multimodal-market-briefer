@@ -1,0 +1,263 @@
+1
+00:00:00,000 --> 00:00:05,051
+Álvaro: Hola, bienvenidos a Market
+Briefer. Hoy es 5 de octubre de 2026 y os
+
+2
+00:00:05,051 --> 00:00:10,567
+contamos cómo Banco Santander se ha puesto
+a la cabeza de las subidas del Ibex tras
+
+3
+00:00:10,567 --> 00:00:12,960
+las novedades electorales en Brasil.
+
+4
+00:00:13,310 --> 00:00:20,000
+Elvira: Buenos días. El análisis del día
+nos muestra un Ibex 35 que cierra con un
+
+5
+00:00:20,000 --> 00:00:26,278
+avance moderado del 0,68 %, hasta
+19.214,60 puntos. Pero aunque en la sesión
+
+6
+00:00:26,278 --> 00:00:32,968
+hay movimiento al alza, conviene recordar
+que desde el 7 de septiembre acumula un
+
+7
+00:00:32,968 --> 00:00:34,620
+descenso del 4,03 %.
+
+8
+00:00:34,970 --> 00:00:39,380
+Álvaro: ¿Y qué ha pasado con Banco
+Santander para que sea el valor más firme?
+
+9
+00:00:39,730 --> 00:00:45,115
+Elvira: Santander ha ganado un 2,44 %,
+llegando a 12,10 euros. Los titulares
+
+10
+00:00:45,115 --> 00:00:51,067
+relacionan esta subida con las elecciones
+brasileñas y la solidez de sus negocios en
+
+11
+00:00:51,067 --> 00:00:56,594
+el país. Aunque sin detalles del resultado
+electoral exacto, el mercado parece
+
+12
+00:00:56,594 --> 00:01:02,263
+valorar positivamente esa exposición.
+Dicho esto, sigue un 6,13 % por debajo del
+
+13
+00:01:02,263 --> 00:01:05,310
+nivel que tenía a principios de
+septiembre.
+
+14
+00:01:05,660 --> 00:01:11,380
+Álvaro: Así que hay rebote, pero con
+cierto recelo de fondo. ¿Qué preocupa en
+
+15
+00:01:11,380 --> 00:01:11,900
+Europa?
+
+16
+00:01:12,250 --> 00:01:16,454
+Elvira: El gran tema hoy es la deuda,
+especialmente la francesa, y el
+
+17
+00:01:16,454 --> 00:01:20,963
+debilitamiento del euro. Según los datos,
+la moneda única cae a mínimos de
+
+18
+00:01:20,963 --> 00:01:25,411
+diecisiete meses, lo que genera
+incertidumbre sobre la solidez de la zona
+
+19
+00:01:25,411 --> 00:01:30,408
+euro. El Ibex amortigua esas dudas gracias
+al avance de Santander y otros valores,
+
+20
+00:01:30,408 --> 00:01:33,820
+pero Europa está pendiente de cómo
+evoluciona todo esto.
+
+21
+00:01:34,170 --> 00:01:39,090
+Álvaro: Y cambiando de tercio, ¿qué pasa
+en Madrid con las otras grandes empresas?
+
+22
+00:01:39,440 --> 00:01:45,007
+Elvira: Hay un detalle interesante:
+Iberdrola avanza un 0,38 % hasta 20,90
+
+23
+00:01:45,007 --> 00:01:51,101
+euros y ha recuperado el tercer puesto del
+Ibex por capitalización, adelantando a
+
+24
+00:01:51,101 --> 00:01:56,593
+BBVA. En el periodo desde el 7 de
+septiembre acumula incluso un 5,40 % de
+
+25
+00:01:56,593 --> 00:01:57,270
+ganancia.
+
+26
+00:01:57,620 --> 00:02:00,860
+Álvaro: Pero Inditex juega una partida
+diferente.
+
+27
+00:02:01,210 --> 00:02:07,138
+Elvira: Exacto. Inditex sube un 0,30 %
+hoy, hasta 53,40 euros, pero acumula un
+
+28
+00:02:07,138 --> 00:02:13,218
+descenso del 7,23 % desde principios de
+septiembre. Los analistas señalan que es
+
+29
+00:02:13,218 --> 00:02:18,994
+uno de los valores que reactivan el
+calendario de dividendos en octubre, así
+
+30
+00:02:18,994 --> 00:02:21,730
+que hay algo de expectativa por ahí.
+
+31
+00:02:22,080 --> 00:02:26,822
+Álvaro: ¿Y qué tal en Wall Street? ¿Ha
+habido movimiento en las grandes
+
+32
+00:02:26,822 --> 00:02:27,690
+tecnológicas?
+
+33
+00:02:28,040 --> 00:02:34,176
+Elvira: Sí, NVIDIA sube un 1,34 % hasta
+233,95 dólares y Apple gana un 1,02 %
+
+34
+00:02:34,176 --> 00:02:40,391
+hasta 333,69 dólares. Según los analistas,
+DBS considera que el repunte de las
+
+35
+00:02:40,391 --> 00:02:47,084
+acciones de inteligencia artificial no es
+una burbuja, y Morgan Stanley la nombra su
+
+36
+00:02:47,084 --> 00:02:53,060
+acción favorita. Apple, por su parte,
+acapara atención por una inversión de
+
+37
+00:02:53,060 --> 00:02:55,610
+6.800 millones de dólares en IA.
+
+38
+00:02:55,960 --> 00:02:59,100
+Álvaro: Son opiniones de terceros, claro.
+
+39
+00:02:59,450 --> 00:03:05,368
+Elvira: Totalmente. El análisis también
+incluye un ejemplo ficticio de una empresa
+
+40
+00:03:05,368 --> 00:03:10,926
+llamada Ejemplo Industrial con unos
+resultados trimestrales sólidos: ingresos
+
+41
+00:03:10,926 --> 00:03:16,917
+por 1.245 millones de euros, crecimiento
+del 8,4 %, y un EBITDA de 312 millones con
+
+42
+00:03:16,917 --> 00:03:22,907
+margen del 25,1 %. Aunque es un ejemplo,
+sirve para ver cómo el mercado digiere los
+
+43
+00:03:22,907 --> 00:03:25,650
+datos de resultados en esta temporada.
+
+44
+00:03:26,000 --> 00:03:29,550
+Álvaro: ¿Y cómo ve el mercado el estado
+general de ánimo hoy?
+
+45
+00:03:29,900 --> 00:03:35,700
+Elvira: Sesión de rebote generalizado:
+todos los valores al alza, el S&P 500 sube
+
+46
+00:03:35,700 --> 00:03:41,357
+un 0,73 %. Pero hay cautela en Europa por
+la deuda y la debilidad del euro. Los
+
+47
+00:03:41,357 --> 00:03:46,800
+analistas siguen atentos a la temporada de
+resultados y a cómo evoluciona el
+
+48
+00:03:46,800 --> 00:03:48,590
+escenario macroeconómico.
+
+49
+00:03:48,940 --> 00:03:53,694
+Álvaro: Pues esto es Market Briefer. Un
+último apunte antes de terminar: este
+
+50
+00:03:53,694 --> 00:03:58,818
+episodio ha sido generado con inteligencia
+artificial y las voces que escucháis son
+
+51
+00:03:58,818 --> 00:04:03,571
+sintéticas. Se trata de información
+educativa, no asesoramiento financiero ni
+
+52
+00:04:03,571 --> 00:04:07,893
+una recomendación de inversión. Ante
+cualquier decisión sobre vuestras
+
+53
+00:04:07,893 --> 00:04:12,770
+inversiones, consultad siempre las fuentes
+oficiales y a un asesor profesional.
+
+54
+00:04:13,120 --> 00:04:18,816
+Elvira: Exacto. Gracias por escucharnos y
+nos vemos mañana con el análisis del
+
+55
+00:04:18,816 --> 00:04:19,400
+mercado.

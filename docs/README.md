@@ -4,23 +4,26 @@
 contratos que permiten trabajar en paralelo, en [03_contratos_modulos.md](03_contratos_modulos.md); el estado
 vivo, en [06_estado_actual.md](06_estado_actual.md).
 
-## Estado a 05-oct-2026 (noche, cierre de la Fase 0)
+## Estado a 05-oct-2026 (cierre de la Fase 1, camino real)
 
-Camino mock fin a fin funcionando (UI y CLI, sin red ni claves); contratos v0.2; plan revisado tras la
-[revisión crítica](07_revision_critica.md). Lo que requiere red o claves sigue sin implementar: D1 es el día del
-núcleo real. Entrega: **8-oct-2026, 18:00** (objetivo interno 16:30).
+Núcleo real fin a fin funcionando (UI y CLI): noticias y precios reales con caché, Claude Sonnet 5.5 (Analista y
+visión) y Haiku 4.5 (Guionista y Q&A), edge-tts, fallback marcado, *grounding*, briefing real pregenerado en la
+portada y modos real / demo sin claves / mock. Medido: ≈ 0,065 € y ≈ 62 s por briefing con PDF + gráfico; Q&A
+≈ 0,005 € y 6-13 s. Contratos v0.3. Pendiente: Whisper (STT), Q&A < 10 s en frío, vídeo, portada, envíos.
+Entrega: **8-oct-2026, 18:00** (objetivo interno 16:30).
 
 | Bloque | Evidencia actual | Estado |
 | --- | --- | --- |
 | Idea y diagrama | `assets/arquitectura_mvp_podcast_financiero.png`, [01](01_producto_y_propuesta_valor.md) | Hecho |
-| Stack y decisiones | [ADR-001](decisiones/ADR-001-stack-mvp.md), [ADR-002](decisiones/ADR-002-proveedores-intercambiables.md), [ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md) | Hecho |
-| Contratos (`schemas.py`, `providers/base.py`) | [03](03_contratos_modulos.md) v0.2 | Hecho; desde mar 13:00 solo cambios aditivos |
-| Carril A · entradas, visión y Telegram | `src/briefer/ingest/` | Mock hecho; ingesta real, visión y STT reales pendientes (D1-D2) |
-| Carril B · agentes, orquestación y calidad | `src/briefer/agents/`, `pipeline.py` | Mock hecho (con guardarraíles y tolerancia a fallos); LLM real pendiente (D1) |
-| Carril C · media, UI y demo | `src/briefer/media/`, `delivery/`, `app/` | Mock hecho; edge-tts, vídeo, modos y pregenerado pendientes (D1-D2) |
-| Plug-and-play (scripts, Docker) | `scripts/`, `Dockerfile` | Instalación limpia verificada; clon limpio y Docker pendientes |
-| Viabilidad y compliance | [04](04_viabilidad_costes_latencia_compliance.md) | Borrador con estimaciones; huecos señalados en [07 · H6](07_revision_critica.md) |
-| README con capturas, demo, pitch | `README.md`, `pitch/` | Pendiente (D3) |
+| Stack y decisiones | [ADR-001](decisiones/ADR-001-stack-mvp.md) a [ADR-004](decisiones/ADR-004-salida-estructurada-json-schema.md) | Hecho |
+| Contratos (`schemas.py`, `providers/base.py`) | [03](03_contratos_modulos.md) v0.3 | Hecho; solo cambios aditivos |
+| Carril A · entradas, visión y Telegram | `src/briefer/ingest/`, `providers/vision/` | Noticias, precios, caché, PDF y gráfico reales hechos; STT (Whisper), CLIP, captura de cartera y Telegram pendientes (D2) |
+| Carril B · agentes, orquestación y calidad | `src/briefer/agents/`, `pipeline.py`, `providers/llm/` | Agentes reales con Claude, *grounding*, fallback marcado, paralelismo, CI hechos; latencia del Q&A en frío y calidad del Guionista (D2) |
+| Carril C · media, UI y demo | `src/briefer/media/`, `delivery/`, `app/` | edge-tts real, normalización para voz, modos, pregenerado, «Cómo se hizo» hechos; vídeo, portada y email pendientes (D2) |
+| Plug-and-play (scripts, Docker) | `scripts/`, `Dockerfile`, `.github/workflows/tests.yml` | Instalación limpia y CI; clon limpio y Docker pendientes |
+| Viabilidad y compliance | [04](04_viabilidad_costes_latencia_compliance.md) | Costes y latencias **medidos** (3 briefings, 4 preguntas); costes fijos y p50/p95 pendientes |
+| Revisión y mejora en paralelo | [05 · caminos](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) | 6 caminos abiertos para cualquiera (rama propia + PR) |
+| README con capturas, demo, pitch | `README.md`, `pitch/` | README al día (estado, modos, mediciones); capturas, demo y pitch pendientes (D3) |
 
 Convenciones:
 
