@@ -7,9 +7,11 @@ configurables en ``.env``).
 
 Robustez: el guion del LLM se valida (líneas vacías, un solo locutor, tramos del mismo
 locutor, duración fuera de 3-5 min, cifras que no están en el análisis, recomendaciones de
-inversión, palabras con letras de otros alfabetos y errores gramaticales recurrentes). Si hay
+inversión, palabras con letras de otros alfabetos, errores gramaticales recurrentes y
+regionalismos ajenos al español de España). Si hay
 problemas se pide **una** reescritura con las correcciones; después, lo que quede se repara de
-forma determinista (nunca se devuelve un guion inválido): homoglifos y gramática corregidos,
+forma determinista (nunca se devuelve un guion inválido): homoglifos, gramática y regionalismos
+corregidos,
 palabras raras y frases con cifras no trazables o recomendaciones eliminadas, cierre añadido.
 Si el LLM no da nada aprovechable, se genera un guion mínimo a partir del propio análisis.
 """
@@ -37,7 +39,15 @@ from briefer.schemas import Analysis, PodcastScript, ScriptLine
 
 log = get_logger("agents.scriptwriter")
 
-WORDS_PER_MINUTE = 150  # ritmo de locución aproximado en español
+#: Ritmo real de edge-tts (voces es-ES, pausas entre intervenciones incluidas) en palabras
+#: **habladas** por minuto, es decir, contadas tras ``normalize_for_speech`` («0,53 %» son 5
+#: palabras). Medido el 05-oct-2026 con el pregenerado (``data/samples/demo_briefing``): 780
+#: palabras habladas en 326,9 s (5:27) -> 143,1 ppm. Antes era 150 sobre el texto escrito, que
+#: estimaba 4,5 min para un episodio de 5,45 min.
+WORDS_PER_MINUTE = 143
+#: El mismo ritmo en palabras **escritas** del guion (cifras sin desarrollar): 681 palabras en
+#: 326,9 s -> 125 ppm. Solo para decirle al LLM cuántas palabras escribir.
+WRITTEN_WORDS_PER_MINUTE = 125
 LENGTH_TOLERANCE = 0.4  # desviación relativa de duración que dispara una reescritura
 #: Duración aceptable del episodio (producto: 3-5 min). Si el objetivo está dentro de este
 #: rango, la comprobación de duración usa el rango; si no, la tolerancia relativa.
@@ -58,18 +68,41 @@ _DISCLAIMER_HINTS = ("asesoramiento", "recomendación de inversión", "no es una
 _SYNTHETIC_HINTS = ("sintétic", "inteligencia artificial", " ia ", "generad")
 
 
+def spoken_word_count(text: str) -> int:
+    """Palabras que dirá la voz: se cuentan tras ``normalize_for_speech`` (las cifras, siglas y
+    tickers se desarrollan). Si la normalización fallara, cuenta las palabras escritas."""
+    try:
+        from briefer.media.speech import normalize_for_speech
+
+        return len(normalize_for_speech(text).split())
+    except Exception:  # pragma: no cover - la normalización es pura; por si acaso
+        return len(text.split())
+
+
+def written_word_count(lines: list[ScriptLine]) -> int:
+    """Palabras escritas del guion (lo que cuenta el LLM)."""
+    return sum(len(line.text.split()) for line in lines)
+
+
+def target_written_words(target_minutes: float) -> int:
+    """Palabras escritas que se piden al LLM para ``target_minutes`` (4 min -> 500)."""
+    return int(target_minutes * WRITTEN_WORDS_PER_MINUTE)
+
+
 def estimate_duration_s(lines: list[ScriptLine], wpm: int = WORDS_PER_MINUTE) -> float:
-    """Duración estimada del guion en segundos a partir del nº de palabras (≈150 ppm)."""
-    words = sum(len(line.text.split()) for line in lines)
+    """Duración estimada del guion en segundos: palabras habladas (tras ``normalize_for_speech``)
+    al ritmo medido de edge-tts (``WORDS_PER_MINUTE`` ≈ 143 ppm)."""
+    words = sum(spoken_word_count(line.text) for line in lines)
     return round(words / max(1, wpm) * 60, 1)
 
 
 def _render_system(target_minutes: float, speaker_names: tuple[str, str]) -> str:
-    target_words = int(target_minutes * WORDS_PER_MINUTE)
+    target_words = target_written_words(target_minutes)
     return (
         load_prompt("scriptwriter")
         .replace("{target_minutes}", f"{target_minutes:g}")
         .replace("{target_words}", str(target_words))
+        .replace("{words_per_minute}", str(WRITTEN_WORDS_PER_MINUTE))
         .replace("{speaker_a}", speaker_names[0])
         .replace("{speaker_b}", speaker_names[1])
     )
@@ -194,8 +227,8 @@ def script_problems(
         low_s, high_s = duration_bounds_s(target_minutes, length_tolerance)
         duration = estimate_duration_s(lines)
         if not low_s <= duration <= high_s:
-            words = int(target_minutes * WORDS_PER_MINUTE)
-            have = sum(len(line.text.split()) for line in lines)
+            words = target_written_words(target_minutes)
+            have = written_word_count(lines)
             problems.append(
                 f"La duración estimada es {duration / 60:.1f} min ({have} palabras) y debe estar entre "
                 f"{low_s / 60:g} y {high_s / 60:g} min: apunta a unas {words} palabras en total"
@@ -224,7 +257,65 @@ def script_problems(
             "Errores gramaticales: " + ", ".join(f"«{b}»" for b in bad[:5])
             + " (con «para que» va subjuntivo: «para que veáis»)."
         )
+    if regional := regionalisms(text):
+        problems.append(
+            "Palabras de otras variantes del español: " + ", ".join(f"«{w}»" for w in regional[:5])
+            + ". Escribe en español de España («descontado», «allí», «aquí», «ahora mismo», «charlar», "
+            "«ordenador», «móvil»)."
+        )
     return problems
+
+
+# ── Regionalismos ──────────────────────────────────────────────────────────────────
+# Palabras de otras variantes del español (o calcos) que chirrían en un podcast de España.
+# Solo casos seguros: «más allá», «allá por 2008» o «membrana celular» no se tocan.
+_ARTICLE = r"\b(el|un|los|unos|su|sus|del|tu|mi) "
+REGIONALISM_FIXES: list[tuple[re.Pattern[str], str, str]] = [
+    # (patrón, sustitución, palabra para el aviso al LLM)
+    *[
+        (re.compile(rf"\b{wrong}\b", re.IGNORECASE), right, wrong)
+        for wrong, right in (
+            ("precificado", "descontado"), ("precificada", "descontada"),
+            ("precificados", "descontados"), ("precificadas", "descontadas"),
+            ("precificar", "descontar"), ("precificando", "descontando"),
+            ("precifica", "descuenta"), ("precifican", "descuentan"),
+        )
+    ],
+    (re.compile(r"\bprecificación\b", re.IGNORECASE), "valoración", "precificación"),
+    (re.compile(r"(?<!\bmás )(?<!\bpara )\ballá\b(?! por\b)", re.IGNORECASE), "allí", "allá"),
+    (re.compile(r"(?<!\bpara )\bacá\b", re.IGNORECASE), "aquí", "acá"),
+    (re.compile(r"\bahorita\b", re.IGNORECASE), "ahora mismo", "ahorita"),
+    *[
+        (re.compile(rf"\bplatic{a}\b", re.IGNORECASE), f"charl{b}", f"platic{a}")
+        for a, b in (("ar", "ar"), ("amos", "amos"), ("ando", "ando"), ("ado", "ado"), ("a", "a"))
+    ],
+    (re.compile(r"\bplática\b", re.IGNORECASE), "charla", "plática"),
+    (re.compile(r"\bcomputadoras\b", re.IGNORECASE), "ordenadores", "computadoras"),
+    (re.compile(r"\bcomputadora\b", re.IGNORECASE), "ordenador", "computadora"),
+    # «celular» solo como sustantivo (tras artículo o «teléfono»): «terapia celular» es correcto.
+    (re.compile(r"\bteléfonos celulares\b", re.IGNORECASE), "teléfonos móviles", "celulares"),
+    (re.compile(r"\bteléfono celular\b", re.IGNORECASE), "teléfono móvil", "celular"),
+    (re.compile(_ARTICLE + r"celulares\b", re.IGNORECASE), r"\1 móviles", "celulares"),
+    (re.compile(_ARTICLE + r"celular\b", re.IGNORECASE), r"\1 móvil", "celular"),
+    (re.compile(r"\bchec(ar|amos|ad)\b", re.IGNORECASE), "comprob\\1", "checar"),
+]
+
+
+def _keep_case(found: str, fixed: str) -> str:
+    return fixed[0].upper() + fixed[1:] if found[:1].isupper() else fixed
+
+
+def regionalisms(text: str) -> list[str]:
+    """Regionalismos de ``REGIONALISM_FIXES`` presentes en ``text`` (sin repetir)."""
+    found = [word for pattern, _fix, word in REGIONALISM_FIXES if pattern.search(text or "")]
+    return list(dict.fromkeys(found))
+
+
+def fix_regionalisms(text: str) -> str:
+    """Sustituye los regionalismos por la palabra de España («precificado» -> «descontado»)."""
+    for pattern, fix, _word in REGIONALISM_FIXES:
+        text = pattern.sub(lambda m, f=fix: _keep_case(m.group(0), m.expand(f)), text)
+    return text
 
 
 # Homoglifos cirílicos que a veces cuela el LLM barato en palabras españolas («suба»): el TTS
@@ -241,11 +332,11 @@ def fix_homoglyphs(text: str) -> str:
 
 
 def _repair(lines: list[ScriptLine], untraceable: list[str] | None = None) -> list[ScriptLine]:
-    """Reparación determinista: homoglifos, gramática y palabras raras, vacíos, frases de
-    recomendación, frases con cifras no trazables (``untraceable``) y 2 locutores."""
+    """Reparación determinista: homoglifos, gramática, regionalismos y palabras raras, vacíos,
+    frases de recomendación, frases con cifras no trazables (``untraceable``) y 2 locutores."""
     cleaned: list[ScriptLine] = []
     for line in lines:
-        text = fix_spoken_text(" ".join(fix_homoglyphs(line.text).split()))
+        text = fix_regionalisms(fix_spoken_text(" ".join(fix_homoglyphs(line.text).split())))
         text, changed = strip_advice(text)
         if changed:
             log.warning("Guionista: eliminada una frase con recomendación de inversión")
@@ -331,7 +422,7 @@ def write_script(
     Args:
         analysis: salida del Agente Analista.
         llm: proveedor LLM inyectado.
-        target_minutes: duración objetivo (≈150 palabras por minuto).
+        target_minutes: duración objetivo (≈143 palabras habladas por minuto).
         speaker_names: nombres de los locutores A y B (solo para el texto del guion).
         max_retries: reescrituras como máximo si el guion tiene problemas (por defecto 1).
         length_tolerance: desviación relativa de duración tolerada; ``None`` desactiva esa
@@ -398,15 +489,22 @@ __all__ = [
     "MAX_MINUTES",
     "MAX_SAME_SPEAKER_RUN",
     "MIN_MINUTES",
+    "REGIONALISM_FIXES",
     "WORDS_PER_MINUTE",
+    "WRITTEN_WORDS_PER_MINUTE",
     "build_user_message",
     "duration_bounds_s",
     "estimate_duration_s",
     "fallback_script",
+    "fix_regionalisms",
     "merge_long_runs",
     "missing_key_points",
+    "regionalisms",
     "same_speaker_runs",
     "script_problems",
     "script_text",
+    "spoken_word_count",
+    "target_written_words",
     "write_script",
+    "written_word_count",
 ]

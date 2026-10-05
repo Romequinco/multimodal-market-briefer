@@ -9,6 +9,8 @@ Pasos de ``run_briefing`` (cada uno registra un ``StepMetric`` con latencia y co
 3. ``MarketContext`` -> ``agents.analyst`` -> ``Analysis``                          [núcleo]
 4. ``agents.scriptwriter`` -> ``PodcastScript``                                     [núcleo]
 5. ``media.podcast`` -> ``AudioAsset``; ``media.transcript`` -> ``Transcript``      [núcleo]
+   ``media.verify``: STT del MP3 final y WER frente al guion (solo modo real, en paralelo
+   con 6-7; ``BRIEFER_VERIFY_PODCAST``)                                          [opcional]
 6. ``media.charts`` -> ``ChartAsset`` [núcleo]; ``media.cover``                     [opcional]
 7. ``media.video`` -> ``VideoAsset``                                                [opcional]
 8. ``delivery.<canal>`` -> ``DeliveryResult``; ``storage.save``                     [opcionales]
@@ -443,6 +445,52 @@ def _optional_step(
         return None
 
 
+def _start_podcast_verification(
+    s: Settings,
+    run_mode: str,
+    stt: STTProvider,
+    audio: AudioAsset,
+    script: PodcastScript,
+    metrics: list[StepMetric],
+) -> Future[list[StepMetric]] | None:
+    """Lanza en un hilo la verificación del podcast (``transcript.verify_podcast``) y devuelve el
+    *future* con su ``StepMetric`` (``media.verify``), o ``None`` si no procede.
+
+    Solo en modo real, con ``BRIEFER_VERIFY_PODCAST`` activo, STT real y audio real (si el
+    podcast cayó a ``MockTTS`` no hay voz que transcribir). Es opcional: si falla, el
+    ``StepMetric`` lleva el error y el briefing sigue igual.
+    """
+    podcast_metric = next((m for m in reversed(metrics) if m.step == "media.podcast"), None)
+    if not (
+        s.briefer_verify_podcast
+        and run_mode == "real"
+        and stt.provider_name != "mock"
+        and podcast_metric is not None
+        and podcast_metric.provider != "mock"
+    ):
+        return None
+    own: list[StepMetric] = []
+
+    def _verify(step: StepHandle) -> transcript_mod.PodcastVerification:
+        try:
+            result = transcript_mod.verify_podcast(audio.path, script, stt, language=s.briefer_language)
+        finally:
+            duration = float(getattr(stt, "last_duration_s", 0.0) or 0.0)
+            step.est_cost_eur = costs.estimate_cost_eur(stt.provider_name, stt.model, duration_s=duration)
+        step.detail = result.summary()
+        return result
+
+    def _job() -> list[StepMetric]:
+        _optional_step("media.verify", stt.provider_name, stt.model, own, _verify)
+        return own
+
+    pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="verify")
+    try:
+        return pool.submit(_job)
+    finally:
+        pool.shutdown(wait=False)  # el hilo termina solo; el future sigue siendo válido
+
+
 class _Progress:
     """Notifica el avance a la UI con el formato ``"(n/N) mensaje"``."""
 
@@ -842,6 +890,9 @@ def _run_briefing(
             out_dir,
             speaker_names={"A": s.briefer_speaker_a_name, "B": s.briefer_speaker_b_name},
         )
+    # 5b. Verificación del podcast con STT (opcional, en segundo plano mientras se dibujan los
+    #     gráficos): WER del MP3 final frente al guion en ``media.verify``.
+    verify_future = _start_podcast_verification(s, run_mode, providers.stt, audio, script, metrics)
 
     # 6. Gráficos (núcleo) y portada (opcional)
     notify("Dibujando los gráficos del día…")
@@ -890,6 +941,9 @@ def _run_briefing(
             metrics,
             lambda _step: video_mod.make_video(audio, images, out_dir / "briefing.mp4", transcript),
         )
+
+    if verify_future is not None:
+        metrics.extend(verify_future.result())  # nunca lanza: _optional_step se traga los fallos
 
     briefing = Briefing(
         id=briefing_id,
