@@ -27,6 +27,9 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
   suma de pasos supera a la pared porque ingesta y subidas van en paralelo.
 - Con 4 briefings y 7 preguntas no hay p50/p95 fiables: se dan rangos. p50/p95 con ≥ 5 + 5 ejecuciones en el
   [camino de revisión 1](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2).
+- **Desde los briefings guardados:** `python scripts/metrics_report.py [--dir …] [--include-demo] [--markdown|--json]`
+  recalcula latencia y coste por paso (p50/p95) a partir de `Briefing.metrics` en disco, sin red ni coste. Ver
+  [§ 3 · Medido con `metrics_report.py`](#medido-con-metrics_reportpy-briefings-guardados).
 
 ## 1. Supuestos y tarifas
 
@@ -61,7 +64,7 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | Gráficos, transcripción, guardado | matplotlib / local | 0 € | **0 €** | **0 €** |
 | Portada (opcional) | API texto→imagen | ~0,02-0,04 € | no implementado | no implementado |
 | Vídeo (opcional) | ffmpeg | 0 € | no implementado | no implementado |
-| **Total briefing base** (sin subidas, edge-tts) | | ~0,06-0,08 € | **≈ 0,033 €** (derivado) | **≈ 0,036 €** (derivado: Analista + Guionista) |
+| **Total briefing base** (sin subidas, edge-tts) | | ~0,06-0,08 € | **≈ 0,033 €** (derivado) | **≈ 0,036 €** (derivado: Analista + Guionista) · **0,0340 €** medido en 1 briefing sin subidas (`20261005-135612-88b415`, [§ 3](#medido-con-metrics_reportpy-briefings-guardados)) |
 | **Total con PDF + gráfico** | | ~0,12-0,17 € | **≈ 0,065 €** (0,0640-0,0660 €) | **0,0662 €** |
 | **Total con ElevenLabs** | | ~0,80-1,15 € | no medido | no medido |
 
@@ -111,12 +114,55 @@ Dos regímenes distintos:
 | Transcripción + SRT + gráficos + guardado | 1-4 s | **1,5-1,8 s** | **1,7 s** | Tiempos del propio TTS, sin modelo extra |
 | Vídeo | 30-90 s | no implementado | no implementado | ffmpeg 720p, imágenes estáticas + audio |
 | **Briefing completo** (con PDF + gráfico) | 1-3 min sin vídeo | **61,1-63,6 s** de pared | **82,9 s** de pared (134,4 s de suma) | Batch nocturno; en vivo con barra de progreso |
-| Briefing sin subidas | — | **≈ 40 s** (derivado) | **≈ 50 s** (derivado: pared − visión) | |
+| Briefing sin subidas | — | **≈ 40 s** (derivado) | **≈ 50 s** (derivado: pared − visión) · **≈ 55 s** de pared medida en 1 briefing sin caché (63,0 s de suma; [abajo](#medido-con-metrics_reportpy-briefings-guardados)) | |
 
 La final es más lenta que la F1 por tres motivos medidos: la visión de la API tardó ~31 s (variabilidad; en otra
 ejecución de la F1 el PDF tardó 63 s), hay más fuentes de noticias y un enriquecimiento de extractos, y el guion
 fue más largo (28 intervenciones, 5:27 de audio). **Camino crítico:** visión (~21-32 s, en paralelo con la
 ingesta) → Analista (~11 s) → Guionista (~13-18 s) → TTS (~12-20 s) ≈ 60-80 s.
+
+### Medido con `metrics_report.py` (briefings guardados)
+
+Salida de `python scripts/metrics_report.py --dir data/outputs --include-demo --markdown` ejecutado el
+**05-oct-2026** sobre los briefings guardados en disco (sin llamadas nuevas a la API):
+
+- **N = 2 briefings reales** (0 `demo_voices`, 0 `mock`): el pregenerado `20261005-130504-0f8ae2` (PDF + gráfico,
+  sin caché, ≈ 13:05) y `20261005-135612-88b415` (sin subidas, sin caché, ≈ 13:56). Mismos 5 tickers + índices de
+  contexto. La carpeta original del pregenerado en `data/outputs/` no tiene `briefing.json` (solo `qa/`) y se salta.
+- El modo no se guarda en el briefing: el script lo deduce de los `StepMetric` (noticias de `samples` sin fallback
+  → offline; podcast `edge` → `demo_voices`). Las cifras son solo de los reales.
+- **Percentiles por interpolación lineal** (tipo 7, como `numpy.percentile`). **Con N = 2 el p50 es la media y
+  el p95 casi el máximo: solo orientativos**; sirven para fijar el método, no como SLA.
+- **Pared aproximada** = `created_at` − hora del id (`YYYYMMDD-HHMMSS`, se fija al empezar `run_briefing`) +
+  pasos posteriores (`delivery.*`, `storage.save`); el id va truncado al segundo (error 0 a +1 s). Para el
+  pregenerado da 83,1 s frente a los 82,9 s cronometrados en la tanda final.
+- Coste = suma de `StepMetric.est_cost_eur` (tokens reales × tarifas de `costs.py`, no factura).
+
+| Briefing | Subidas | Pared (aprox.) | Suma de pasos | Coste | Fallbacks |
+| --- | --- | --- | --- | --- | --- |
+| 20261005-130504-0f8ae2 (pregenerado) | PDF + gráfico | 83,1 s | 134,4 s | 0,0662 € | 0 |
+| 20261005-135612-88b415 | sin subidas | 55,1 s | 63,0 s | 0,0340 € | 0 |
+| **p50 · p95 (N = 2, orientativo)** | | 69,1 s · 81,7 s | 98,7 s · 130,8 s | 0,0501 € · 0,0646 € | 0 en 0 de 2 |
+
+| Paso | Proveedor/modelo | N | Latencia p50 | Latencia p95 | Latencia máx | Coste p50 | Coste p95 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ingest.news | yfinance+rss | 2 | 10,5 s | 11,8 s | 11,9 s | 0 € | 0 € |
+| ingest.prices | yfinance | 2 | 8,1 s | 8,2 s | 8,2 s | 0 € | 0 € |
+| ingest.tickers | local | 2 | 0,0 s | 0,0 s | 0,0 s | 0 € | 0 € |
+| ingest.pdf | anthropic/claude-sonnet-5-5 | 1 | 31,8 s | 31,8 s | 31,8 s | 0,0145 € | 0,0145 € |
+| ingest.chart | anthropic/claude-sonnet-5-5 | 1 | 31,6 s | 31,6 s | 31,6 s | 0,0157 € | 0,0157 € |
+| agents.analyst | anthropic/claude-sonnet-5-5 | 2 | 11,2 s | 11,3 s | 11,3 s | 0,0256 € | 0,0260 € |
+| agents.scriptwriter | anthropic/claude-haiku-4-5-20251001 | 2 | 15,5 s | 17,7 s | 17,9 s | 0,0094 € | 0,0099 € |
+| media.podcast | edge/edge-tts | 2 | 19,7 s | 20,3 s | 20,4 s | 0 € | 0 € |
+| media.transcript | local | 2 | 0,0 s | 0,0 s | 0,0 s | 0 € | 0 € |
+| media.charts | matplotlib | 2 | 1,9 s | 2,2 s | 2,2 s | 0 € | 0 € |
+| storage.save | local | 2 | 0,0 s | 0,0 s | 0,0 s | 0 € | 0 € |
+
+Lectura: sin subidas el briefing cuesta **0,034 €** y tarda **≈ 55 s** de pared (camino crítico ingesta ~9-12 s →
+Analista ~11 s → Guionista ~13 s → TTS ~19 s), en línea con lo derivado arriba (≈ 0,036 € y ≈ 50 s). El **Q&A no
+sale en este informe**: `QAAnswer.metrics` no se guarda en disco (en `<id>/qa/` solo queda el audio de la
+respuesta; hay 2), así que sus cifras siguen siendo las de la tabla siguiente, medidas en vivo. Para p50/p95
+con valor hay que acumular ≥ 5 briefings reales y volver a ejecutar el script.
 
 ### Q&A
 
