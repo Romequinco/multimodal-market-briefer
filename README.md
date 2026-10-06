@@ -24,10 +24,10 @@ texto a voz, CLIP, FinBERT, SDXS) con contratos tipados entre cada paso.
 
 > **Estado (listo para entregar; entrega el jue 8-oct-2026).** Fases 0-3 cerradas: núcleo real de punta a punta (noticias →
 > Analista → Guionista → podcast → SRT → gráficos), todas las modalidades de la tabla verificadas en real (vídeo,
-CLIP, cartera desde captura, portada local y Telegram incluidos), **Docker verificado**,
+> CLIP, cartera desde captura, portada local y Telegram incluidos), **Docker verificado**,
 > clon limpio en Windows con `run.ps1`, **1225 tests sin red** (+ 13 «live») con ruff + mypy, y evaluación de
 > **6 briefings reales** (p50 52,7 s y 0,034 €; 0 recomendaciones; 232/232 cifras trazables). Quedan la demo
-> grabada y el pregenerado final. Detalle y registro de jornadas en
+> grabada, el nombre del tercer integrante y subir la rama (CI en GitHub). Detalle y registro de jornadas en
 > [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
 > **Aviso legal.** Briefly genera **información financiera genérica con fines educativos**. No es asesoramiento
