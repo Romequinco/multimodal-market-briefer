@@ -32,12 +32,15 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 |---|---|---|
 | UI | Streamlit multipágina (`app/`) | — |
 | LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A; ADR-006) | Gemini, mock (OpenAI: *stub*); `BRIEFER_SCRIPTWRITER_MODEL` |
-| Visión (gráficos, páginas PDF) | Claude visión | Qwen2.5-VL local, mock |
+| Visión (gráficos, páginas PDF, captura de cartera) | Claude visión (cartera: visión transcribe → Haiku estructura) | Qwen2.5-VL local (*stub*), mock |
+| Router de imágenes subidas | CLIP local `clip-vit-base-patch32` (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip`): no financiera → rechazada sin visión | none, mock |
 | STT | OpenAI API (`gpt-4o-mini-transcribe`; `whisper-1` por config) | mock (Whisper local: *stub*) |
 | TTS 2 voces | `edge-tts` (gratis, por defecto: Álvaro/Ximena +10 %) · Gemini 3.8 TTS multi-locutor (premium, demo; Q&A siempre edge) | ElevenLabs (*stub*), mock |
 | Tono de noticias (opcional) | Haiku traduce → FinBERT local (`BRIEFER_FINBERT`, PR #1 de Daniel) | desactivado |
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
-| Gráficos / vídeo | matplotlib / ffmpeg vía `imageio-ffmpeg` (vídeo pendiente, D2) | — |
+| Gráficos / vídeo | matplotlib / vídeo 9:16 con Pillow (diapositivas) + ffmpeg de `imageio-ffmpeg` (concat + subtítulos ASS), sin moviepy | — |
+| Portada (opcional) | Gemini imagen `gemini-3.1-flash-lite-image` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`; exige facturación, sin prueba real) | none, mock (SDXL-Turbo: *stub*) |
+| Entrega | web · Telegram Bot API (`requests`; sin prueba real: falta el bot) | email (*stub*) |
 | Config | `.env` → `src/briefer/config.py` | — |
 
 ## Mapa del repo
@@ -105,6 +108,7 @@ python scripts/demo.py --demo-voices  # sin claves: datos de ejemplo + LLM mock 
 python scripts/demo.py [--refresh]    # modo real con claves de .env (--refresh ignora la caché diaria)
 python scripts/demo.py --question "…" --briefing pregenerado --warmup   # Q&A por CLI (salida 0/1/2/3/130)
 python scripts/smoke_real.py          # humo real y barato de cada proveedor con clave (< 0,01 €)
+python scripts/telegram_setup.py [--write] [--test]   # bot de Telegram: lista chats, escribe TELEGRAM_CHAT_ID, prueba
 ```
 
 Modos del pipeline: `run_briefing(..., mode="real"|"mock"|"demo_voices", use_cache=True)` (ver

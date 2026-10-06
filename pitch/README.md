@@ -8,7 +8,9 @@ Contenido previsto (TODO):
   de datos), modelos encadenados y por qué, costes por briefing y latencias medidas
   (de `StepMetric`), compliance (MiFID II: no es asesoramiento; RGPD: datos de cartera),
   monetización (B2C como cara visible, B2B2C de marca blanca como negocio) y roadmap
-  (edición de mañana, vídeo 9:16, envíos).
+  (edición de mañana, email, recorte automático de capturas de cartera). El vídeo 9:16, el router
+  CLIP y la cartera desde captura ya están hechos (06-oct); portada y Telegram, implementados sin
+  prueba real: ver `docs/06_estado_actual.md` antes de contarlos como demostrados.
 - `capturas/` — capturas de la app para el deck y el README.
 - `demo/` — enlace o vídeo corto de la demo (los `.mp4` pesados no se versionan; subir a un
   enlace externo y referenciarlo aquí).

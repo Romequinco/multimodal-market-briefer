@@ -4,7 +4,8 @@ Este documento permite que los tres carriles trabajen **en paralelo** desde el d
 contra estos contratos y usa `providers/mock.py` y los datos de `data/samples/` mientras lo de los demás no
 existe.
 
-**Versión de contratos: v0.3.1 (05-oct-2026, cierre de la revisión de las Fases 0 y 1).** Fuente de verdad en
+**Versión de contratos: v0.3.5 (06-oct-2026, cierre de la fase 1: vídeo, portada, Telegram, router CLIP y cartera
+desde captura).** Fuente de verdad en
 código: `src/briefer/schemas.py` (`CONTRACTS_VERSION = "0.3"`) y `src/briefer/providers/base.py`. La v0.3.1 **no
 toca** `schemas.py` ni `providers/base.py` (por eso `CONTRACTS_VERSION` sigue en `"0.3"`): añade funciones,
 constantes y parámetros opcionales en los módulos y cambia la **semántica** de dos cosas (persistencia sin cartera
@@ -12,7 +13,8 @@ y `input_tokens` sin caché; ver el registro). Si el código y este documento di
 en el mismo cambio. Cambios respecto a v0.1, v0.2 y v0.3: ver el
 [registro de cambios](#registro-de-cambios-de-contrato) al final (todos **aditivos**: ningún campo ni firma
 anterior cambia de tipo ni desaparece; solo se añaden campos con valor por defecto, parámetros opcionales
-*keyword-only* y funciones nuevas). Marcado **(v0.3.1)** lo añadido en la revisión.
+*keyword-only* y funciones nuevas; las excepciones están anotadas en su fila). Marcado **(v0.3.1)** lo añadido en
+la revisión y **(v0.3.5)** lo añadido en la fase 1 del 06-oct (tampoco toca `schemas.py` ni `providers/base.py`).
 
 > A partir del martes 6-oct a las 13:00 (Sync 1) **solo se admiten cambios aditivos** en `schemas.py` y
 > `providers/base.py`, con un único responsable de hacer el merge (ver [05](05_roadmap_TODO.md#reglas-de-trabajo)).
@@ -193,8 +195,8 @@ class ProviderConfigError(RuntimeError): ...  # proveedor desconocido, sin clave
 | `get_vision` | `BRIEFER_VISION_PROVIDER` | `claude` · `qwen_local` · `mock` | `ANTHROPIC_API_KEY` (solo `claude`) |
 | `get_stt` | `BRIEFER_STT_PROVIDER` | `whisper_api` · `whisper_local` · `mock` | `OPENAI_API_KEY` (solo `whisper_api`; modelo `BRIEFER_WHISPER_API_MODEL`, por defecto `gpt-4o-mini-transcribe`) |
 | `get_tts` | `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` (v0.3.4, de pago) · `elevenlabs` · `mock` | `GEMINI_API_KEY` (solo `gemini`; modelo `BRIEFER_GEMINI_TTS_MODEL`, voces `BRIEFER_GEMINI_VOICE_A`/`_B`) · `ELEVENLABS_API_KEY` (solo `elevenlabs`) |
-| `get_image_gen` | `BRIEFER_IMAGE_GEN_PROVIDER` | `sdxl_turbo` · `none` · `mock` | — (`none` → devuelve `None`) |
-| `get_image_classifier` | `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` · `none` · `mock` | — (`none` → devuelve `None`) |
+| `get_image_gen` | `BRIEFER_IMAGE_GEN_PROVIDER` | `gemini` (v0.3.5, de pago) · `sdxl_turbo` (*stub*) · `none` · `mock` | `GEMINI_API_KEY` (solo `gemini`; modelo `BRIEFER_GEMINI_IMAGE_MODEL`, por defecto `gemini-3.1-flash-lite-image`; necesita facturación activa: sin ella, 429 con cuota 0) · `none` → devuelve `None` |
+| `get_image_classifier` | `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` (v0.3.5, local) · `none` · `mock` | — (`clip` necesita `torch` + `transformers` de `requirements-local.txt`; `none` → devuelve `None`) |
 
 Comportamiento:
 
@@ -295,6 +297,19 @@ def process_upload(path: Path, providers: Providers, metrics: list[StepMetric],
                    language: str = "es") -> DocumentInsight: ...
     # enruta por extensión: PDF / imagen / audio; extensión no soportada -> ValueError
     # (registrado como paso "ingest.upload"). Propaga errores: run_briefing decide omitir la subida.
+    # (v0.3.5) imagen: validate_image -> chart_reader.route_image (CLIP; nunca lanza) -> si es captura de
+    # cartera, ValueError «súbela en «Mi cartera»» SIN llamar a visión (los tickers ya están fijados);
+    # si es no financiera, read_chart lanza ValueError sin llamar a visión; si no, read_chart con la pista.
+    # StepMetric.detail de ingest.chart = format_route_stats (p. ej. «CLIP: gráfico de velas japonesas
+    # (99 %) · 0,08 s»), también si la subida se rechaza.
+def portfolio_from_screenshot(image: bytes, *, name: str = "Mi cartera", use_mock: bool = False,
+                              mode: RunMode | None = None, settings: Settings | None = None,
+                              stats_out: dict | None = None) -> tuple[Portfolio, StepMetric]: ...  # (v0.3.5)
+    # captura del broker -> Portfolio con ingest.portfolio.portfolio_from_image (visión -> LLM barato).
+    # Paso "ingest.portfolio_image" (latencia + coste de visión y LLM). Solo resuelve esos dos proveedores.
+    # Privacidad (ADR-005): todo en memoria; detail sin nombres ni cifras («5 filas leídas, pesos por
+    # valor»). stats_out recibe las filas descartadas (para avisar en la UI). Raises: ValueError (imagen
+    # no válida o sin posiciones reconocibles; mensaje apto para la UI). Lo usa la página «Mi cartera».
 def run_briefing(tickers: Sequence[str], portfolio: Portfolio | None = None,
                  uploads: Sequence[Path] | None = None, make_video: bool = False,
                  deliver: Sequence[str] | None = None, *, make_cover: bool = False,
@@ -419,7 +434,8 @@ USD_TO_EUR = 0.86
 LLM_PRICES_USD_PER_MTOK: dict[str, tuple[float, float]]   # claude-sonnet-5-5 (2, 10) · claude-haiku-4-5 (1, 5)…
 STT_PRICES_USD_PER_MIN: dict[str, float]                  # whisper-1 0.006 · gpt-4o-mini-transcribe 0.003
 TTS_PRICES_USD_PER_1K_CHARS: dict[str, float]             # edge 0 · elevenlabs 0.18 · openai-tts-1 0.015
-IMAGE_GEN_PRICES_USD_PER_IMAGE: dict[str, float]
+IMAGE_GEN_PRICES_USD_PER_IMAGE: dict[str, float]          # (v0.3.5) gemini-3.1-flash-lite-image 0.0336 (tarifa oficial,
+                                                          #   06-oct-2026) · gemini-3.1-flash-image 0.067 · sdxl_turbo 0
 LOCAL_PROVIDERS: set[str]                                 # coste 0: mock, edge, local, samples, synthetic…
 CACHE_READ_MULTIPLIER = 0.1                               # (v0.3.1) lectura de caché de prompts: 0,1× entrada
 CACHE_WRITE_MULTIPLIER = 1.25                             # (v0.3.1) escritura en caché: 1,25× entrada
@@ -431,7 +447,8 @@ def estimate_llm_cost_eur(model: str, input_tokens: int = 0, output_tokens: int 
                           cache_creation_input_tokens: int = 0) -> float: ...  # (v0.3.1)
 def estimate_stt_cost_eur(model: str, duration_s: float) -> float: ...
 def estimate_tts_cost_eur(provider: str, n_chars: int) -> float: ...
-def estimate_image_cost_eur(provider: str, n_images: int = 1) -> float: ...
+def image_price_usd(provider: str, model: str = "") -> float: ...   # (v0.3.5) por id de modelo (admite sufijos) o proveedor
+def estimate_image_cost_eur(provider: str, n_images: int = 1, model: str = "") -> float: ...   # model (v0.3.5)
 def estimate_cost_eur(provider: str, model: str, **usage: float) -> float: ...
     # usage: input_tokens/output_tokens (+ cache_read_/cache_creation_input_tokens, v0.3.1) · duration_s ·
     # n_chars · n_images; LOCAL_PROVIDERS -> 0.0 (incluye "samples", "synthetic", "local", "edge"…)
@@ -485,7 +502,7 @@ fallback desactivado) o el sustituto también falla, aborta con `PipelineStepErr
 | **Núcleo** | `media.podcast` | `MockTTS` |
 | **Núcleo** | `ingest.tickers`, `media.transcript`, `media.charts` | ninguno (locales): `PipelineStepError` |
 | **Opcional** | `ingest.impact` (v0.3.4, solo si `BRIEFER_FINBERT=true` y hay noticias reales; en paralelo con el Analista; si falla o no está instalado, sin `news_impact.json`) |
-| **Opcional** | `ingest.pdf` / `ingest.chart` / `ingest.voice` / `ingest.upload` (uno por subida), `media.cover` (si `make_cover` y hay proveedor de imagen), `media.video` (si `make_video`), `delivery.<canal>` (uno por canal), `storage.save` | Se omite: subida sin insight, `cover_path=None`, `video=None`, `DeliveryResult(ok=False, detail="Error al enviar: …")`, briefing solo en memoria |
+| **Opcional** | `ingest.pdf` / `ingest.chart` / `ingest.voice` / `ingest.upload` (uno por subida), `media.cover` (si `make_cover` y hay proveedor de imagen; coste por imagen con `costs.estimate_cost_eur(..., n_images=1)`), `media.video` (si `make_video`; v0.3.5: `provider="ffmpeg"`, `model="libx264"`, 0 €), `delivery.<canal>` (uno por canal), `storage.save` | Se omite: subida sin insight (v0.3.5: también la imagen no financiera o la captura de cartera, sin coste de visión), `cover_path=None`, `video=None`, `DeliveryResult(ok=False, detail="Error al enviar: …")`, briefing solo en memoria |
 
 **Semántica del fallback (v0.3).** Se registra **un solo** `StepMetric` por paso: `provider`/`model` del
 sustituto, `latency_s` = tiempo total (intento fallido + sustituto), `est_cost_eur` = suma de ambos,
@@ -706,18 +723,41 @@ def format_pdf_stats(stats: dict[str, Any]) -> str | None: ...                  
     # StepMetric.detail de ingest.pdf: "12 de 12 páginas leídas · 3 a visión (3 renderizadas)" o
     # "… (N imágenes embebidas; sin pypdfium2: gráficos vectoriales no analizados)"
 
-# chart_reader.py  [impl; usa los proveedores inyectados]
-CHART_LABELS: list[str]      # etiquetas del clasificador zero-shot; la última = "no es un gráfico"
-NOT_CHART_LABEL: str
-NOT_CHART_THRESHOLD = 0.6
+# chart_reader.py  [impl; usa los proveedores inyectados; router CLIP desde v0.3.5]
+CANDLES_LABEL, LINES_LABEL, TABLE_LABEL: str                  # (v0.3.5) etiquetas en español (las ve la traza)
+PORTFOLIO_LABEL: str                                          # (v0.3.5) «captura de cartera o posiciones de un bróker»
+NOT_CHART_LABEL, MEME_LABEL, TEXT_DOC_LABEL: str              # (v0.3.5) las 3 no financieras
+CHART_KIND_LABELS: tuple[str, ...]                            # (v0.3.5) velas, líneas, tabla
+NOT_FINANCIAL_LABELS: tuple[str, ...]                         # (v0.3.5) foto, meme/dibujo, documento no financiero
+CHART_LABELS: list[str]      # (v0.3.5) las 7: CHART_KIND_LABELS + PORTFOLIO_LABEL + NOT_FINANCIAL_LABELS
+NOT_CHART_THRESHOLD = 0.6    # (v0.3.5) sobre la SUMA de las no financieras (antes: una sola etiqueta)
+PORTFOLIO_THRESHOLD = 0.5                                     # (v0.3.5)
+HINT_THRESHOLD = 0.5         # (v0.3.5) por debajo, la etiqueta no se pasa como pista a visión
+ImageKind = Literal["grafico", "tabla", "cartera", "no_financiera"]                  # (v0.3.5)
+@dataclass(frozen=True)
+class ImageRoute:            # (v0.3.5) label, prob, kind, probs; .rejected, .is_portfolio, .hint() -> str
 SUPPORTED_FORMATS = {"PNG", "JPEG", "WEBP", "GIF", "MPO"}     # (v0.3.1: MPO, el JPEG de muchos móviles)
 CHART_PROMPT: str
 STRUCTURE_SYSTEM: str        # (v0.3.1) la descripción del VLM va entre <descripcion> y </descripcion> como DATO
 def validate_image(image: bytes) -> str: ...   # formato ("PNG"…); vacía/corrupta/no soportada -> ValueError
-def classify_image(image: bytes, classifier: ImageClassifier) -> tuple[str, float]: ...
+def decide_route(probs: dict[str, float]) -> ImageRoute: ...                         # (v0.3.5) función pura
+    # 1) suma no financieras >= 0,6 -> no_financiera; 2) cartera >= 0,5 -> cartera; 3) la más probable de
+    # velas/líneas/tabla. Sin probabilidades -> grafico con prob 0 (sin pista)
+def classify_image(image: bytes, classifier: ImageClassifier) -> ImageRoute: ...
+    # (v0.3.5, ROMPE) antes devolvía tuple[str, float]; propaga los errores del clasificador
+def route_image(image: bytes, classifier: ImageClassifier | None,
+                stats_out: dict[str, Any] | None = None) -> ImageRoute | None: ...   # (v0.3.5) nunca lanza
+    # None sin clasificador, sin torch/transformers o si falla (aviso en el log). stats_out: status,
+    # provider, model, label, prob, kind, classify_s
+def format_route_stats(stats: dict[str, Any] | None) -> str | None: ...              # (v0.3.5) detail de ingest.chart
 def read_chart(image: bytes, source_name: str, vision: VisionProvider,
                llm: LLMProvider | None = None,
-               classifier: ImageClassifier | None = None) -> DocumentInsight: ...
+               classifier: ImageClassifier | None = None, *,
+               route: ImageRoute | None = None,                                       # (v0.3.5)
+               stats_out: dict[str, Any] | None = None) -> DocumentInsight: ...       # (v0.3.5)
+    # (v0.3.5, cambio de semántica) imagen no financiera -> ValueError SIN llamar a visión (antes devolvía
+    # un DocumentInsight vacío con el aviso en summary). Una ruta "cartera" se lee como gráfico: desviarla
+    # a portfolio_from_image es cosa del llamante (pipeline.process_upload).
 
 # portfolio.py  [impl]
 WEIGHT_TOLERANCE = 0.02
@@ -725,6 +765,20 @@ def load_portfolio_csv(source: Path | BinaryIO | str, name: str = "Mi cartera") 
     # v0.3.1: separadores , ; tab |, decimales con coma, pesos en % o con "€", cabeceras en español,
     # filas «Total»/«Suma» ignoradas
 def portfolio_tickers(portfolio: Portfolio) -> list[str]: ...
+# (v0.3.5) Cartera desde la captura de posiciones de un broker
+SCREENSHOT_PROMPT: str; SCREENSHOT_STRUCTURE_SYSTEM: str      # la imagen y su transcripción son DATO
+MOCK_SCREENSHOT_TRANSCRIPTION: str                            # la de data/samples/cartera_ejemplo.png (camino mock)
+class ScreenshotHolding(BaseModel): name, ticker, quantity, price, value, weight_pct   # interno, no es contrato
+class ScreenshotHoldings(BaseModel): rows: list[ScreenshotHolding]                     # response_model (ADR-004)
+def parse_screenshot_table(transcription: str) -> ScreenshotHoldings: ...   # parser determinista (camino mock)
+def portfolio_from_image(image: bytes, vision: VisionProvider, llm: LLMProvider,
+                         name: str = "Mi cartera", stats_out: dict | None = None) -> Portfolio: ...
+    # visión transcribe la tabla -> LLM barato la estructura -> sin IA: tickers con normalize_ticker /
+    # TICKER_UNIVERSE («Banco Santander» -> SAN.MC; un ticker fuera del universo solo si aparece literal),
+    # duplicados fusionados, pesos normalizados por valor de mercado (o títulos × precio) o, si no, por el
+    # % de la captura. Totales y liquidez se ignoran; filas no reconocidas -> stats_out["discarded"].
+    # Todo en memoria (ADR-005). Raises: ValueError (imagen no válida o ninguna posición reconocible)
+def format_screenshot_stats(stats: dict) -> str: ...          # detail sin nombres ni cifras
 
 # voice.py  [impl; usa el STT inyectado — WhisperAPI real desde v0.3.1]
 SUMMARY_MAX_CHARS = 300                                        # (v0.3.1) resumen de una nota de voz
@@ -983,19 +1037,46 @@ def verify_podcast(audio_path: Path, script: PodcastScript, stt: STTProvider, *,
     # BRIEFER_VERIFY_PODCAST=true), en un hilo en paralelo con gráficos/portada/vídeo; WER en
     # StepMetric.detail y coste por last_duration_s del STT.
 
-# cover.py, video.py, send_briefing_email, send_briefing_telegram: siguen siendo stubs; desde v0.3.1 la UI
-# muestra sus controles desactivados («en desarrollo»), así que solo se alcanzan por CLI (--cover, --video,
-# --deliver) y el paso opcional se omite con aviso en el log.
+# (v0.3.5) cover.py, video.py y send_briefing_telegram implementados; la UI los activa en «Opciones
+# avanzadas: vídeo, portada y envíos». send_briefing_email sigue siendo stub (no se ofrece en la UI).
 
-# cover.py  [stub, opcional → D2]
+# cover.py  [impl, v0.3.5; opcional] — portada: texto a imagen + textos superpuestos con Pillow
+AI_LABEL = "Imagen generada por IA"      # marca obligatoria (AI Act art. 50), esquina superior derecha
+MIN_WIDTH = 1024; MAX_TITLE_LINES = 3
+def dominant_sentiment(analysis: Analysis) -> str: ...        # mayoritario de key_points; empate -> "neutral"
 def build_cover_prompt(analysis: Analysis) -> str: ...
+    # prompt en inglés: estilo fijo de marca + matiz del sentimiento; SIN cifras, empresas, tickers ni titular
+def format_date_es(value: Any) -> str: ...                    # date -> «6 de octubre de 2026»
+def cover_texts(title: str, date_text: str) -> dict[str, str]: ...   # {"title", "meta", "ai_label"} (pura)
+def wrap_text(text: str, font, max_width: float, draw, max_lines: int = MAX_TITLE_LINES) -> list[str]: ...
 def overlay_title(image_path: Path, title: str, date_text: str) -> Path: ...
+    # franja inferior con titular y «Briefly · fecha» + placa «Imagen generada por IA»; sobrescribe el PNG
 def make_cover(analysis: Analysis, image_gen: ImageGenProvider | None, out_dir: Path) -> Path | None: ...
+    # out_dir/cover.png; None si image_gen es None. Errores del proveedor se propagan (paso opcional)
 
-# video.py  [stub, opcional → D2]
+# video.py  [impl, v0.3.5; opcional] — MP4 vertical con Pillow + ffmpeg de imageio-ffmpeg (sin moviepy)
+DEFAULT_SIZE = (720, 1280); DEFAULT_FPS = 12; MIN_SLIDE_S = 3.0
+SYNTHETIC_VOICE_LABEL = "Voces sintéticas generadas con IA"   # rótulo fijo (AI Act art. 50)
+FOOTER_NOTE = "Información, no asesoramiento financiero"
+def image_keywords(path: Path) -> list[str]: ...   # ticker del nombre del PNG -> nombre y alias de TICKER_UNIVERSE
+def first_mention(keywords: Sequence[str], segments: Sequence[AudioSegment]) -> float | None: ...
+def plan_slides(images: Sequence[Path], duration_s: float, segments: Sequence[AudioSegment] | None = None,
+                *, min_slide_s: float = MIN_SLIDE_S) -> list[tuple[Path, float]]: ...
+    # la 1.ª imagen (portada o gráfico general) abre; cada gráfico entra cuando el audio menciona su empresa;
+    # sin mención, parte el tramo más largo; sin segments o sin menciones, reparto uniforme. Suma = duration_s
+def ass_timestamp(seconds: float) -> str: ...; def ass_escape(text: str) -> str: ...
+def build_ass(segments, size, speaker_names=None) -> str: ...  # subtítulos ASS con el locutor (TORO/OSA) en su color
 def make_video(audio: AudioAsset, images: list[Path], out_path: Path,
-               transcript: Transcript | None = None, size: tuple[int, int] = (1080, 1920),
-               fps: int = 24) -> VideoAsset: ...
+               transcript: Transcript | None = None,       # se acepta por compatibilidad (subtítulos de audio.segments)
+               size: tuple[int, int] = DEFAULT_SIZE,      # (v0.3.5) antes (1080, 1920)
+               fps: int = DEFAULT_FPS, *,                 # (v0.3.5) antes 24
+               title: str | None = None,                  # (v0.3.5) titular bajo el logo
+               speaker_names: dict[str, str] | None = None) -> VideoAsset: ...   # (v0.3.5)
+    # episodio completo: una diapositiva por imagen (logo, titular, gráfico encajado sin deformar), concat
+    # de ffmpeg + subtítulos quemados + metadatos de IA del MP4 (AI_AUDIO_METADATA). Raises: ValueError
+    # (audio inexistente o sin duración, tamaño impar), RuntimeError (sin ffmpeg o fallo al codificar).
+    # El pipeline le pasa la portada (si hay) y los gráficos, nunca el de cartera (ADR-005: el MP4 se guarda
+    # en data/outputs y se puede enviar por Telegram)
 
 # email_sender.py
 SYNTHETIC_VOICE_NOTE: str
@@ -1004,11 +1085,24 @@ def build_email_html(briefing: Briefing, chart_cids: list[str] | None = None) ->
 def send_briefing_email(briefing: Briefing, to: list[str] | None = None,
                         settings: Settings | None = None) -> DeliveryResult: ...             # [stub] SMTP → D2
 
-# telegram_sender.py
+# telegram_sender.py  [impl, v0.3.5] — Bot API con requests (sin librerías extra)
 API_URL = "https://api.telegram.org/bot{token}/{method}"
+MAX_UPLOAD_BYTES = 50 MB (audio y vídeo); MAX_PHOTO_BYTES = 10 MB; MAX_MESSAGE_CHARS = 4096
+NOT_CONFIGURED = "Telegram no configurado"
+class TelegramError(RuntimeError): error_code: int | None    # mensaje siempre sin token
 def build_caption(briefing: Briefing, max_len: int = 1024) -> str: ...                      # [impl] pura
+def call_api(token: str, method: str, data: dict | None = None, *, file_field: str | None = None,
+             file_path: Path | None = None, timeout: tuple[float, float] = TIMEOUT_TEXT) -> Any: ...
+    # devuelve `result`; ok:false, no-JSON o red -> TelegramError; 429 con retry_after <= 5 s: 1 reintento
 def send_briefing_telegram(briefing: Briefing, chat_id: str | None = None,
-                           settings: Settings | None = None) -> DeliveryResult: ...         # [stub] red → D2
+                           settings: Settings | None = None) -> DeliveryResult: ...         # [impl] nunca lanza
+    # sendMessage (HTML) -> sendAudio (podcast) -> sendPhoto (portada o, si no, gráfico general; nunca el de
+    # cartera) -> sendVideo. Sin token o chat: ok=False, "Telegram no configurado" (sin red). Si el mensaje
+    # falla: ok=False y no sigue; un fallo posterior o un fichero por encima del límite no invalida lo
+    # enviado (ok=True, detail dice qué faltó). Token redactado en todo detail y log.
+# scripts/telegram_setup.py [--write] [--test] [--chat-id ID] [--env-file RUTA]  (v0.3.5)
+    # getMe + getUpdates: lista los chats que han escrito al bot; --write escribe TELEGRAM_CHAT_ID en .env
+    # (solo esa línea); --test manda un mensaje de prueba. Salida 0 / 1. El token nunca se imprime
 ```
 
 ### Proveedores reales (estado al cierre de la revisión de las Fases 0 y 1)
@@ -1021,8 +1115,10 @@ def send_briefing_telegram(briefing: Briefing, chat_id: str | None = None,
 | `GeminiLLM.complete` | **[impl]** (alternativo) | `response_mime_type="application/json"` + `response_json_schema`; misma validación con 1 reintento. Probado con `smoke_real.py` (estructurado); briefing completo con Gemini: no medido |
 | `GeminiTTS.synthesize_dialogue` | **[impl]** (v0.3.4, de pago; premium para la demo y el pregenerado) | `BRIEFER_GEMINI_TTS_MODEL` (`gemini-3.8-flash-tts`), `es-ES`, multi-locutor Puck (Toro) / Kore (Osa) con estilo por locutor («radio nocturna»). Devuelve PCM 24 kHz que se envuelve en WAV (`podcast_extension` MP3 tras `loudnorm`). Sin marcas de tiempo: duración del tramo repartida en proporción a la longitud hablada (`proportional_durations`). `last_usage` en tokens (texto de entrada, audio de salida) para `costs`. Reintentos del SDK ante 408/429/5xx; audio vacío o demasiado corto -> error. Si falla, el pipeline cae a edge-tts (`podcast_tts_fallback`) |
 | `EdgeTTS.synthesize` | **[impl]** | `edge-tts==7.2.8` (`TESTED_EDGE_TTS_VERSION`). Por defecto (v0.3.4, opción «B» de la cata) voces Álvaro / Ximena y `rate="+10%"` (`DEFAULT_RATE`, también si `BRIEFER_TTS_RATE` va vacío). Constructor `EdgeTTS(settings=None, *, rate=None, pitch=None, retries=2, backoff_s=1.0, connect_timeout=10, receive_timeout=60)` (`rate`/`pitch` por defecto de `BRIEFER_TTS_RATE`/`BRIEFER_TTS_PITCH`); `synthesize(text, voice, out_path, *, rate=None, pitch=None)` admite ajustar una llamada. Reintentos propios solo ante errores transitorios; escritura atómica (`.part` → MP3). Raises `ValueError` (texto/voz vacíos, `rate`/`pitch` mal formados), `RuntimeError` (sin audio tras reintentos) |
+| `CLIPClassifier.classify` | **[impl]** (v0.3.5, local, 0 €) | `BRIEFER_CLIP_MODEL` (`openai/clip-vit-base-patch32`, ~600 MB a la caché de Hugging Face la 1.ª vez), CPU. Varias frases en inglés por etiqueta con sus embeddings promediados (`LABEL_PROMPTS`, *prompt ensembling*); softmax sobre la similitud imagen-texto. Modelo cargado una vez por proceso (con *lock*); sin `torch`/`transformers` -> `ImportError` claro y `route_image` sigue sin clasificar. `clip_available()`, `prompts_for(label)` |
+| `GeminiImage.generate` | **[impl]** (v0.3.5, de pago; **sin prueba real**) | `BRIEFER_GEMINI_IMAGE_MODEL` (`gemini-3.1-flash-lite-image`), `generate_content` con `response_modalities=["IMAGE"]`, 16:9 a 1K; normaliza a PNG con escritura atómica. 1 reintento del SDK ante 408/429/5xx; el 429 de cuota 0 (clave sin facturación) se traduce a un mensaje claro (`is_no_billing_error`); respuesta sin imagen -> `RuntimeError` (paso opcional fallido). Coste por imagen en `costs.IMAGE_GEN_PRICES_USD_PER_IMAGE` |
 | `OpenAILLM.complete` | **[stub] documentado** | Recorte (docs/07, H10): lanza `NotImplementedError`; en el pipeline, el paso núcleo cae a mock marcado |
-| `QwenVLLocal`, `WhisperLocal`, `ElevenLabsTTS`, `SDXLTurbo`, `CLIPClassifier` | **[stub]** | *Won't* o D2; se retiran del registry antes de entregar si no se implementan |
+| `QwenVLLocal`, `WhisperLocal`, `ElevenLabsTTS`, `SDXLTurbo` | **[stub]** | *Won't* o D2; se retiran del registry antes de entregar si no se implementan |
 
 **`providers/llm/_anthropic_common.py` (v0.3.1, interno de los proveedores Anthropic):** `REQUEST_TIMEOUT_S = 120`,
 `CONNECT_TIMEOUT_S = 10`, `MAX_RETRIES = 3`, `LLMResponseError`, `make_client(settings)`, `get_client(settings)`
@@ -1099,7 +1195,10 @@ flowchart LR
    `storage.export_briefing` a `data/samples/demo_briefing/` junto a su `news_impact.json`.
 6. **Q&A por voz** *(hecho en la revisión, v0.3.1)*: `answer_question(Path)` → `WhisperAPI` → Q&A → TTS, con
    `warmup` y respuesta en dos tiempos (`speak=False` + `speak_answer`).
-7. **Pendiente (D2):** vídeo, portada, envíos (controles desactivados en la UI).
+7. **Salidas extra** *(hecho en la fase 1, v0.3.5)*: `media.video` (Pillow + ffmpeg), `media.cover`
+   (`GeminiImage`; sin prueba real por falta de facturación) y `delivery.telegram` (sin prueba real: falta
+   crear el bot), activos en «Opciones avanzadas» de la UI. Router CLIP en `process_upload` y cartera desde
+   captura (`portfolio_from_screenshot`, página «Mi cartera»). **Pendiente:** `delivery.email` (Could).
 
 ---
 
@@ -1118,3 +1217,4 @@ flowchart LR
 | v0.3.3 · marca | 05-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios.** Nuevo módulo `briefer.brand` (fuente única de la marca **Briefly**: `BRAND_NAME`, `TAGLINE`, `VALUE_PROPOSITION`, `GREETING`, locutores por defecto `SPEAKER_A_NAME` = «Toro» / `SPEAKER_B_NAME` = «Osa» con sus papeles, `COMPLIANCE_MOTTO`, `ASSETS_DIR`, `episode_title(day)`). Guion, transcripción, gráficos, metadatos ID3, envíos y app leen de ahí. Paquete, variables `BRIEFER_*` y repo no cambian de nombre. Ver [08](08_identidad_marca.md). Cambios semánticos en locutores y salidas: `BRIEFER_SPEAKER_A_NAME`/`_B_NAME` valen por defecto «Toro»/«Osa» (las voces edge-tts no cambian); `scriptwriter.DEFAULT_SPEAKERS` sustituye a («Álvaro», «Elvira») en `write_script`/`fallback_script`; el prompt del Guionista admite además `{speaker_a_role}`, `{speaker_b_role}`, `{brand}` y `{greeting}` (edición de noche, «Buenas noches… esto es Briefly») y pide que B (Osa) diga el cierre; `_finalize` pone el cierre obligatorio siempre en boca de B (si la última intervención ya es de B, se añade a esa intervención); `CLOSING_LINE_ES` termina en «Buenas noches y ¡hasta mañana!»; título por defecto `brand.episode_title(date)`; `speech.normalize_for_speech` lee «Briefly» como «Brífli» (se mantiene «Market Briefer» para guiones antiguos); metadatos ID3, pie de los gráficos, cabecera del email y caption de Telegram con la marca. |
 | v0.3.4 · voces | 05-oct-2026 | **Aditivo; `schemas.py` sin cambios.** `providers/base.py`: `TTSProvider` gana `podcast_extension: str | None = None` (extensión del episodio final; `None` = la de las partes), `supports_dialogue: bool = False` y el método opcional `synthesize_dialogue(lines: list[tuple[speaker, text]], out_path) -> (Path, duraciones por línea)` (por defecto `NotImplementedError`; `media.podcast` sintetiza entonces línea a línea). Nuevo proveedor `GeminiTTS` (`BRIEFER_TTS_PROVIDER=gemini`, `gemini-3.8-flash-tts`, multi-locutor Puck/Kore, `es-ES`; requiere `GEMINI_API_KEY`; `last_usage` en tokens) con ajustes `BRIEFER_GEMINI_TTS_MODEL`, `BRIEFER_GEMINI_VOICE_A`/`_B`. **Cambios de semántica:** voz B por defecto `es-ES-XimenaNeural` y `BRIEFER_TTS_RATE` por defecto `+10%` (`EdgeTTS.DEFAULT_RATE`, también si va vacío) — opción «B» de la cata; `synthesize_podcast(pause_s=None)` por defecto = **pausas variables** (`line_pauses`: 0,15 s tras pregunta, 0,30 s normal, 0,45 s al cambiar de tema; un `float` las fija como antes); con TTS de diálogo, troceo en tramos (`chunk_dialogue`, `DIALOGUE_MAX_LINES`=12, `DIALOGUE_MAX_CHARS`=2000) y tiempos por línea **aproximados** (reparto proporcional a la longitud hablada); `concat_audio(..., *, pauses=None)`; `WORDS_PER_MINUTE` 143 → **158** y `WRITTEN_WORDS_PER_MINUTE` 125 → **133** (medido con la opción «B»: 543 palabras habladas en 206,8 s). Pipeline: `qa_tts` (el Q&A hablado usa edge-tts si el podcast usa Gemini), `podcast_tts_fallback` (Gemini → edge-tts → mock), `podcast_tts_retries`, `tts_cost_eur`, `DIALOGUE_TTS_PROVIDERS`. Costes: `TTS_PRICES_USD_PER_MTOK` (Gemini TTS, estimación a verificar) | Carril C (voces) |
 | v0.3.4 · FinBERT en la UI | 05-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (el resultado va en un fichero aparte, fuera del contrato `Briefing`). Nuevo módulo `ingest/sentiment.py` (PR #1 de Daniel): `NewsImpact`, `FINBERT_MODEL` (`ProsusAI/finbert`), `translate_to_english` (Haiku, una llamada), `finbert_available`, `classify`, `news_impact` (nunca lanza), `impact_detail`. Ajuste `BRIEFER_FINBERT` (por defecto `false`; requiere `requirements-local.txt`). Pipeline: paso **opcional** `ingest.impact` («3b», en paralelo con el Analista, solo con noticias reales) que escribe `news_impact.json` en la carpeta del briefing. Storage: `NEWS_IMPACT_FILE`, `news_impact_path`, `load_news_impact`; `export_briefing` copia el fichero. UI (sin contrato entre carriles): `components/theme.keypoint_card(..., *, impacts=())` / `keypoint_card_html` pintan junto a cada fuente de «Puntos clave» la etiqueta «impacto de la noticia: ▲ positiva · FinBERT» (▼ negativa / ● neutral) con la aclaración de que es el tono de la noticia y no una recomendación; `players.news_impacts`, `source_impact`; `IMPACT_TEXT`, `IMPACT_TOOLTIP`. **Compliance (MAR):** se etiqueta la noticia, nunca el valor ni un agregado por ticker. El cuaderno `notebooks/A_01_ingesta_noticias_finbert.ipynb` (Daniel) pasa a ser solo de lectura: ya no reescribe ficheros del código | Carril A (Daniel) + C (UI) |
+| v0.3.5 · fase 1 | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (`CONTRACTS_VERSION` sigue en `"0.3"`). **Implementado (deja de ser *stub*):** `media.video.make_video` (Pillow + ffmpeg de `imageio-ffmpeg`, sin moviepy; nuevos `plan_slides`, `image_keywords`, `first_mention`, `build_ass`, `ass_*`; valores por defecto `size=(720, 1280)` y `fps=12` en vez de `(1080, 1920)` y 24; parámetros *keyword-only* `title` y `speaker_names`); `media.cover` (`make_cover`, `overlay_title`, `build_cover_prompt` + `AI_LABEL`, `dominant_sentiment`, `cover_texts`, `format_date_es`, `wrap_text`); `delivery.telegram_sender.send_briefing_telegram` (+ `call_api`, `TelegramError`, límites) y `scripts/telegram_setup.py`; `CLIPClassifier.classify`. **Nuevo proveedor** `GeminiImage` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, `BRIEFER_GEMINI_IMAGE_MODEL`). **Nuevas funciones:** `chart_reader.ImageRoute`, `decide_route`, `route_image`, `format_route_stats` y etiquetas/umbrales; `read_chart(..., *, route=None, stats_out=None)`; `portfolio.portfolio_from_image`, `parse_screenshot_table`, `format_screenshot_stats`; `pipeline.portfolio_from_screenshot` (paso `ingest.portfolio_image`); `costs.image_price_usd` y `estimate_image_cost_eur(..., model="")`. **Rompe (solo interno, sin lectores fuera de `chart_reader` y los tests):** `chart_reader.classify_image` devuelve `ImageRoute` en vez de `tuple[str, float]`. **Cambios de semántica:** (1) una imagen no financiera hace que `read_chart` lance `ValueError` **sin llamar a visión** (antes devolvía un `DocumentInsight` vacío con el aviso en `summary`), así que la subida se omite como cualquier otra que falla; (2) `NOT_CHART_THRESHOLD` (0,6) se aplica a la **suma** de las tres etiquetas no financieras; (3) en `process_upload`, una captura de cartera se rechaza con `ValueError` («súbela en Mi cartera») sin llamar a visión; (4) el paso `media.video` se registra como `ffmpeg`/`libx264` (antes `moviepy`). Dependencia: `google-genai>=2.25` (trae `types.SpeechMetadata` para Gemini TTS multi-locutor) | Equipo (fase 1) |

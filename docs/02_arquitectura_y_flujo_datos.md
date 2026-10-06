@@ -74,12 +74,14 @@ flowchart TB
     PIPE --> ING & AGE & MED & DEL
     PIPE --> COST
     PIPE --> STO
-    PDF & CHR --> VIS
+    PDF & CHR & PORT --> VIS
+    PORT --> LLM
     VOI --> STT
     AGE --> LLM
     POD --> TTS
     COV --> IMG
-    CHR -. opcional .-> IMG
+    CHR -. "router CLIP (opcional)" .-> IMG
+    VID -. "gráficos + portada" .-> CHA
     REG --> LLM & VIS & STT & TTS & IMG & MOCK
 ```
 
@@ -92,11 +94,12 @@ Fuente: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | 1 · Entradas | Noticias de mercado | `ingest/news.py` | `fetch_news(tickers, max_items, since, rss_feeds)`; en mock `load_sample_news()` | yfinance + RSS (sin IA) |
 | | Precios (gráficos y contexto) | `ingest/prices.py` | `get_price_snapshots(tickers, period)`; en mock `synthetic_snapshots(tickers)` | yfinance (sin IA) |
 | | Captura de gráfico | subida en `app/pages/1_Briefing.py` → `pipeline.process_upload` | — | — |
-| | Cartera del usuario | `ingest/portfolio.py`, `app/pages/3_Mi_cartera.py` | `load_portfolio_csv(source, name)` | — (CSV; la captura de cartera no está prevista en el código) |
+| | Cartera del usuario | `ingest/portfolio.py`, `app/pages/3_Mi_cartera.py` | `load_portfolio_csv(source, name)` (CSV) · `pipeline.portfolio_from_screenshot(image, mode=…)` → `portfolio_from_image(image, vision, llm)` (captura del broker) | CSV: — · captura: `VisionProvider` (transcribe) + `LLMProvider` barato (estructura) + mapeo determinista a tickers |
 | | PDF de resultados | subida en `app/pages/1_Briefing.py` → `pipeline.process_upload` | — | — |
 | | Pregunta por voz | `app/pages/2_Preguntar.py` (`st.audio_input`) → `pipeline.answer_question(Path)` | — | — |
 | 2 · Procesado | Filtro por tickers | `ingest/tickers.py` | `filter_by_tickers(news, tickers)` | — |
-| | Lectura de imagen | `ingest/chart_reader.py` | `read_chart(image, source_name, vision, llm, classifier)` | `VisionProvider` (+ `ImageClassifier` opcional) |
+| | Router de imágenes *(opcional, `BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip`)* | `ingest/chart_reader.py` | `route_image(image, classifier, stats_out)` → `ImageRoute` (gráfico · tabla · cartera · no financiera) | `ImageClassifier` (CLIP local, CPU) |
+| | Lectura de imagen | `ingest/chart_reader.py` | `read_chart(image, source_name, vision, llm, *, route=…)` | `VisionProvider` + LLM barato (estructura) |
 | | Lectura de PDF | `ingest/pdf_reader.py` | `read_pdf(path, llm, vision, max_pages)` | `pypdf` + `LLMProvider` barato + `VisionProvider` |
 | | Voz a texto | `ingest/voice.py` | `transcribe_question(audio_path, stt, language)` (Q&A) · `voice_to_insight(...)` (audio subido al briefing) | `STTProvider` |
 | | Impacto de la noticia *(opcional, `BRIEFER_FINBERT`)* | `ingest/sentiment.py` | `news_impact(news, llm_barato)` → `news_impact.json` (fuera del contrato `Briefing`) | Haiku (traducción) + FinBERT local (`torch` + `transformers`) |
@@ -106,16 +109,17 @@ Fuente: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | 4 · Salidas | Gráficos del día | `media/charts.py` | `make_charts(prices, out_dir, portfolio)` | matplotlib |
 | | Audio podcast (2 voces) | `media/podcast.py` | `synthesize_podcast(script, tts, out_dir, voice_a, voice_b)` (pausas variables; con Gemini, por tramos de diálogo) | `TTSProvider` (edge-tts por defecto; Gemini TTS premium) |
 | | Transcripción | `media/transcript.py` | `build_transcript(script, segments, out_dir, speaker_names)` | — (tiempos del TTS) |
-| | Vídeo corto | `media/video.py` | `make_video(audio, images, out_path, transcript)` | ffmpeg (`imageio-ffmpeg`) |
-| | Portada *(opcional)* | `media/cover.py` | `make_cover(analysis, image_gen, out_dir)` | `ImageGenProvider` |
+| | Vídeo corto *(opcional)* | `media/video.py` | `make_video(audio, images, out_path, transcript, size=(720, 1280), title=…)` | Pillow (diapositivas) + ffmpeg de `imageio-ffmpeg` (libx264, subtítulos ASS); sin moviepy |
+| | Portada *(opcional)* | `media/cover.py` | `make_cover(analysis, image_gen, out_dir)` | `ImageGenProvider` (`GeminiImage`) + Pillow (titular y placa «Imagen generada por IA») |
 | 5 · Entrega | App web | `app/` | — | Streamlit |
-| | Email | `delivery/email_sender.py` | `send_briefing_email(briefing, to, settings)` | SMTP |
-| | Telegram | `delivery/telegram_sender.py` | `send_briefing_telegram(briefing, chat_id, settings)` | Telegram Bot API |
+| | Email *(pendiente)* | `delivery/email_sender.py` | `send_briefing_email(briefing, to, settings)` | SMTP |
+| | Telegram | `delivery/telegram_sender.py` | `send_briefing_telegram(briefing, chat_id, settings)`; chat con `scripts/telegram_setup.py` | Telegram Bot API (`requests`) |
 
-Firmas exactas en [03_contratos_modulos.md](03_contratos_modulos.md) (v0.3.1). Al cierre de la revisión de las
-Fases 0 y 1 todas las funciones de esta tabla están implementadas y probadas (con mocks y en real), salvo
-`make_video`, `make_cover` y los envíos (`send_briefing_email`, `send_briefing_telegram`), que son *stubs* con el
-control desactivado en la UI. Ver [06](06_estado_actual.md).
+Firmas exactas en [03_contratos_modulos.md](03_contratos_modulos.md) (v0.3.5). Al cierre de la fase 1 (06-oct)
+todas las funciones de esta tabla están implementadas y probadas sin red, y en real salvo dos: `make_cover` con
+`GeminiImage` (la clave del equipo no tiene facturación y los modelos de imagen no tienen nivel gratuito) y
+`send_briefing_telegram` (falta crear el bot). `send_briefing_email` sigue siendo un *stub* y no se ofrece en la
+UI. Ver [06](06_estado_actual.md).
 
 ## Secuencia · generación del briefing
 
@@ -140,7 +144,11 @@ sequenceDiagram
     PL->>IN: fetch_news + get_price_snapshots + filter_by_tickers (mock: load_sample_news + synthetic_snapshots)
     IN-->>PL: list[NewsItem], list[PriceSnapshot]
     PL->>IN: process_upload → read_pdf / read_chart / voice_to_insight
-    IN->>VIS: describe(imagen, prompt)
+    opt imagen y BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip
+        PL->>IN: route_image (CLIP local)
+        IN-->>PL: ImageRoute (no financiera o captura de cartera: subida omitida sin llamar a visión)
+    end
+    IN->>VIS: describe(imagen, prompt + pista del router)
     VIS-->>IN: texto
     IN-->>PL: list[DocumentInsight]
     opt BRIEFER_FINBERT (en paralelo con el Analista)
@@ -164,10 +172,16 @@ sequenceDiagram
         end
     end
     MD-->>PL: AudioAsset
-    PL->>MD: build_transcript · make_charts · (make_cover) · (make_video)
-    MD-->>PL: Transcript, ChartAsset[], VideoAsset?
-    opt deliver no vacío
-        PL->>DL: send_briefing_email / send_briefing_telegram
+    PL->>MD: build_transcript · make_charts
+    opt make_cover (Gemini imagen)
+        PL->>MD: make_cover → cover.png con titular y «Imagen generada por IA»
+    end
+    opt make_video
+        PL->>MD: make_video(audio, portada + gráficos) → plan_slides + subtítulos ASS → ffmpeg
+    end
+    MD-->>PL: Transcript, ChartAsset[], cover_path?, VideoAsset?
+    opt deliver no vacío (Telegram; email pendiente)
+        PL->>DL: send_briefing_telegram: mensaje → audio → portada o gráfico → vídeo
         DL-->>PL: DeliveryResult[]
     end
     PL->>ST: save_briefing(Briefing)
@@ -179,14 +193,21 @@ Cada paso se envuelve en `logging_utils.track_step(...)`, que añade un `StepMet
 estimado vía `costs.estimate_cost_eur`) incluso si el paso falla. La entrega se hace **antes** de guardar, para
 que `briefing.json` incluya `deliveries` (siempre con la entrada `web`).
 
+**Cartera desde captura.** No pasa por `run_briefing`: la página «Mi cartera» llama a
+`pipeline.portfolio_from_screenshot(image)` (paso `ingest.portfolio_image`: visión transcribe la tabla de
+posiciones → Haiku la estructura → mapeo determinista a tickers y pesos), y la `Portfolio` resultante queda en la
+sesión de Streamlit como la del CSV. Así sus tickers ya están fijados cuando se genera el briefing; por eso una
+captura de cartera subida junto a los gráficos se desvía con un aviso en vez de leerse.
+
 **Tolerancia a fallos** ([ADR-003](decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md)): cada paso es
 **núcleo** u **opcional** (lista en [03](03_contratos_modulos.md#pasos-núcleo-y-pasos-opcionales)). Un paso
 opcional que falla (una subida, portada, vídeo, un canal de entrega, el guardado) deja su `StepMetric` con
 `error`, se registra en el log y el briefing sigue; un canal caído queda en `deliveries` con `ok=False`. Un paso
 núcleo que falla lanza `PipelineStepError` con el nombre del paso (`StepNotImplementedError` si es un *stub*: la
 UI lo muestra como «Pendiente»). Dentro de los pasos hay reintentos locales (TTS por línea, reescritura del
-Guionista). Además del fallback del `registry` al **crear** el proveedor (`BRIEFER_FALLBACK_TO_MOCK`), está
-previsto para D1 que un paso núcleo con proveedor real que falla se repita con `mock` y quede marcado en la UI.
+Guionista). Además del fallback del `registry` al **crear** el proveedor (`BRIEFER_FALLBACK_TO_MOCK`), un paso
+núcleo con proveedor real que falla se repite con un sustituto (mock o datos de ejemplo) y queda marcado en la UI
+(desde v0.3).
 El guardado va al final y su métrica también queda en `Briefing.metrics`.
 
 ## Secuencia · pregunta por voz (Q&A)
@@ -231,7 +252,9 @@ disclaimer.
 
 | Paso | Entrada | Modelo por defecto | Salida | Encadena con |
 | --- | --- | --- | --- | --- |
-| 1 | Imagen de gráfico | Claude visión (opcional antes: CLIP zero-shot para clasificar) | `DocumentInsight` | 3 |
+| 0 | Imagen subida | CLIP `clip-vit-base-patch32` zero-shot, local (opcional): gráfico/tabla → 1 con pista; no financiera → descartada sin visión; cartera → «Mi cartera» | `ImageRoute` | 1 |
+| 1 | Imagen de gráfico | Claude visión + Haiku (estructura) | `DocumentInsight` | 3 |
+| 1b | Captura de cartera (página «Mi cartera») | Claude visión (transcribe) → Claude Haiku (estructura) → mapeo determinista | `Portfolio` | filtro de tickers, 3 |
 | 2 | PDF | `pypdf` + Claude visión en páginas con poco texto + LLM barato (Haiku) para resumir | `DocumentInsight` | 3 |
 | 3 | `MarketContext` | Claude Sonnet (`BRIEFER_LLM_MODEL`, Analista) | `Analysis` | 4 |
 | 4 | `Analysis` | Claude Haiku (`BRIEFER_LLM_MODEL_CHEAP`, Guionista; ADR-006) | `PodcastScript` | 5 |
@@ -239,11 +262,13 @@ disclaimer.
 | 6 | `AudioAsset` | — (tiempos del TTS; aproximados dentro de cada tramo con Gemini) / Whisper opcional | `Transcript` + SRT | 8 |
 | 3b | `NewsItem[]` (opcional) | Claude Haiku (traduce al inglés) → FinBERT (`ProsusAI/finbert`, local) | `news_impact.json` (tono por noticia) | UI («Puntos clave») |
 | 7 | Precios (+ cartera) | matplotlib | `ChartAsset[]` | 8 |
-| 8 | Audio + gráficos + SRT (+ portada generada) | ffmpeg (`imageio-ffmpeg`) | `VideoAsset` | entrega |
+| 7b | `Analysis` (tono del día; opcional) | Gemini imagen `gemini-3.1-flash-lite-image` + Pillow (textos) | `cover.png` | 8, entrega |
+| 8 | Audio (+ segmentos) + gráficos (+ portada) | Pillow (diapositivas) + ffmpeg (`imageio-ffmpeg`, libx264, subtítulos ASS) | `VideoAsset` (MP4 720×1280) | entrega |
+| 9 | `Briefing` | Telegram Bot API (sin modelo) | `DeliveryResult` | — |
 | Q&A | Audio de pregunta | Whisper → Claude Haiku (`BRIEFER_LLM_MODEL_CHEAP`) → edge-tts (también si el podcast usa Gemini) | `QAAnswer` | UI |
 
-Son hasta **6 modelos distintos** encadenados (CLIP, visión, LLM analista, LLM guionista, TTS, texto-a-imagen)
-más STT en el Q&A.
+Son hasta **7 modelos distintos** encadenados en el briefing (CLIP, visión, LLM analista, LLM guionista, TTS,
+texto-a-imagen y, opcional, FinBERT), más STT en la verificación del podcast y en el Q&A.
 
 ## Proveedores intercambiables y modo mock
 
@@ -255,8 +280,8 @@ BRIEFER_LLM_PROVIDER=anthropic | gemini | openai | mock
 BRIEFER_VISION_PROVIDER=claude | qwen_local | mock
 BRIEFER_STT_PROVIDER=whisper_api | whisper_local | mock
 BRIEFER_TTS_PROVIDER=edge | gemini | elevenlabs | mock
-BRIEFER_IMAGE_GEN_PROVIDER=sdxl_turbo | none | mock          # none = sin portada
-BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip | none | mock         # none = sin clasificador
+BRIEFER_IMAGE_GEN_PROVIDER=gemini | sdxl_turbo | none | mock   # none = sin portada; gemini de pago (sdxl: stub)
+BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip | none | mock          # none = sin router; clip local y gratis
 BRIEFER_FALLBACK_TO_MOCK=true | false
 ```
 
@@ -275,7 +300,7 @@ Sin base de datos: ficheros en disco, suficiente para el MVP.
 
 ```text
 data/
-├── samples/                      # versionado: CSV, JSON, grafico_ejemplo.png, resultados_ejemplo.pdf,
+├── samples/                      # versionado: CSV, JSON, grafico_ejemplo.png, cartera_ejemplo.png, resultados_ejemplo.pdf,
 │                                 #   generar_muestras.py, demo_briefing/ (briefing real pregenerado)
 ├── cache/                        # ignorado: noticias/precios del día, URL finales, extractos y robots.txt
 │                                 #   (<fuente>_<clave>_<YYYYMMDD>.json; purga automática a 7 días)
@@ -287,8 +312,8 @@ data/
     │   ├── parts/                # audio por línea (000_A, 001_B…); se borra al terminar salvo keep_parts
     │   ├── podcast.srt
     │   ├── charts/               # <TICKER>_price.png, overview_change.png (el de cartera NO se guarda aquí)
-    │   ├── cover.png             # opcional
-    │   ├── briefing.mp4          # opcional
+    │   ├── cover.png             # opcional (portada con el titular y «Imagen generada por IA»)
+    │   ├── briefing.mp4          # opcional (vídeo 9:16; las diapositivas se componen en una carpeta temporal)
     │   └── qa/respuesta_<id>.<ext>
     └── sin_briefing/qa/          # respuestas del Q&A sin briefing de referencia
 ```
@@ -300,3 +325,4 @@ pipeline crea la carpeta `<briefing_id>/` y los módulos de `media/` escriben en
 de aquí. **La cartera no se persiste** ([ADR-005](decisiones/ADR-005-privacidad-cartera-no-persistida.md)):
 `briefing.json` lleva `portfolio: null` y el gráfico de cartera se dibuja en `<tmp>/briefer_cartera/`, que se
 borra a las 12 h. Las subidas de la UI van a una carpeta temporal única por ejecución que se borra al terminar.
+La captura de cartera de «Mi cartera» no toca el disco: se lee como `bytes` en memoria.
