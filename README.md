@@ -218,7 +218,7 @@ externa.
 | 10b | Audio → texto (control de calidad) | Bucle | El STT escucha el podcast generado y mide el WER contra el guion (`media.verify`; peores líneas en la traza) | OpenAI `gpt-4o-mini-transcribe` / `whisper-1` | `BRIEFER_VERIFY_PODCAST=false` | **Sí** (real; medido WER 1,1 % con edge-tts y 1,4 % con Gemini en el pregenerado) |
 | 11 | Texto → imagen | Salida | Portada del episodio *(opcional)*: ilustración según el tono del día (sin cifras ni empresas), con el titular superpuesto por Pillow y la placa «Imagen generada por IA» | SDXS local `IDKiro/sdxs-512-dreamshaper` en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`, diffusers, 1 paso, licencia CreativeML OpenRAIL++ con uso comercial; 0 €, 4-7 s por portada) | Gemini imagen `gemini-3.1-flash-lite-image` (`gemini`, ≈ 0,029 € por imagen, requiere facturación), `none`, `mock` | **Sí** (con `local`; verificada en real sobre el pregenerado: titular y placa «Imagen generada por IA»). Gemini, sin prueba real (sin facturación) |
 | 12 | Imagen + audio → vídeo | Salida | Vídeo corto vertical 9:16 del episodio completo: una diapositiva por imagen (portada o gráfico general primero; cada gráfico entra cuando el audio nombra su empresa), subtítulos quemados con el locutor y rótulo «Voces sintéticas generadas con IA» | Pillow + ffmpeg (`imageio-ffmpeg`, libx264), sin moviepy; 720×1280, 12 fps, 0 € | — | **Sí** (todos los modos; casilla «Vídeo corto». Medido: 8,5 s y 4,5 MB para los 217,8 s del pregenerado) |
-| 13 | Briefing → mensajería | Entrega | Envío por **Telegram**: resumen HTML + audio + portada o gráfico general + vídeo | Bot API (`requests`) | — | **Implementado; requiere bot** (sin probar en real: falta crearlo con @BotFather; ver [Telegram](#telegram)) |
+| 13 | Briefing → mensajería | Entrega | Envío por **Telegram**: resumen HTML + audio + portada o gráfico general + vídeo | Bot API (`requests`) | — | **Sí** (verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s); configuración en [Telegram](#telegram)) |
 
 Proveedores por defecto según `.env.example`; en el código, sin `.env`, todo es `mock`. Si un proveedor real
 falla durante un briefing, el paso se completa con un sustituto (mock o datos de ejemplo) **marcado** en la UI y
@@ -565,7 +565,7 @@ Guion previsto de la demo:
 4. Generar el briefing: mostrar análisis, podcast a dos voces, transcripción, gráficos y pestaña «Vídeo» (9:16 con subtítulos).
 5. Preguntar por voz sobre el briefing y escuchar la respuesta.
 6. Enseñar «Cómo se hizo» (modelos, latencia y coste estimado por paso) y el modo sin claves.
-7. Envío por Telegram (implementado; sin prueba real hasta crear el bot). El email sigue pendiente.
+7. Envío por Telegram (verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s)). El email sigue pendiente.
 
 ---
 

@@ -30,7 +30,7 @@ Gemini imagen queda como alternativa de pago) y **envío por Telegram** (con `sc
 los ofrece en «Opciones avanzadas: vídeo, portada y envíos» y el vídeo tiene pestaña propia. Briefing real de
 verificación (SAN.MC y AAPL, vídeo, gráfico + captura de cartera + paisaje): **0,0569 €**, **82,1 s**, 0
 sustitutos. **1149 tests** sin red + 13 `live`; ruff y mypy limpios; gasto real de la fase ≈ 0,07 €. **Sin prueba
-real:** Telegram (falta crear el bot). Faltan además: email, la *build* de **Docker** (intentada el 06-oct con la
+real:** ninguna (Telegram verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s)). Faltan además: email, la *build* de **Docker** (intentada el 06-oct con la
 red degradada) y `run.sh`, limpieza de *stubs*, caminos 1, 2 y 6, y capturas, demo y pitch.
 
 La **tanda de refuerzo** (tarde del 05-oct, sin funcionalidades nuevas) endurece lo que ya había: tests aislados
@@ -84,7 +84,7 @@ ruff + mypy limpios.
 | Cartera desde captura (06-oct) | Hecho, verificado en real | `ingest/portfolio.portfolio_from_image` vía `pipeline.portfolio_from_screenshot` (paso `ingest.portfolio_image`): visión (Sonnet 5.5) transcribe la tabla → Haiku 4.5 la estructura → mapeo determinista a tickers (`TICKER_UNIVERSE`), pesos por valor o por % de la captura; filas no reconocidas avisadas en la UI. Nada a disco (ADR-005); `detail` sin nombres ni cifras. Real con `data/samples/cartera_ejemplo.png` (ficticia): **5/5** posiciones correctas, **8,5 s**, **≈ 0,0054 €**. UI «Mi cartera»: subir captura o «Usar captura de ejemplo», con el consejo de recortar nombre y nº de cuenta |
 | Portada local (06-oct, tarde) | Hecho, verificado en real | `providers/image/sdxl_turbo.SDXLTurbo` (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; diffusers en CPU; `requirements-local.txt`): SDXS `IDKiro/sdxs-512-dreamshaper` (1 paso, CreativeML OpenRAIL++ con uso comercial, ~1,8 GB la 1.ª vez; `BRIEFER_SDXL_MODEL`, `BRIEFER_SDXL_STEPS`) con el prompt corto `media.cover.build_cover_prompt_local` (< 77 tokens de CLIP). Verificada generando la portada del pregenerado (titular y placa «Imagen generada por IA»). Descartados `stabilityai/sd-turbo` (licencia de uso comercial restringido) y `SimianLuo/LCM_Dreamshaper_v7` (MIT, 4,3 GB) |
 | Portada con Gemini imagen (06-oct) | Implementado, con tests; **NO VERIFICADO en real** | `media/cover.py` + `providers/image/gemini_image.GeminiImage` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, `BRIEFER_GEMINI_IMAGE_MODEL=gemini-3.1-flash-lite-image`, 16:9 a 1K): prompt de marca según el tono del día, sin cifras ni empresas; titular y «Briefly · fecha» superpuestos con Pillow y placa **«Imagen generada por IA»**; primera diapositiva del vídeo y foto de Telegram. Coste: 0,0336 $/imagen ≈ 0,029 € (**tarifa oficial**, consultada el 06-oct; no medido). Latencia **NO MEDIDA**. En mock funciona de punta a punta. Casilla «Portada con IA» desactivada en modo real si `BRIEFER_IMAGE_GEN_PROVIDER=none` |
-| Telegram (06-oct) | Implementado, con tests; **NO VERIFICADO en real** | `delivery/telegram_sender.send_briefing_telegram`: mensaje HTML (titular, puntos, fuentes, aviso legal) + audio + portada o gráfico general + vídeo; límites 50 MB audio/vídeo y 10 MB foto; un fallo posterior al mensaje no invalida lo enviado; el token nunca sale en errores ni logs. `scripts/telegram_setup.py [--write] [--test] [--chat-id]` saca el `chat_id` con `getUpdates` y lo escribe en `.env`. En la UI, «Enviar por → Telegram» solo aparece con token y chat. Falta crear el bot |
+| Telegram (06-oct) | Hecho, verificado en real (8,5 s; mensaje, audio, imagen y vídeo) | `delivery/telegram_sender.send_briefing_telegram`: mensaje HTML (titular, puntos, fuentes, aviso legal) + audio + portada o gráfico general + vídeo; límites 50 MB audio/vídeo y 10 MB foto; un fallo posterior al mensaje no invalida lo enviado; el token nunca sale en errores ni logs. `scripts/telegram_setup.py [--write] [--test] [--chat-id]` saca el `chat_id` con `getUpdates` y lo escribe en `.env`. En la UI, «Enviar por → Telegram» solo aparece con token y chat. Falta crear el bot |
 | Tests y CI | Hecho | **1116 tests sin red** + 12 `live` (`-m live`) desde la fase 1 (antes 1019 + 11); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
 
 ## Mediciones (05-oct-2026 y fase 1 del 06-oct-2026)
@@ -124,7 +124,6 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Elemento | Fichero / función | Fase |
 | --- | --- | --- |
 | Portada con Gemini en real | Opcional: la portada ya funciona en local y gratis; Gemini necesitaría una clave **con facturación activa** (429 con cuota 0) | Won't salvo que sobre tiempo |
-| Telegram en real | `send_briefing_telegram` implementado; falta crear el bot (@BotFather → `/newbot` → `TELEGRAM_BOT_TOKEN` en `.env` → escribir al bot → `python scripts/telegram_setup.py --write` → `--test`) | D2 (Should) |
 | Email | `send_briefing_email` (*stub*; no se ofrece en la UI) | D2 (Could) |
 | Docker | `Dockerfile` con modelos locales por defecto (`ARG LOCAL_MODELS=true`: torch CPU + transformers + diffusers + accelerate; `false` para imagen mínima), volumen `hf-cache`, pip con `PIP_DEFAULT_TIMEOUT=120` / `PIP_RETRIES=10`; `docker compose config` válido, pero la *build* **NO VERIFICADA** (06-oct: intentada con Docker Desktop, red degradada, se paró) | D2 Sync 4 / D3 |
 | `run.sh` y clon limpio en Linux/macOS | `scripts/run.sh` | D3 |
@@ -144,10 +143,9 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | `warmup` del LLM variable (5-57 s en `models.retrieve`) | Si el usuario pregunta antes de que termine, la 1.ª pregunta va en frío | Corre en segundo plano al abrir «Preguntar»; medido en 3 procesos |
 | **Mecanismos no oficiales**: resolución de enlaces de Google News (`batchexecute`), RSS de Bing News, edge-tts, yfinance | Sin SLA: pueden dejar de funcionar sin aviso | Nunca lanzan; si fallan, enlace original, menos noticias o sustituto marcado; caché; noticias licenciadas y TTS oficial en producción |
 | Variabilidad de la API de visión (31 s en el pregenerado, 63 s en una ejecución de la F1) | Demo en vivo lenta | Subidas en paralelo, barra de progreso, pregenerado; en la demo grabada usar caché |
-| Modalidades prometidas > demostradas (06-oct: solo queda Telegram sin prueba real; email pendiente) | Nota de 4.2 | Vídeo, CLIP, captura de cartera y portada local ya verificados en real; columna «Activo en la demo» honesta en el README; recortes en [05](05_roadmap_TODO.md#recortes-si-no-da-tiempo) |
+| Modalidades prometidas > demostradas (06-oct: todo verificado en real salvo el email, pendiente) | Nota de 4.2 | Vídeo, CLIP, captura de cartera y portada local ya verificados en real; columna «Activo en la demo» honesta en el README; recortes en [05](05_roadmap_TODO.md#recortes-si-no-da-tiempo) |
 | **Facturación de Google para la portada** (mitigado el 06-oct) | Solo afecta a `gemini` | La portada recomendada es la local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS, 0 €); descargar el modelo (~1,8 GB) antes de la demo |
 | **CLIP: descarga y primera carga** | ~600 MB la 1.ª vez (≈ 28 s) e imports en frío ≈ 11 s: la 1.ª subida del día tarda más; `torch` pesado en Docker | Opcional (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER`); dependencias en `requirements-local.txt`; si falta, la imagen va a visión sin pista; descargar el modelo antes de la demo |
-| Telegram sin probar en real | El canal puede fallar en la demo (formato HTML, límites, red) | Crear el bot y ejecutar `telegram_setup.py --test` + un briefing con envío antes del *feature freeze*; si falla, solo web |
 | Capturas, demo y pitch al 0 % | Entregable | Code freeze jue 11:00; D3 dedicado |
 | **Tarifa de Gemini TTS sin verificar** (modelo en *preview*; se usa la de los *flash* TTS anteriores) | El coste de la voz premium (≈ 0,047 € por episodio) puede ser otro | Marcado «estimación, verificar» en `costs.py` y en [04](04_viabilidad_costes_latencia_compliance.md); mirar la factura de Google; edge-tts sigue por defecto (0 €) |
 | **SRT aproximado con Gemini** | Los subtítulos pueden ir algo adelantados o atrasados dentro de un tramo | Tiempos repartidos en proporción a la longitud hablada; tramos de ≤ 12 líneas; con edge-tts los tiempos son exactos |
@@ -157,7 +155,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 
 ## Próximos pasos (D2, en orden)
 
-1. **Mar 6 tarde / mié mañana** · crear el bot de Telegram y probar un envío real; dejar descargado el modelo
+1. **Mar 6 tarde / mié mañana** · (Telegram ya probado en real) dejar descargado el modelo
    de la portada local (SDXS); fusionar `fase1` en `main`.
 2. **Completar la *build* de Docker** con buena red y `run.sh` en Linux/macOS; caminos **1** (evaluación con p50/p95),
    **2** (comparativa de modelos) y **6** (cuaderno de recorrido).

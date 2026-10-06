@@ -40,7 +40,7 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
 | Gráficos / vídeo | matplotlib / vídeo 9:16 con Pillow (diapositivas) + ffmpeg de `imageio-ffmpeg` (concat + subtítulos ASS), sin moviepy | — |
 | Portada (opcional) | Local y gratis: SDXS `IDKiro/sdxs-512-dreamshaper` en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; diffusers, 1 paso, OpenRAIL++) | Gemini imagen (`gemini`, de pago, exige facturación), none, mock |
-| Entrega | web · Telegram Bot API (`requests`; sin prueba real: falta el bot) | email (*stub*) |
+| Entrega | web · Telegram Bot API (`requests`; verificado en real) | email (*stub*) |
 | Config | `.env` → `src/briefer/config.py` | — |
 
 ## Mapa del repo
