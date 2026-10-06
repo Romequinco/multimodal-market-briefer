@@ -36,7 +36,7 @@ responde también por voz.
 > portada) y **envío por Telegram**. Briefing real de verificación con vídeo y tres subidas: **0,057 € y 82 s**.
 > 1148 tests sin red (+ 13 «live») y ruff + mypy en la CI. Telegram **verificado en real** (bot @BrieflyMiaxBot:
 > mensaje, audio, imagen y vídeo en 8,5 s). El email se retiró: la entrega es por web y Telegram.
-> Pendiente: la *build* de Docker y `run.sh`, limpieza de *stubs*, capturas, demo grabada y pitch. Plan en
+> Pendiente: la *build* de Docker y `run.sh`, capturas, demo grabada y pitch. Plan en
 > [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md) (*feature freeze* mié 7 a las 22:00 · **jue 8** capturas,
 > demo grabada y pitch, entrega 16:30). Estado vivo en [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
@@ -204,12 +204,12 @@ externa.
 | 1 | Texto → texto | Entrada → razonamiento | Noticias filtradas → análisis (Agente Analista) con puerta de *grounding* de cifras | Claude Sonnet 5.5 (`BRIEFER_LLM_MODEL`) | Gemini, `mock` | **Sí** (real); simulado en sin claves/offline |
 | 2 | Texto → texto | Razonamiento → guion | Análisis → diálogo a dos voces (Agente Guionista) con puertas de cifras, cobertura, duración y gramática | Claude Haiku 4.5 (`BRIEFER_LLM_MODEL_CHEAP`; `BRIEFER_SCRIPTWRITER_MODEL` para cambiarlo) | Sonnet 5.5, Gemini, `mock` | **Sí** (real); simulado en sin claves/offline |
 | 3 | Texto → texto | Conversación | Preguntas sobre el briefing (Agente Q&A) | Claude Haiku 4.5 | Gemini, `mock` | **Sí** (real, por texto y por voz); simulado en sin claves/offline |
-| 4 | Imagen → texto | Entrada | Captura de gráfico de cotización → descripción y cifras | Claude Sonnet 5.5 visión + Haiku (estructura) | Qwen2.5-VL-3B local *(stub)*, `mock` | **Sí** (real) |
+| 4 | Imagen → texto | Entrada | Captura de gráfico de cotización → descripción y cifras | Claude Sonnet 5.5 visión + Haiku (estructura) | `mock` (Qwen2.5-VL local: hoja de ruta) | **Sí** (real) |
 | 4b | Imagen → datos | Entrada | **Cartera desde una captura del broker** (página «Mi cartera»): visión transcribe la tabla de posiciones → Haiku la estructura → mapeo determinista a tickers y pesos; nada a disco | Claude Sonnet 5.5 visión + Claude Haiku 4.5 | `mock` (transcripción de la captura de ejemplo) | **Sí** (real: 5/5 posiciones de `data/samples/cartera_ejemplo.png`, 8,5 s, ≈ 0,005 €; botón «Usar captura de ejemplo») |
-| 5 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku | Qwen2.5-VL local *(stub)* | **Sí** (real) |
+| 5 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku | `mock` (Qwen2.5-VL local: hoja de ruta) | **Sí** (real) |
 | 6 | Imagen → etiqueta | Enrutado | Router de las imágenes subidas (zero-shot): gráfico de velas o líneas / tabla → visión con la etiqueta como pista; no financiera → rechazada **sin llamar a visión**; captura de cartera → «súbela en Mi cartera» | CLIP `openai/clip-vit-base-patch32` local en CPU (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip`, `requirements-local.txt`), 0 € | `none`, `mock` | **Sí** (con `clip`; 5/5 imágenes de prueba bien clasificadas; 70-85 ms por imagen tras la primera) |
-| 7 | Audio → texto | Entrada | Pregunta por voz del usuario y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` (`BRIEFER_WHISPER_API_MODEL`) | `whisper-1`, `faster-whisper` local *(stub)*, `mock` | **Sí** (real, con `OPENAI_API_KEY`); en sin claves/offline la transcripción es simulada y lleva `[MOCK]` |
-| 8 | Texto → audio | Salida | Podcast a dos voces (Toro y Osa) y respuesta hablada del Q&A | `edge-tts` (gratis, por defecto: Álvaro / Ximena a +10 %, pausas variables) + normalización para locución | **Gemini TTS multi-locutor** (`gemini-3.8-flash-tts`, de pago, premium: diálogo entero por tramos; si falla, cae a edge-tts; el Q&A habla siempre con edge-tts por latencia), ElevenLabs *(stub)*, `mock` | **Sí** (real y sin claves; el pregenerado suena con Gemini); silencio en offline |
+| 7 | Audio → texto | Entrada | Pregunta por voz del usuario y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` (`BRIEFER_WHISPER_API_MODEL`) | `whisper-1`, `mock` (Whisper local: hoja de ruta) | **Sí** (real, con `OPENAI_API_KEY`); en sin claves/offline la transcripción es simulada y lleva `[MOCK]` |
+| 8 | Texto → audio | Salida | Podcast a dos voces (Toro y Osa) y respuesta hablada del Q&A | `edge-tts` (gratis, por defecto: Álvaro / Ximena a +10 %, pausas variables) + normalización para locución | **Gemini TTS multi-locutor** (`gemini-3.8-flash-tts`, de pago, premium: diálogo entero por tramos; si falla, cae a edge-tts; el Q&A habla siempre con edge-tts por latencia), `mock` (ElevenLabs: hoja de ruta) | **Sí** (real y sin claves; el pregenerado suena con Gemini); silencio en offline |
 | 8b | Texto → etiqueta | Enriquecimiento | «Impacto de la noticia»: tono de cada noticia (▲ positiva · ▼ negativa · ● neutral) junto a su fuente en «Puntos clave»; tono de la noticia, no recomendación ni agregado por valor | Claude Haiku 4.5 (traduce al inglés, una llamada) → **FinBERT** (`ProsusAI/finbert`, modelo abierto, CPU local) | Opcional: `BRIEFER_FINBERT=true` (por defecto, desactivado) | **Sí** (real, en el pregenerado: 19 noticias). Aportación de Daniel (PR #1) |
 | 9 | Datos → imagen | Salida | Gráficos del día (variación con bloque «Índices de referencia», cotización por ticker, reparto de la cartera solo en la sesión) con fecha y fuente | matplotlib | — | **Sí** (todos los modos; «precios sintéticos (demo)» en la demo) |
 | 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS (con Gemini, tiempos por línea aproximados dentro de cada tramo) | — | **Sí** (todos los modos) |
@@ -241,7 +241,7 @@ flowchart TB
         DLV["delivery/<br/>Telegram"]
     end
     PRV["<b>Conexión con modelos IA</b> · src/briefer/providers/<br/>LLM · visión · STT · TTS · imagen · mock (registry por config)"]
-    X["APIs externas / modelos locales<br/>Anthropic · OpenAI · Gemini (LLM, TTS e imagen) · edge-tts · ElevenLabs · Whisper · HF (FinBERT, CLIP) · ffmpeg · Telegram Bot API"]
+    X["APIs externas / modelos locales<br/>Anthropic · OpenAI · Gemini (LLM, TTS e imagen) · edge-tts · Whisper API · HF (FinBERT, CLIP, portada local) · ffmpeg · Telegram Bot API"]
 
     UI --> PL --> BIZ
     ING --> PRV
@@ -293,7 +293,7 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 ├── docs/                        # documentación del proyecto (ver índice); activos de marca en docs/assets/marca/
 ├── Dockerfile  docker-compose.yml  .dockerignore
 ├── requirements.txt             # dependencias del MVP
-├── requirements-local.txt       # opcional: modelos locales (torch, transformers, faster-whisper…)
+├── requirements-local.txt       # opcional: modelos locales (torch, transformers, diffusers, accelerate)
 ├── pyproject.toml  .env.example  .gitignore
 ├── CLAUDE.md                    # contexto para agentes IA
 └── README.md
@@ -449,10 +449,10 @@ queda al copiar la plantilla. La pregunta por voz real necesita `OPENAI_API_KEY`
 
 | Variable | Valores | Código | `.env.example` | Para qué |
 | --- | --- | --- | --- | --- |
-| `BRIEFER_LLM_PROVIDER` | `anthropic` · `gemini` · `openai` · `mock` | `mock` | `anthropic` | Agentes analista, guionista y Q&A |
-| `BRIEFER_VISION_PROVIDER` | `claude` · `qwen_local` · `mock` | `mock` | `claude` | Lectura de gráficos y páginas de PDF |
-| `BRIEFER_STT_PROVIDER` | `whisper_api` · `whisper_local` · `mock` | `mock` | `whisper_api` | Pregunta por voz |
-| `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` · `elevenlabs` · `mock` | `mock` | `edge` | Podcast y respuesta hablada. `gemini` (de pago, `GEMINI_API_KEY`) solo cambia el podcast: si falla, cae a edge-tts, y el Q&A habla siempre con edge-tts |
+| `BRIEFER_LLM_PROVIDER` | `anthropic` · `gemini` · `mock` | `mock` | `anthropic` | Agentes analista, guionista y Q&A |
+| `BRIEFER_VISION_PROVIDER` | `claude` · `mock` | `mock` | `claude` | Lectura de gráficos y páginas de PDF |
+| `BRIEFER_STT_PROVIDER` | `whisper_api` · `mock` | `mock` | `whisper_api` | Pregunta por voz |
+| `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` · `mock` | `mock` | `edge` | Podcast y respuesta hablada. `gemini` (de pago, `GEMINI_API_KEY`) solo cambia el podcast: si falla, cae a edge-tts, y el Q&A habla siempre con edge-tts |
 | `BRIEFER_IMAGE_GEN_PROVIDER` | `local` (alias `sdxl_turbo`) · `gemini` · `none` · `mock` | `none` | `none` | Portada (opcional). `local` es gratis (SDXS en CPU, `requirements-local.txt`, ~1,8 GB la primera vez; la primera portada del proceso tarda más por la carga del modelo). `gemini` es de pago (≈ 0,029 € por portada, `GEMINI_API_KEY` **con facturación activa**: sin ella, 429 y el briefing sale sin portada). Con `none`, la casilla «Portada con IA» se desactiva en modo real |
 | `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` · `none` · `mock` | `none` | `none` | Router de las imágenes subidas (opcional, local y gratis). `clip` necesita `requirements-local.txt`; la primera vez descarga ~600 MB |
 | `BRIEFER_FALLBACK_TO_MOCK` | `true` · `false` | `true` | `true` | Si falta clave o librería: mock con aviso (`true`) o `ProviderConfigError` (`false`) |
@@ -465,11 +465,8 @@ queda al copiar la plantilla. La pregunta por voz real necesita `OPENAI_API_KEY`
 | `BRIEFER_LLM_MODEL_CHEAP` | `claude-haiku-4-5-20251001` | Guionista, Q&A y estructurado de PDF/gráfico (`get_llm(cheap=True)`) |
 | `BRIEFER_SCRIPTWRITER_MODEL` | vacío (= el barato) | Modelo del Guionista si se quiere otro, p. ej. `claude-sonnet-5-5` (≈ 2,6-2,9× más caro; ver [ADR-006](docs/decisiones/ADR-006-guionista-haiku-puertas-deterministas.md)) |
 | `BRIEFER_GEMINI_MODEL` | `gemini-2.5-flash` | LLM si `BRIEFER_LLM_PROVIDER=gemini` |
-| `BRIEFER_OPENAI_MODEL` | `gpt-4o-mini` | LLM si `BRIEFER_LLM_PROVIDER=openai` |
 | `BRIEFER_VISION_MODEL` | `claude-sonnet-5-5` | Visión con Claude |
-| `BRIEFER_QWEN_VL_MODEL` | `Qwen/Qwen2.5-VL-3B-Instruct` | Visión local |
 | `BRIEFER_WHISPER_API_MODEL` | `gpt-4o-mini-transcribe` (alternativa: `whisper-1`) | STT por API (OpenAI). Medido: WER 0, 1,3 s y la mitad de coste que `whisper-1`; máximo 25 MB por audio |
-| `BRIEFER_WHISPER_LOCAL_MODEL` | `base` (`tiny` · `base` · `small` · `medium`) | STT local (`faster-whisper`) |
 | `BRIEFER_GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-lite-image` | Portada con Gemini (el más barato: 0,0336 $ por imagen 1K, tarifa oficial consultada el 06-oct-2026; `gemini-3.1-flash-image`, 0,067 $) |
 | `BRIEFER_SDXL_MODEL` | `IDKiro/sdxs-512-dreamshaper` | Portada local (SDXS, OpenRAIL++, uso comercial; `SimianLuo/LCM_Dreamshaper_v7`, MIT, ~4,3 GB). Descartado `stabilityai/sd-turbo` por su licencia (uso comercial restringido) |
 | `BRIEFER_SDXL_STEPS` | `0` | Pasos de la portada local (`0` = los del modelo: 1 en SDXS) |
@@ -487,8 +484,6 @@ Los modelos locales requieren `requirements-local.txt`.
 | `BRIEFER_GEMINI_TTS_MODEL` | `gemini-3.8-flash-tts` | Modelo de Gemini TTS si `BRIEFER_TTS_PROVIDER=gemini` |
 | `BRIEFER_GEMINI_VOICE_A` · `BRIEFER_GEMINI_VOICE_B` | `Puck` · `Kore` | Voces precompuestas de Gemini para Toro (A) y Osa (B) |
 | `BRIEFER_SPEAKER_A_NAME` · `BRIEFER_SPEAKER_B_NAME` | `Toro` · `Osa` | Nombres de los locutores en guion y transcripción (por defecto, los de la marca en `src/briefer/brand.py`) |
-| `ELEVENLABS_VOICE_A` · `ELEVENLABS_VOICE_B` | vacío | Ids de voz si `BRIEFER_TTS_PROVIDER=elevenlabs` |
-| `ELEVENLABS_MODEL` | `eleven_multilingual_v2` | Modelo de ElevenLabs |
 | `BRIEFER_TTS_RATE` · `BRIEFER_TTS_PITCH` | `+10%` · vacío (`+0Hz`) | Velocidad y tono de edge-tts (p. ej. `+8%`, `-2Hz`); vacío en la velocidad = también `+10%` |
 | `BRIEFER_VERIFY_PODCAST` | `true` | En modo real, el STT escucha el podcast y mide el WER contra el guion (≈ 0,01 € con `gpt-4o-mini-transcribe`) |
 | `BRIEFER_DEFAULT_TICKERS` | `SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA` | Tickers por defecto (formato Yahoo, separados por comas) |
@@ -503,9 +498,8 @@ Los modelos locales requieren `requirements-local.txt`.
 | Variable | Por defecto | Para qué |
 | --- | --- | --- |
 | `ANTHROPIC_API_KEY` | vacío | LLM y visión con Claude |
-| `OPENAI_API_KEY` | vacío | Whisper API y LLM OpenAI (opcional) |
+| `OPENAI_API_KEY` | vacío | Whisper API: voz a texto y verificación del podcast (opcional) |
 | `GEMINI_API_KEY` | vacío | LLM Gemini, TTS Gemini multi-locutor y portada con Gemini imagen (opcional; la portada exige facturación activa) |
-| `ELEVENLABS_API_KEY` | vacío | Voces ElevenLabs (opcional) |
 | `TELEGRAM_BOT_TOKEN` · `TELEGRAM_CHAT_ID` | vacío | Entrega por Telegram (opcional; ver [Telegram](#telegram)) |
 
 ### Rutas y logging
@@ -537,8 +531,10 @@ El token nunca aparece en errores, logs ni traza.
 
 Sin `ANTHROPIC_API_KEY` (u otra clave necesaria) la app sigue arrancando: con `BRIEFER_FALLBACK_TO_MOCK=true`
 el `registry` cae a `mock` y lo deja en el log; la barra lateral de la UI muestra una insignia por familia
-(«real» o «MOCK (falta X)») y bloquea el modo real con el motivo. `BRIEFER_LLM_PROVIDER=openai` está
-reservado (*stub* documentado; el paso cae a mock marcado).
+(«real» o «MOCK (falta X)») y bloquea el modo real con el motivo. Solo se aceptan proveedores implementados:
+los que eran esqueletos (`openai` como LLM, `qwen_local`, `whisper_local`, `elevenlabs`) se retiraron en la
+v0.3.9 y, si un `.env` antiguo aún los nombra, esa familia pasa a `mock` con un aviso en el log; cualquier otro
+nombre no válido hace fallar la configuración al arrancar.
 
 ---
 

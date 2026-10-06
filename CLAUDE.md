@@ -31,11 +31,11 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 | Capa | Elección | Alternativa por config |
 |---|---|---|
 | UI | Streamlit multipágina (`app/`) | — |
-| LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A; ADR-006) | Gemini, mock (OpenAI: *stub*); `BRIEFER_SCRIPTWRITER_MODEL` |
-| Visión (gráficos, páginas PDF, captura de cartera) | Claude visión (cartera: visión transcribe → Haiku estructura) | Qwen2.5-VL local (*stub*), mock |
+| LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A; ADR-006) | Gemini, mock; `BRIEFER_SCRIPTWRITER_MODEL` |
+| Visión (gráficos, páginas PDF, captura de cartera) | Claude visión (cartera: visión transcribe → Haiku estructura) | mock |
 | Router de imágenes subidas | CLIP local `clip-vit-base-patch32` (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip`): no financiera → rechazada sin visión | none, mock |
-| STT | OpenAI API (`gpt-4o-mini-transcribe`; `whisper-1` por config) | mock (Whisper local: *stub*) |
-| TTS 2 voces | `edge-tts` (gratis, por defecto: Álvaro/Ximena +10 %) · Gemini 3.8 TTS multi-locutor (premium, demo; Q&A siempre edge) | ElevenLabs (*stub*), mock |
+| STT | OpenAI API (`gpt-4o-mini-transcribe`; `whisper-1` por config) | mock |
+| TTS 2 voces | `edge-tts` (gratis, por defecto: Álvaro/Ximena +10 %) · Gemini 3.8 TTS multi-locutor (premium, demo; Q&A siempre edge) | mock |
 | Tono de noticias (opcional) | Haiku traduce → FinBERT local (`BRIEFER_FINBERT`, PR #1 de Daniel) | desactivado |
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
 | Gráficos / vídeo | matplotlib / vídeo 9:16 con Pillow (diapositivas) + ffmpeg de `imageio-ffmpeg` (concat + subtítulos ASS), sin moviepy | — |

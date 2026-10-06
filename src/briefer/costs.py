@@ -10,7 +10,7 @@ Estado de verificación (05-oct-2026):
   ``claude-haiku-4-5-20251001`` responden en la API (``scripts/smoke_real.py``).
 - **Gemini imagen** (portada; ``gemini-3.1-flash-lite-image`` 0,0336 $ por imagen 1K): página
   oficial de precios de la API de Gemini (consultada el 06-oct-2026, «last updated 2026-10-01»).
-- **Gemini (LLM y TTS), OpenAI, Whisper, ElevenLabs y tipo de cambio**: *estimación a verificar* en las
+- **Gemini (LLM y TTS), OpenAI Whisper y tipo de cambio**: *estimación a verificar* en las
   páginas oficiales antes de la entrega (anotar la fecha en ``docs/04``).
 
 El coste de una llamada LLM/visión se calcula con ``provider.last_usage``
@@ -50,8 +50,6 @@ LLM_PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     # Google — estimación a verificar
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-3.8-flash": (0.50, 3.00),  # estimación a verificar: sin tarifa pública confirmada
-    # OpenAI — estimación a verificar (LLM no implementado en el MVP)
-    "gpt-4o-mini": (0.15, 0.60),
 }
 
 # USD por minuto de audio. Estimación a verificar.
@@ -64,8 +62,6 @@ STT_PRICES_USD_PER_MIN: dict[str, float] = {
 # estimación a verificar.
 TTS_PRICES_USD_PER_1K_CHARS: dict[str, float] = {
     "edge": 0.0,
-    "elevenlabs": 0.18,  # depende del plan; aprox.
-    "openai-tts-1": 0.015,
 }
 
 # USD por millón de tokens (texto de entrada, audio de salida) de los TTS que facturan por tokens.
@@ -89,7 +85,7 @@ IMAGE_GEN_PRICES_USD_PER_IMAGE: dict[str, float] = {
 
 # Proveedores sin coste marginal: locales (se ignora electricidad/GPU), datos de ejemplo y mocks.
 LOCAL_PROVIDERS = {
-    "mock", "qwen_local", "whisper_local", "sdxl_turbo", "clip", "edge", "none",
+    "mock", "sdxl_turbo", "clip", "edge", "none",
     "local", "samples", "synthetic", "matplotlib", "moviepy", "-",
 }
 

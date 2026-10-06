@@ -16,23 +16,36 @@ Uso::
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from briefer import brand
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
-LLMProviderName = Literal["anthropic", "gemini", "openai", "mock"]
-VisionProviderName = Literal["claude", "qwen_local", "mock"]
-STTProviderName = Literal["whisper_api", "whisper_local", "mock"]
-TTSProviderName = Literal["edge", "gemini", "elevenlabs", "mock"]
+log = logging.getLogger("briefer.config")
+
+LLMProviderName = Literal["anthropic", "gemini", "mock"]
+VisionProviderName = Literal["claude", "mock"]
+STTProviderName = Literal["whisper_api", "mock"]
+TTSProviderName = Literal["edge", "gemini", "mock"]
 ImageGenProviderName = Literal["gemini", "local", "sdxl_turbo", "none", "mock"]
 ImageClassifierName = Literal["clip", "none", "mock"]
+
+#: Proveedores retirados en v0.3.9 (eran *stubs* que lanzaban ``NotImplementedError``; quedan como
+#: hoja de ruta en ``docs/05_roadmap_TODO.md``). Un ``.env`` antiguo que los nombre no rompe el
+#: arranque: el campo cae a ``mock`` con un aviso en el log. Un nombre desconocido sí falla al validar.
+RETIRED_PROVIDERS: dict[str, frozenset[str]] = {
+    "briefer_llm_provider": frozenset({"openai"}),
+    "briefer_vision_provider": frozenset({"qwen_local"}),
+    "briefer_stt_provider": frozenset({"whisper_local"}),
+    "briefer_tts_provider": frozenset({"elevenlabs"}),
+}
 
 
 def _split_csv(value: str) -> list[str]:
@@ -53,7 +66,6 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr | None = None
     openai_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
-    elevenlabs_api_key: SecretStr | None = None
 
     # ── Entrega ─────────────────────────────────────────────────────────────────
     telegram_bot_token: SecretStr | None = None
@@ -69,6 +81,19 @@ class Settings(BaseSettings):
     # Si falta una clave o una librería, usar el mock (con aviso en log) en vez de fallar.
     briefer_fallback_to_mock: bool = True
 
+    @field_validator(*RETIRED_PROVIDERS, mode="before")
+    @classmethod
+    def _retired_provider_to_mock(cls, value: object, info: ValidationInfo) -> object:
+        """Un proveedor retirado (antiguo *stub*) cae a ``mock`` con aviso, sin romper el arranque."""
+        retired = RETIRED_PROVIDERS.get(info.field_name or "", frozenset())
+        if isinstance(value, str) and value.strip().lower() in retired:
+            log.warning(
+                "%s=%s: proveedor retirado en v0.3.9 (no estaba implementado); se usa mock",
+                (info.field_name or "").upper(), value.strip(),
+            )
+            return "mock"
+        return value
+
     # ── Modelos ─────────────────────────────────────────────────────────────────
     briefer_llm_model: str = "claude-sonnet-5-5"
     briefer_llm_model_cheap: str = "claude-haiku-4-5-20251001"
@@ -76,11 +101,8 @@ class Settings(BaseSettings):
     # las puertas de calidad; Sonnet 5.5 escribe mejor pero cuesta ~2,7x (ver pipeline).
     briefer_scriptwriter_model: str = ""
     briefer_gemini_model: str = "gemini-2.5-flash"
-    briefer_openai_model: str = "gpt-4o-mini"
     briefer_vision_model: str = "claude-sonnet-5-5"
-    briefer_qwen_vl_model: str = "Qwen/Qwen2.5-VL-3B-Instruct"
     briefer_whisper_api_model: str = "gpt-4o-mini-transcribe"
-    briefer_whisper_local_model: str = "base"
     # Portada local y gratuita (BRIEFER_IMAGE_GEN_PROVIDER=local; «sdxl_turbo» es el alias antiguo):
     # modelo de Hugging Face para diffusers en CPU (SDXS, OpenRAIL++, 1 paso, ~1,8 GB). 0 = pasos del preset.
     briefer_sdxl_model: str = "IDKiro/sdxs-512-dreamshaper"
@@ -108,9 +130,6 @@ class Settings(BaseSettings):
     briefer_gemini_tts_model: str = "gemini-3.8-flash-tts"
     briefer_gemini_voice_a: str = "Puck"
     briefer_gemini_voice_b: str = "Kore"
-    elevenlabs_voice_a: str | None = None
-    elevenlabs_voice_b: str | None = None
-    elevenlabs_model: str = "eleven_multilingual_v2"
 
     # ── Contenido ───────────────────────────────────────────────────────────────
     briefer_default_tickers: str = "SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA"

@@ -4,8 +4,8 @@ Este documento permite que los tres carriles trabajen **en paralelo** desde el d
 contra estos contratos y usa `providers/mock.py` y los datos de `data/samples/` mientras lo de los demás no
 existe.
 
-**Versión de contratos: v0.3.8 (06-oct-2026, fase 2: calidad del guion y del análisis tras la evaluación; antes
-v0.3.6, cierre de la fase 1: vídeo, portada local, Telegram, router CLIP y cartera desde captura).** Fuente de verdad en
+**Versión de contratos: v0.3.9 (06-oct-2026, limpieza de *stubs*: el registry solo expone proveedores
+implementados; antes v0.3.8, fase 2: calidad del guion y del análisis tras la evaluación; antes v0.3.6, cierre de la fase 1: vídeo, portada local, Telegram, router CLIP y cartera desde captura).** Fuente de verdad en
 código: `src/briefer/schemas.py` (`CONTRACTS_VERSION = "0.3"`) y `src/briefer/providers/base.py`. La v0.3.1 **no
 toca** `schemas.py` ni `providers/base.py` (por eso `CONTRACTS_VERSION` sigue en `"0.3"`): añade funciones,
 constantes y parámetros opcionales en los módulos y cambia la **semántica** de dos cosas (persistencia sin cartera
@@ -191,10 +191,10 @@ class ProviderConfigError(RuntimeError): ...  # proveedor desconocido, sin clave
 
 | Función | Variable de `.env` | Valores | Clave requerida |
 | --- | --- | --- | --- |
-| `get_llm` | `BRIEFER_LLM_PROVIDER` | `anthropic` · `gemini` · `openai` · `mock` | `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` |
-| `get_vision` | `BRIEFER_VISION_PROVIDER` | `claude` · `qwen_local` · `mock` | `ANTHROPIC_API_KEY` (solo `claude`) |
-| `get_stt` | `BRIEFER_STT_PROVIDER` | `whisper_api` · `whisper_local` · `mock` | `OPENAI_API_KEY` (solo `whisper_api`; modelo `BRIEFER_WHISPER_API_MODEL`, por defecto `gpt-4o-mini-transcribe`) |
-| `get_tts` | `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` (v0.3.4, de pago) · `elevenlabs` · `mock` | `GEMINI_API_KEY` (solo `gemini`; modelo `BRIEFER_GEMINI_TTS_MODEL`, voces `BRIEFER_GEMINI_VOICE_A`/`_B`) · `ELEVENLABS_API_KEY` (solo `elevenlabs`) |
+| `get_llm` | `BRIEFER_LLM_PROVIDER` | `anthropic` · `gemini` · `mock` | `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` |
+| `get_vision` | `BRIEFER_VISION_PROVIDER` | `claude` · `mock` | `ANTHROPIC_API_KEY` (solo `claude`) |
+| `get_stt` | `BRIEFER_STT_PROVIDER` | `whisper_api` · `mock` | `OPENAI_API_KEY` (solo `whisper_api`; modelo `BRIEFER_WHISPER_API_MODEL`, por defecto `gpt-4o-mini-transcribe`) |
+| `get_tts` | `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` (v0.3.4, de pago) · `mock` | `GEMINI_API_KEY` (solo `gemini`; modelo `BRIEFER_GEMINI_TTS_MODEL`, voces `BRIEFER_GEMINI_VOICE_A`/`_B`) |
 | `get_image_gen` | `BRIEFER_IMAGE_GEN_PROVIDER` | `local` (v0.3.6, gratis; alias `sdxl_turbo`, misma clase `SDXLTurbo`) · `gemini` (v0.3.5, de pago) · `none` · `mock` | `local`: `requirements-local.txt` (diffusers + accelerate + torch), `BRIEFER_SDXL_MODEL` (por defecto `IDKiro/sdxs-512-dreamshaper`), `BRIEFER_SDXL_STEPS` (0 = según el modelo) · `GEMINI_API_KEY` (solo `gemini`; modelo `BRIEFER_GEMINI_IMAGE_MODEL`, por defecto `gemini-3.1-flash-lite-image`; necesita facturación activa: sin ella, 429 con cuota 0) · `none` → devuelve `None` |
 | `get_image_classifier` | `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` (v0.3.5, local) · `none` · `mock` | — (`clip` necesita `torch` + `transformers` de `requirements-local.txt`; `none` → devuelve `None`) |
 
@@ -203,8 +203,7 @@ Comportamiento:
 - `mock` siempre está disponible. `force_mock=True` lo fuerza sin mirar `.env` (lo usa el pipeline cuando
   `use_mock=True`).
 - `cheap=True` pide el modelo barato: `anthropic` usa `BRIEFER_LLM_MODEL_CHEAP` (Haiku 4.5, sin `effort`);
-  `gemini` usa el mismo `BRIEFER_GEMINI_MODEL` con el razonamiento desactivado o reducido; `openai` es un
-  *stub* (ver abajo); el mock devuelve `model="mock-llm-cheap"`. El Guionista usa el barato salvo que
+  `gemini` usa el mismo `BRIEFER_GEMINI_MODEL` con el razonamiento desactivado o reducido; el mock devuelve `model="mock-llm-cheap"`. El Guionista usa el barato salvo que
   `BRIEFER_SCRIPTWRITER_MODEL` indique otro (v0.3.1, `pipeline.scriptwriter_llm`;
   [ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md)).
 - Las implementaciones reales se importan de forma **perezosa** (`importlib`): no hace falta instalar `torch`,
@@ -212,6 +211,12 @@ Comportamiento:
 - Si falta la clave o la librería: con `BRIEFER_FALLBACK_TO_MOCK=true` (por defecto) devuelve el mock y deja un
   aviso en el log; con `false` lanza `ProviderConfigError`. Un nombre de proveedor desconocido lanza
   `ProviderConfigError` siempre.
+- **(v0.3.9) Solo proveedores implementados.** Los `Literal` de `config.py` (`LLMProviderName`…) y las tablas de
+  `registry.py` coinciden y ninguna clase registrada lanza `NotImplementedError` (`tests/test_registry_no_stubs.py`).
+  Los *stubs* retirados (`openai` como LLM, `qwen_local`, `whisper_local`, `elevenlabs`) están en
+  `config.RETIRED_PROVIDERS`: si un `.env` antiguo los nombra, `Settings` los convierte en `mock` con un aviso en
+  el log (`briefer.config`) en lugar de fallar al arrancar; cualquier otro nombre fuera del `Literal` sigue siendo
+  un `ValidationError` de `Settings`. Quedan como hoja de ruta (docs/05, *Won't*), sin código.
 
 Contrato de comportamiento:
 
@@ -433,7 +438,7 @@ def delete_briefing(briefing_id: str, base_dir: Path | None = None,
 USD_TO_EUR = 0.86
 LLM_PRICES_USD_PER_MTOK: dict[str, tuple[float, float]]   # claude-sonnet-5-5 (2, 10) · claude-haiku-4-5 (1, 5)…
 STT_PRICES_USD_PER_MIN: dict[str, float]                  # whisper-1 0.006 · gpt-4o-mini-transcribe 0.003
-TTS_PRICES_USD_PER_1K_CHARS: dict[str, float]             # edge 0 · elevenlabs 0.18 · openai-tts-1 0.015
+TTS_PRICES_USD_PER_1K_CHARS: dict[str, float]             # edge 0 (v0.3.9: fuera elevenlabs y openai-tts-1)
 IMAGE_GEN_PRICES_USD_PER_IMAGE: dict[str, float]          # (v0.3.5) gemini-3.1-flash-lite-image 0.0336 (tarifa oficial,
                                                           #   06-oct-2026) · gemini-3.1-flash-image 0.067 · sdxl_turbo 0
 LOCAL_PROVIDERS: set[str]                                 # coste 0: mock, edge, local, samples, synthetic…
@@ -1152,8 +1157,7 @@ def send_briefing_telegram(briefing: Briefing, chat_id: str | None = None,
 | `CLIPClassifier.classify` | **[impl]** (v0.3.5, local, 0 €) | `BRIEFER_CLIP_MODEL` (`openai/clip-vit-base-patch32`, ~600 MB a la caché de Hugging Face la 1.ª vez), CPU. Varias frases en inglés por etiqueta con sus embeddings promediados (`LABEL_PROMPTS`, *prompt ensembling*); softmax sobre la similitud imagen-texto. Modelo cargado una vez por proceso (con *lock*); sin `torch`/`transformers` -> `ImportError` claro y `route_image` sigue sin clasificar. `clip_available()`, `prompts_for(label)` |
 | `GeminiImage.generate` | **[impl]** (v0.3.5, de pago; **sin prueba real**) | `BRIEFER_GEMINI_IMAGE_MODEL` (`gemini-3.1-flash-lite-image`), `generate_content` con `response_modalities=["IMAGE"]`, 16:9 a 1K; normaliza a PNG con escritura atómica. 1 reintento del SDK ante 408/429/5xx; el 429 de cuota 0 (clave sin facturación) se traduce a un mensaje claro (`is_no_billing_error`); respuesta sin imagen -> `RuntimeError` (paso opcional fallido). Coste por imagen en `costs.IMAGE_GEN_PRICES_USD_PER_IMAGE` |
 | `SDXLTurbo.generate` (`local` / `sdxl_turbo`) | **[impl]** (v0.3.6, 0 €; **verificado en real**) | diffusers en CPU; por defecto SDXS `IDKiro/sdxs-512-dreamshaper` (1 paso, CreativeML OpenRAIL++ con uso comercial, ~1,8 GB la 1.ª vez). Medido (CPU de 12 hilos, 768x432): import ~35 s en frío, carga 15-138 s en frío (1-5 s con caché caliente), 4-7 s por portada (la 1.ª 23-36 s). Descartados `stabilityai/sd-turbo` (licencia: uso comercial restringido) y `SimianLuo/LCM_Dreamshaper_v7` (4,3 GB) como defecto |
-| `OpenAILLM.complete` | **[stub] documentado** | Recorte (docs/07, H10): lanza `NotImplementedError`; en el pipeline, el paso núcleo cae a mock marcado |
-| `QwenVLLocal`, `WhisperLocal`, `ElevenLabsTTS` | **[stub]** | *Won't* o D2; se retiran del registry antes de entregar si no se implementan |
+| ~~`OpenAILLM`, `QwenVLLocal`, `WhisperLocal`, `ElevenLabsTTS`~~ | **retirados** (v0.3.9) | Eran *stubs* (`NotImplementedError`); ficheros borrados y fuera del registry. Hoja de ruta (docs/05, *Won't*) |
 
 **`providers/llm/_anthropic_common.py` (v0.3.1, interno de los proveedores Anthropic):** `REQUEST_TIMEOUT_S = 120`,
 `CONNECT_TIMEOUT_S = 10`, `MAX_RETRIES = 3`, `LLMResponseError`, `make_client(settings)`, `get_client(settings)`
@@ -1256,3 +1260,4 @@ flowchart LR
 | v0.3.6 · fase 1 (tarde) | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios.** **Implementado (deja de ser *stub*):** `SDXLTurbo` como portada local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; modelo por defecto `IDKiro/sdxs-512-dreamshaper`, `BRIEFER_SDXL_STEPS`); `media.cover.build_cover_prompt_local`. **Privacidad y costes:** `read_chart` desvía una captura de cartera también sin CLIP (`PORTFOLIO_MARKER` en la respuesta de visión → `ValueError(PORTFOLIO_REDIRECT_MSG)`, sin estructura ni persistencia); errores de salida estructurada con mensaje genérico; `portfolio_from_image`: si los pesos no cubren todas las posiciones con una misma base, ninguna lleva peso y `stats_out["weight_note"]` lo explica; `pipeline._MeteredImageGen` anota el coste de la portada aunque falle el titular; un modelo de imagen de pago desconocido usa la tarifa más alta conocida de su proveedor (con aviso de log); el vídeo nunca incluye el gráfico de cartera | Equipo (fase 1) |
 | v0.3.7 · canal email retirado | 06-oct-2026 | **Rompe (solo interno); `schemas.py` y `providers/base.py` sin cambios.** Decisión de producto: la entrega es por web y Telegram (verificado en real). Se borra `delivery/email_sender.py` (`build_email_html`, `send_briefing_email`, `SYNTHETIC_VOICE_NOTE`); `pipeline.DELIVERY_CHANNELS = ("telegram",)` y pedir `"email"` lanza `ValueError` («Canal de entrega desconocido»); fuera las variables `SMTP_*` de `config.py` y `.env.example`; `scripts/demo.py --deliver` solo admite `telegram`. `schemas.Channel` conserva `"email"` como valor reservado sin uso, para no cambiar el contrato | Equipo |
 | v0.3.8 · calidad tras la evaluación | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (`CONTRACTS_VERSION` sigue en `"0.3"`). Nuevo módulo `agents/timeframe.py` (`TimeFrame`, `Session`, `MADRID_TZ`, `madrid_now`, `market_of`, `greeting_for`, `time_frame`). Guardarraíles: `unhedged_causal_claims(text, reference=None)` ampliado (más verbos causales; «los analistas» genérico no es atribución), `evaluative_tone`, `agreement_issues`, `fix_agreement`. Guionista: `episode_frame`, `closing_line(frame)`, `premature_close_claims`, `fix_time_frame`; `script_problems(..., *, frame=None)`, `fallback_script(..., *, frame=None)`, `write_script(..., *, now=None)`. Analista: `FOCUS_LEAD_WORDS`, `focus_tickers`, `focus_problems`, `leads_with`, `analyze(..., *, now=None)`. **Cambios de semántica:** (1) el saludo y el marco del guion siguen la hora de Madrid y el estado de la sesión EU/EE. UU. («Buenas tardes… a esta hora de la sesión» antes del cierre; «Buenas noches… cierre» después; `CLOSING_LINE_ES` = cierre nocturno); (2) tono valorativo, causa sin atribuir y anuncio de «cierre» prematuro son problemas del guion que provocan el reintento (la concordancia se repara de forma determinista); (3) el Analista reintenta si el titular o el primer punto clave no tratan de los valores del usuario (si tiene noticias suyas) y, si persiste, reordena los puntos; (4) «mantención» → «mantenimiento» también en el Q&A; (5) `logging_utils.get_logger` respeta un nivel fijado antes por el usuario. Prompts `analyst.md` y `scriptwriter.md` actualizados. Tests: `tests/test_quality_eval_fixes.py` | Equipo (fase 2) |
+| v0.3.9 · limpieza de *stubs* | 06-oct-2026 | **Rompe (solo configuración); `schemas.py` y `providers/base.py` sin cambios** (`CONTRACTS_VERSION` sigue en `"0.3"`). Se borran `providers/llm/openai_llm.py` (`OpenAILLM`), `providers/vision/qwen_vl_local.py` (`QwenVLLocal`), `providers/stt/whisper_local.py` (`WhisperLocal`) y `providers/tts/elevenlabs_tts.py` (`ElevenLabsTTS`): salen de `registry.py` y de los `Literal` de `config.py`. Nuevo `config.RETIRED_PROVIDERS`: un `.env` con `BRIEFER_LLM_PROVIDER=openai`, `BRIEFER_VISION_PROVIDER=qwen_local`, `BRIEFER_STT_PROVIDER=whisper_local` o `BRIEFER_TTS_PROVIDER=elevenlabs` cae a `mock` con aviso en el log (no rompe el arranque). Fuera de `Settings`: `elevenlabs_api_key`, `elevenlabs_voice_a`/`_b`, `elevenlabs_model`, `briefer_openai_model`, `briefer_qwen_vl_model`, `briefer_whisper_local_model` (si siguen en `.env` se ignoran, `extra="ignore"`). `costs`: fuera `gpt-4o-mini` (LLM), `elevenlabs` y `openai-tts-1`; `LOCAL_PROVIDERS` sin `qwen_local`/`whisper_local`. `pipeline._TTS_MODULES` sin `elevenlabs`. `requirements-local.txt` sin `faster-whisper` ni `qwen-vl-utils`. Tests: `tests/test_registry_no_stubs.py` | Equipo (D3) |

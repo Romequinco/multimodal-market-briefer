@@ -274,11 +274,11 @@ Cada familia de modelo tiene una interfaz abstracta en `providers/base.py` y var
 `registry.py` elige la implementación según `.env`:
 
 ```text
-BRIEFER_LLM_PROVIDER=anthropic | gemini | openai | mock
-BRIEFER_VISION_PROVIDER=claude | qwen_local | mock
-BRIEFER_STT_PROVIDER=whisper_api | whisper_local | mock
-BRIEFER_TTS_PROVIDER=edge | gemini | elevenlabs | mock
-BRIEFER_IMAGE_GEN_PROVIDER=gemini | sdxl_turbo | none | mock   # none = sin portada; gemini de pago (sdxl: stub)
+BRIEFER_LLM_PROVIDER=anthropic | gemini | mock
+BRIEFER_VISION_PROVIDER=claude | mock
+BRIEFER_STT_PROVIDER=whisper_api | mock
+BRIEFER_TTS_PROVIDER=edge | gemini | mock
+BRIEFER_IMAGE_GEN_PROVIDER=local | gemini | none | mock   # none = sin portada; local gratis (alias sdxl_turbo); gemini de pago
 BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip | none | mock          # none = sin router; clip local y gratis
 BRIEFER_FALLBACK_TO_MOCK=true | false
 ```

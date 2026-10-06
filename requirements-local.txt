@@ -1,6 +1,6 @@
-# OPCIONAL: modelos locales (Qwen2.5-VL, Whisper local, portada local con diffusers, CLIP). Pesado (varios GB).
-# Instalar solo si se usan BRIEFER_*_PROVIDER=qwen_local|whisper_local|local (sdxl_turbo)|clip.
-# Ojo: a 05-oct-2026 esos proveedores son todavia esqueletos (ver src/briefer/providers/).
+# OPCIONAL: modelos locales (portada local con diffusers, CLIP, FinBERT). Pesado (varios GB).
+# Instalar solo si se usan BRIEFER_IMAGE_GEN_PROVIDER=local (sdxl_turbo), BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip
+# o BRIEFER_FINBERT=true. (Qwen2.5-VL y Whisper local se retiraron en v0.3.9: eran esqueletos sin implementar.)
 # FinBERT («impacto de la noticia», BRIEFER_FINBERT=true, src/briefer/ingest/sentiment.py) usa solo
 # torch + transformers: con esos dos basta (el modelo ProsusAI/finbert, ~440 MB, se descarga la
 # primera vez a la cache de Hugging Face). Sin ellos el paso se omite y el briefing sigue igual.
@@ -18,5 +18,3 @@ transformers>=4.49
 # (IDKiro/sdxs-512-dreamshaper, OpenRAIL++) descarga ~1,8 GB la primera vez a la cache de Hugging Face.
 accelerate>=0.30
 diffusers>=0.30
-faster-whisper>=1.0
-qwen-vl-utils>=0.0.8

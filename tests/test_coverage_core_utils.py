@@ -43,13 +43,15 @@ def test_prompt_cache_multipliers() -> None:
     assert write == pytest.approx(base * costs.CACHE_WRITE_MULTIPLIER)
 
 
-def test_estimate_cost_dispatcher_branches() -> None:
+def test_estimate_cost_dispatcher_branches(monkeypatch: pytest.MonkeyPatch) -> None:
     assert costs.estimate_cost_eur("mock", "claude-sonnet-5-5", input_tokens=10**6) == 0.0
     stt = costs.estimate_cost_eur("openai", "whisper-1", duration_s=60)
     assert stt == pytest.approx(0.006 * costs.USD_TO_EUR)
     assert costs.estimate_stt_cost_eur("modelo-raro", 60) == 0.0
-    tts = costs.estimate_cost_eur("elevenlabs", "-", n_chars=1000)
+    monkeypatch.setitem(costs.TTS_PRICES_USD_PER_1K_CHARS, "tts_por_caracter", 0.18)
+    tts = costs.estimate_cost_eur("tts_por_caracter", "-", n_chars=1000)
     assert tts == pytest.approx(0.18 * costs.USD_TO_EUR)
+    assert costs.estimate_cost_eur("tts_sin_tarifa", "-", n_chars=1000) == 0.0
     assert costs.estimate_cost_eur("edge", "-", n_chars=10_000) == 0.0
     assert costs.estimate_cost_eur("otro_img", "-", n_images=3) == 0.0
     assert costs.estimate_image_cost_eur("sdxl_turbo", 4) == 0.0

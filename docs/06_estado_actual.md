@@ -7,8 +7,8 @@
 **Fecha:** mar 6-oct-2026, cierre de la **fase 2** (rama `fase1`): evidencia y mediciones (caminos 1, 2 y 6),
 `docs/04` reforzado y mejoras de calidad del guion y del análisis · **Fase:** F0, D1, la parte multimodal de D2 y
 los caminos de evidencia cerrados · **Siguiente:** fase 3 (subir `fase1` cuando el equipo decida, *build* de Docker,
-`run.sh`, limpieza de *stubs*) y fase 4 (entregables del jueves) ·
-**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.8 ([03](03_contratos_modulos.md)) ·
+`run.sh`; *stubs* ya retirados, v0.3.9) y fase 4 (entregables del jueves) ·
+**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.9 ([03](03_contratos_modulos.md)) ·
 **Plan:** [05](05_roadmap_TODO.md)
 
 ## Resumen
@@ -152,7 +152,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Docker | `Dockerfile` con modelos locales por defecto (`ARG LOCAL_MODELS=true`: torch CPU + transformers + diffusers + accelerate; `false` para imagen mínima), volumen `hf-cache`, pip con `PIP_DEFAULT_TIMEOUT=120` / `PIP_RETRIES=10`; `docker compose config` válido, pero la *build* **NO VERIFICADA** (06-oct: intentada con Docker Desktop, red degradada, se paró) | D2 Sync 4 / D3 |
 | `run.sh` y clon limpio en Linux/macOS | `scripts/run.sh` | D3 |
 | Clave de grupo con límite de gasto | Pendiente de decisión del equipo (requiere la consola de Anthropic). El contraste con la factura se cerró el 06-oct: revisado a ojo, cuadra aproximadamente | D3 |
-| Proveedores sin implementar | `OpenAILLM` (*stub* documentado), Qwen-VL, Whisper local, ElevenLabs (la voz premium es ya Gemini TTS); `SDXLTurbo` ya **no** es *stub* (portada local) | Won't; limpieza D3 |
+| Proveedores sin implementar | Ninguno en el registry (v0.3.9, D3): `OpenAILLM`, Qwen-VL, Whisper local y ElevenLabs borrados; un `.env` antiguo que los nombre cae a `mock` con aviso | Hoja de ruta (docs/05, *Won't*) |
 | Capturas, demo grabada, pitch | — | D3 |
 
 ## Riesgos abiertos
@@ -181,7 +181,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 ## Próximos pasos (fases 3 y 4)
 
 1. **Fase 3 (mié 7)** · subir `fase1` a `main` cuando el equipo lo decida; *build* de **Docker** con buena red;
-   `run.sh` en Linux/macOS; limpieza de *stubs*; re-evaluar la calidad (`scripts/evaluar_briefings.py --real`)
+   `run.sh` en Linux/macOS; ~~limpieza de *stubs*~~ (hecho, v0.3.9); re-evaluar la calidad (`scripts/evaluar_briefings.py --real`)
    con las puertas nuevas. **Usuario:** contraste de costes con las consolas y clave de grupo con límite.
 2. **mié 22:00** · *feature freeze*.
 3. **Fase 4 (jue 8)** · pregenerado final (con vídeo si se enseña en la portada), clon limpio, capturas, demo

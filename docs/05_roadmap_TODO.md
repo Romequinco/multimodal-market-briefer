@@ -3,7 +3,7 @@
 **Entrega: jueves 8-oct-2026, 18:00** (aula virtual; objetivo interno 16:30). Plan revisado tras la
 [revisión crítica](07_revision_critica.md) del 05-oct. Tareas por fase y por carril, **sin asignar personas**:
 cada uno marca la que coge escribiendo su nombre al lado. Contratos y firmas reales en
-[03](03_contratos_modulos.md) (**v0.3.8**).
+[03](03_contratos_modulos.md) (**v0.3.9**).
 
 > **Actualización mar 6-oct-2026 (fase 2 · evidencia y mediciones).** Cerrados los caminos **1, 2 y 6**:
 > evaluación de **N = 6 briefings reales** (3 carteras y 3 listas, una con PDF + gráfico; `notebooks/01_evaluacion_briefings.ipynb`
@@ -17,7 +17,7 @@ cada uno marca la que coge escribiendo su nombre al lado. Contratos y firmas rea
 > mejoras de calidad: saludo y marco según la hora real (`agents/timeframe.py`), puertas de causas sin atribuir y de
 > tono valorativo con reintento, concordancia de artículos y prioridad de los valores del usuario en el Analista
 > (verificado en real: briefing `20261006-142229-4926f2`, 0,043 €). **1202 tests sin red** (+ 13 `live`), ruff +
-> mypy limpios. Quedan: contraste con la consola y clave de grupo (usuario), Docker, `run.sh`, *stubs* y entregables.
+> mypy limpios. Quedan: contraste con la consola y clave de grupo (usuario), Docker, `run.sh` y entregables (*stubs* retirados, v0.3.9).
 
 > **Actualización mar 6-oct-2026 (fase 1).** Cerradas las piezas multimodales que quedaban de D2 (rama `fase1`):
 > **vídeo corto** 9:16 con Pillow + ffmpeg y subtítulos por locutor (8,5 s para el pregenerado, 0 €), **router
@@ -414,9 +414,9 @@ Reglas comunes:
 | 16:00 | Etiqueta `v1.0`; comprobación de que no se versiona `.env`, `data/outputs/`, `docs/raw/` | B |
 | **16:30** | **Entrega en el aula virtual** (17:00 límite interno; 18:00 oficial) | — |
 
-- [ ] **[M]** Limpieza de *stubs* — `providers/registry.py`, `providers/{vision/qwen_vl_local,tts/elevenlabs_tts,stt/whisper_local,llm/openai_llm}.py` (`image/sdxl_turbo` ya no es *stub*: es la portada local) — **Hecho cuando:** ningún proveedor accesible desde `.env` lanza `NotImplementedError` sin aviso; los no implementados salen del registry o se citan como roadmap
+- [x] **[M]** Limpieza de *stubs* — `providers/registry.py`, `providers/{vision/qwen_vl_local,tts/elevenlabs_tts,stt/whisper_local,llm/openai_llm}.py` (`image/sdxl_turbo` ya no es *stub*: es la portada local) — **Hecho cuando:** ningún proveedor accesible desde `.env` lanza `NotImplementedError` sin aviso; los no implementados salen del registry o se citan como roadmap *(hecho el 06-oct, v0.3.9: borrados los cuatro *stubs*, fuera del registry, de los `Literal` de `config.py`, de `.env.example` y de `requirements-local.txt` (`faster-whisper`, `qwen-vl-utils`); un `.env` antiguo que los nombre cae a `mock` con aviso en el log; `tests/test_registry_no_stubs.py` comprueba que ninguna clase registrada lanza `NotImplementedError`)*
 - [ ] **[M]** Pregenerado final — `data/samples/demo_briefing/` — **Hecho cuando:** regenerado con el código final (`storage.export_briefing`), extractos ≤ 200 caracteres y cargado en la portada desde un clon limpio
-- [ ] **[M]** Costes y latencias medidos — `docs/04`, tarifas de `costs.py` — **Hecho cuando:** p50/p95 de briefing y Q&A medidos y las tarifas «estimación a verificar» que queden (Gemini, Whisper, ElevenLabs) resueltas con fecha o marcadas como tales *(Anthropic ya verificado el 05-oct)*
+- [ ] **[M]** Costes y latencias medidos — `docs/04`, tarifas de `costs.py` — **Hecho cuando:** p50/p95 de briefing y Q&A medidos y las tarifas «estimación a verificar» que queden (Gemini, Whisper) resueltas con fecha o marcadas como tales *(Anthropic ya verificado el 05-oct)*
 - [ ] **[M]** Clon limpio + `run.ps1` / `run.sh` / Docker — **Hecho cuando:** los tres caminos funcionan desde cero (o se aplica el go/no-go de las 15:45)
 - [ ] **[M]** Capturas — `docs/assets/capturas/*.png`, `README.md#capturas` — **Hecho cuando:** las 7 capturas existen y se ven en GitHub
 - [ ] **[M]** Demo grabada (3-4 min) — enlace en `README.md#demo` — **Hecho cuando:** muestra portada, generar, subir gráfico/PDF, Q&A por voz, traza y métricas, con audio
@@ -447,7 +447,7 @@ Horas estimadas en [07](07_revision_critica.md#3-mejoras-priorizadas-moscow).
 | **Must** | `docs/04` con costes y latencias medidos *(primera medición hecha)* y costes fijos/licencias | D2 / D3 |
 | **Should** | Router CLIP/SigLIP *(CLIP hecho el 06-oct)* · puertas de calidad (grounding *(hecho en Analista y Guionista)* + anti-recomendación con reintento *(hecho en Analista y Guionista)*) · WER del podcast · pestaña «Cómo se hizo» *(hecho)* · portada texto→imagen *(hecho el 06-oct: local y gratis con SDXS; Gemini de pago sin prueba real)* · captura de cartera → `Portfolio` *(hecho el 06-oct)* · Telegram *(implementado; sin prueba real, falta el bot)* · paralelismo *(hecho)* · portada de la app y métricas visuales *(hecho)* | D1 / D2 |
 | **Could** | Embeddings (histórico y dedupe semántico) · FinBERT como segunda opinión (camino 3) *(hecho, PR #1 de Daniel; opcional)* · TTS premium Gemini *(hecho)* · Q&A con herramientas · Gemini como LLM alternativo *(implementado; briefing completo sin probar)* · despliegue en la nube | D2 si sobra tiempo |
-| **Won't** | Email (retirado el 06-oct: Telegram cubre la entrega) · Stable Video Diffusion, Qwen-VL local, ElevenLabs, Bark, Whisper local, *fine-tuning*, autenticación, base de datos, LLM OpenAI (*stub* documentado) | — |
+| **Won't** | Email (retirado el 06-oct: Telegram cubre la entrega) · Stable Video Diffusion, Bark, *fine-tuning*, autenticación, base de datos · **hoja de ruta sin código** (*stubs* retirados el 06-oct, v0.3.9): Qwen2.5-VL local (visión a 0 €), Whisper local con `faster-whisper` (STT a 0 €), ElevenLabs (TTS premium; hoy lo cubre Gemini TTS) y LLM OpenAI | — |
 
 ---
 

@@ -1282,7 +1282,7 @@ def warmup(settings: Settings | None = None, *, mode: RunMode | None = None) -> 
 
 #: Módulo del SDK de cada TTS real que ``warmup`` importa por adelantado.
 #: Con Gemini en el podcast, el Q&A habla con edge-tts (``qa_tts``): se calienta ``edge_tts``.
-_TTS_MODULES = {"edge": "edge_tts", "gemini": "edge_tts", "elevenlabs": "elevenlabs"}
+_TTS_MODULES = {"edge": "edge_tts", "gemini": "edge_tts"}
 #: Módulo del SDK de cada STT real que ``warmup`` importa por adelantado (``whisper_api``).
 _STT_MODULES = {"openai": "openai"}
 

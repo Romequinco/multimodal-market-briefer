@@ -126,10 +126,10 @@ def show_error(exc: BaseException, what: str) -> None:
 
 # Clave de .env que necesita cada proveedor real (``None`` = no necesita clave).
 _PROVIDER_SECRETS: dict[str, dict[str, str | None]] = {
-    "LLM": {"anthropic": "anthropic_api_key", "gemini": "gemini_api_key", "openai": "openai_api_key"},
-    "Visión": {"claude": "anthropic_api_key", "qwen_local": None},
-    "Voz a texto": {"whisper_api": "openai_api_key", "whisper_local": None},
-    "Texto a voz": {"edge": None, "elevenlabs": "elevenlabs_api_key"},
+    "LLM": {"anthropic": "anthropic_api_key", "gemini": "gemini_api_key"},
+    "Visión": {"claude": "anthropic_api_key"},
+    "Voz a texto": {"whisper_api": "openai_api_key"},
+    "Texto a voz": {"edge": None, "gemini": "gemini_api_key"},
     "Imagen": {},
     "Clasificador": {},
 }

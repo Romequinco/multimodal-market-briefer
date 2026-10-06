@@ -3,7 +3,7 @@
 Cuadernos propios del grupo para probar modelos antes de llevarlos a `src/briefer/`.
 No se copian aquí los notebooks de clase (están en `docs/raw/`, ignorado por git).
 
-Convención de nombres: `<carril>_<nn>_<tema>.ipynb`, p. ej. `A_01_qwen_vl_graficos.ipynb`.
+Convención de nombres: `<carril>_<nn>_<tema>.ipynb`, p. ej. `A_01_ingesta_noticias_finbert.ipynb`.
 Antes de versionar un notebook: limpiar salidas pesadas y no dejar claves en las celdas.
 
 Los cuadernos `00`-`02` son los de la entrega (caminos 6, 1 y 2 de `docs/05_roadmap_TODO.md`); los que

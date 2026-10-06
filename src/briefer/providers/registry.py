@@ -7,6 +7,9 @@ si no se usan.
 Si falta una clave o una librería y ``BRIEFER_FALLBACK_TO_MOCK=true``, se devuelve el mock
 con un aviso en el log; si es ``false``, se lanza ``ProviderConfigError``.
 
+Solo se registran proveedores **implementados** (v0.3.9: fuera los *stubs* ``openai`` LLM,
+``qwen_local``, ``whisper_local`` y ``elevenlabs``; ver ``config.RETIRED_PROVIDERS``).
+
 Uso::
 
     from briefer.providers import registry
@@ -43,20 +46,16 @@ _Spec = tuple[str, str, str | None]
 LLM_IMPLS: dict[str, _Spec] = {
     "anthropic": ("briefer.providers.llm.anthropic_llm", "AnthropicLLM", "anthropic_api_key"),
     "gemini": ("briefer.providers.llm.gemini_llm", "GeminiLLM", "gemini_api_key"),
-    "openai": ("briefer.providers.llm.openai_llm", "OpenAILLM", "openai_api_key"),
 }
 VISION_IMPLS: dict[str, _Spec] = {
     "claude": ("briefer.providers.vision.claude_vision", "ClaudeVision", "anthropic_api_key"),
-    "qwen_local": ("briefer.providers.vision.qwen_vl_local", "QwenVLLocal", None),
 }
 STT_IMPLS: dict[str, _Spec] = {
     "whisper_api": ("briefer.providers.stt.whisper_api", "WhisperAPI", "openai_api_key"),
-    "whisper_local": ("briefer.providers.stt.whisper_local", "WhisperLocal", None),
 }
 TTS_IMPLS: dict[str, _Spec] = {
     "edge": ("briefer.providers.tts.edge_tts_provider", "EdgeTTS", None),
     "gemini": ("briefer.providers.tts.gemini_tts", "GeminiTTS", "gemini_api_key"),
-    "elevenlabs": ("briefer.providers.tts.elevenlabs_tts", "ElevenLabsTTS", "elevenlabs_api_key"),
 }
 IMAGE_GEN_IMPLS: dict[str, _Spec] = {
     "gemini": ("briefer.providers.image.gemini_image", "GeminiImage", "gemini_api_key"),

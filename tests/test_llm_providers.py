@@ -352,13 +352,6 @@ def test_gemini_empty_response_raises() -> None:
         llm.complete("s", [{"role": "user", "content": "x"}])
 
 
-def test_openai_is_documented_stub() -> None:
-    from briefer.providers.llm.openai_llm import OpenAILLM
-
-    with pytest.raises(NotImplementedError, match="Gemini"):
-        OpenAILLM(Settings(_env_file=None)).complete("s", [{"role": "user", "content": "x"}])
-
-
 # ── Costes ──────────────────────────────────────────────────────────────────────────
 
 
