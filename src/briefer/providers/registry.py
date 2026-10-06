@@ -59,6 +59,7 @@ TTS_IMPLS: dict[str, _Spec] = {
     "elevenlabs": ("briefer.providers.tts.elevenlabs_tts", "ElevenLabsTTS", "elevenlabs_api_key"),
 }
 IMAGE_GEN_IMPLS: dict[str, _Spec] = {
+    "gemini": ("briefer.providers.image.gemini_image", "GeminiImage", "gemini_api_key"),
     "sdxl_turbo": ("briefer.providers.image.sdxl_turbo", "SDXLTurbo", None),
 }
 IMAGE_CLASSIFIER_IMPLS: dict[str, _Spec] = {

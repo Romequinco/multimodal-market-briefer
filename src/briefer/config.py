@@ -31,7 +31,7 @@ LLMProviderName = Literal["anthropic", "gemini", "openai", "mock"]
 VisionProviderName = Literal["claude", "qwen_local", "mock"]
 STTProviderName = Literal["whisper_api", "whisper_local", "mock"]
 TTSProviderName = Literal["edge", "gemini", "elevenlabs", "mock"]
-ImageGenProviderName = Literal["sdxl_turbo", "none", "mock"]
+ImageGenProviderName = Literal["gemini", "sdxl_turbo", "none", "mock"]
 ImageClassifierName = Literal["clip", "none", "mock"]
 
 
@@ -89,6 +89,9 @@ class Settings(BaseSettings):
     briefer_whisper_api_model: str = "gpt-4o-mini-transcribe"
     briefer_whisper_local_model: str = "base"
     briefer_sdxl_model: str = "stabilityai/sdxl-turbo"
+    # Portada con Gemini (BRIEFER_IMAGE_GEN_PROVIDER=gemini): el modelo de imagen más barato de la
+    # API de Gemini (0,0336 $ por imagen 1K, precios oficiales consultados el 06-oct-2026).
+    briefer_gemini_image_model: str = "gemini-3.1-flash-lite-image"
     briefer_clip_model: str = "openai/clip-vit-base-patch32"
     briefer_local_device: Literal["auto", "cpu", "cuda", "mps"] = "auto"
 

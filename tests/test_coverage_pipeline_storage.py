@@ -157,18 +157,10 @@ def test_portfolio_chart_failure_does_not_break_briefing(
     assert briefing.charts  # los de precios sí
 
 
-def test_cover_step_success_and_pending(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
-    pending = pipeline.run_briefing(["SAN.MC"], settings=settings, use_mock=True, make_cover=True)
-    cover_metric = next(m for m in pending.metrics if m.step == "media.cover")
-    assert pending.cover_path is None and cover_metric.error  # stub: NotImplementedError
-
-    def fake_cover(analysis, image_gen, out_dir: Path) -> Path:
-        return image_gen.generate("portada", out_dir / "cover.png")
-
-    monkeypatch.setattr(pipeline.cover_mod, "make_cover", fake_cover)
+def test_cover_step_success(settings: Settings) -> None:
     briefing = pipeline.run_briefing(["SAN.MC"], settings=settings, use_mock=True, make_cover=True)
-    assert briefing.cover_path and briefing.cover_path.is_file()
-    assert not next(m for m in briefing.metrics if m.step == "media.cover").error
+    cover_metric = next(m for m in briefing.metrics if m.step == "media.cover")
+    assert briefing.cover_path and briefing.cover_path.is_file() and not cover_metric.error
 
 
 def test_second_save_failure_keeps_first_json(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:

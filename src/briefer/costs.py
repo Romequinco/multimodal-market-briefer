@@ -8,6 +8,8 @@ Estado de verificación (05-oct-2026):
   salida): tabla de precios de la documentación oficial de la API de Anthropic (consultada el
   05-oct-2026, datos del 25-sep-2026). Los ids ``claude-sonnet-5-5`` y
   ``claude-haiku-4-5-20251001`` responden en la API (``scripts/smoke_real.py``).
+- **Gemini imagen** (portada; ``gemini-3.1-flash-lite-image`` 0,0336 $ por imagen 1K): página
+  oficial de precios de la API de Gemini (consultada el 06-oct-2026, «last updated 2026-10-01»).
 - **Gemini (LLM y TTS), OpenAI, Whisper, ElevenLabs y tipo de cambio**: *estimación a verificar* en las
   páginas oficiales antes de la entrega (anotar la fecha en ``docs/04``).
 
@@ -71,9 +73,15 @@ TTS_PRICES_USD_PER_MTOK: dict[str, tuple[float, float]] = {
     "gemini-3.8-flash-tts": (0.50, 10.00),  # estimación, verificar
 }
 
-# USD por imagen generada (solo modelos locales en el MVP).
+# USD por imagen generada, por proveedor o por id de modelo (gana el modelo si se conoce).
+# Gemini: página oficial de precios de la API de Gemini (ai.google.dev/gemini-api/docs/pricing,
+# «last updated 2026-10-01», consultada el 06-oct-2026), tarifa estándar por imagen 1K. Los
+# pocos tokens de texto del prompt (< 200) se ignoran (< 0,0001 $).
 IMAGE_GEN_PRICES_USD_PER_IMAGE: dict[str, float] = {
     "sdxl_turbo": 0.0,  # local
+    "gemini-3.1-flash-lite-image": 0.0336,  # por defecto de la portada (1K)
+    "gemini-3.1-flash-image": 0.067,  # 1K
+    "gemini-3-pro-image": 0.134,  # 1K/2K
 }
 
 # Proveedores sin coste marginal: locales (se ignora electricidad/GPU), datos de ejemplo y mocks.
@@ -148,9 +156,20 @@ def estimate_tts_cost_eur(provider: str, n_chars: int) -> float:
     return round(usd * USD_TO_EUR, 6)
 
 
-def estimate_image_cost_eur(provider: str, n_images: int = 1) -> float:
-    """Coste en EUR de generar ``n_images`` imágenes."""
-    return round(IMAGE_GEN_PRICES_USD_PER_IMAGE.get(provider, 0.0) * n_images * USD_TO_EUR, 6)
+def image_price_usd(provider: str, model: str = "") -> float:
+    """Tarifa en USD por imagen: por id de modelo (admite sufijos como ``-preview``) o por proveedor."""
+    table = IMAGE_GEN_PRICES_USD_PER_IMAGE
+    if model in table:
+        return table[model]
+    matches = [k for k in table if model and model.startswith(k)]
+    if matches:
+        return table[max(matches, key=len)]
+    return table.get(provider, 0.0)
+
+
+def estimate_image_cost_eur(provider: str, n_images: int = 1, model: str = "") -> float:
+    """Coste en EUR de generar ``n_images`` imágenes con ``provider``/``model``."""
+    return round(image_price_usd(provider, model) * n_images * USD_TO_EUR, 6)
 
 
 _TOKEN_KEYS = ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
@@ -172,7 +191,7 @@ def estimate_cost_eur(provider: str, model: str, **usage: float) -> float:
     if "n_chars" in usage:
         return estimate_tts_cost_eur(provider, int(usage["n_chars"]))
     if "n_images" in usage:
-        return estimate_image_cost_eur(provider, int(usage["n_images"]))
+        return estimate_image_cost_eur(provider, int(usage["n_images"]), model)
     return 0.0
 
 
