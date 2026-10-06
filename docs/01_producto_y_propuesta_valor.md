@@ -121,11 +121,13 @@ compliance desde el diseño.
 
 | Modelo | Precio orientativo | Incluye |
 | --- | --- | --- |
-| Freemium | 0 € | Briefing diario de hasta 3 tickers, voces gratuitas, sin Q&A por voz o con cupo bajo |
-| Suscripción Pro | 4,99-7,99 €/mes *(a validar)* | Cartera completa, Q&A por voz, PDFs y gráficos propios, vídeo, entrega por Telegram, voces premium |
-| Marca blanca B2B2C | Licencia + por usuario activo *(a negociar)* | Briefing con la marca del broker/neobanco (logo, nombre y locutores propios), integración vía API |
+| Freemium | 0 € | Briefing diario de hasta 3 valores de un catálogo compartido (~50), voces estándar, 3 preguntas de texto al mes, web y Telegram |
+| Suscripción Pro | Banda 4,99-7,99 €/mes; propuesta **6,99 €/mes** IVA incl. o 59,99 €/año *(a validar)* | Cartera completa, Q&A por voz, PDFs y gráficos propios, vídeo, entrega por Telegram, voces premium |
+| Marca blanca B2B2C | Propuesta: alta de 15.000 € + 1.500 €/mes de plataforma + 0,30 €/usuario activo/mes *(a negociar)* | Briefing con la marca del broker/neobanco (logo, nombre y locutores propios), catálogo de sus valores, integración vía API |
 
-Números y supuestos detallados en [04](04_viabilidad_costes_latencia_compliance.md#monetización).
+Costes fijos, coste variable por usuario y punto de equilibrio de los dos modelos en
+[04 · § 6](04_viabilidad_costes_latencia_compliance.md#6-monetización): con un fijo de producción de ≈ 3.700 €/mes
+(estimación), el B2B2C lo cubre con un cliente de ~10.000 usuarios activos; el B2C necesita ~32.000 registrados.
 
 ## Métricas de producto
 

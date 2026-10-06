@@ -1,0 +1,4 @@
+model,n,coste_eur,latencia_s,consejo,fuentes,caracteres
+Claude Sonnet 5.5,2,0.011,2.525,0,2.0,414.0
+Claude Haiku 4.5,2,0.0044,3.84,0,2.5,485.5
+Gemini (gemini-2.5-flash),2,0.0018,3.11,0,2.5,483.0

@@ -1,0 +1,4 @@
+modelo,n_ok,coste_€,latencia_s,JSON_a_la_1ª,reintentos_puertas,respaldo,problemas_1ª,problemas_final,cifras_no_traz_final,consejo_final,min_est_1ª,min_est_final,en_3-5_min,intervenciones,juez_fidelidad,juez_claridad,juez_naturalidad,juez_sin_consejo
+Claude Sonnet 5.5,4/4,0.0349,21.115,4/4,1.0,0,0.25,0.0,0,0,4.265,4.3325,4/4,29.5,4.25,4.5,3.5,5.0
+Claude Haiku 4.5,4/4,0.0109,14.8825,4/4,1.0,0,0.25,0.0,0,0,3.67,3.67,4/4,17.0,3.5,4.0,3.5,4.25
+Gemini (gemini-2.5-flash),4/4,0.0074,15.5425,4/4,3.0,0,0.75,0.25,0,0,5.26,4.8,3/4,25.5,4.0,4.0,3.5,4.25

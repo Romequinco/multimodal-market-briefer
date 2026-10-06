@@ -1,0 +1,10 @@
+agente,modelo,n,coste_€,latencia_s,JSON_1ª,reintentos,cifras_no_traz_1ª,consejo_final,juez_fidelidad,juez_claridad,juez_naturalidad,juez_sin_consejo
+Analista,Claude Sonnet 5.5,2/2,0.0264,14.965,2/2,0.0,0.0,0.0,4.5,4.5,,4.25
+Analista,Claude Haiku 4.5,2/2,0.0096,16.92,2/2,0.0,0.0,0.0,2.0,4.0,,3.25
+Analista,Gemini (gemini-2.5-flash),2/2,0.0148,32.905,2/2,2.0,1.0,0.0,3.0,4.0,,4.0
+Guionista,Claude Sonnet 5.5,4/4,0.0349,21.115,4/4,1.0,,0.0,4.25,4.5,3.5,5.0
+Guionista,Claude Haiku 4.5,4/4,0.0109,14.8825,4/4,1.0,,0.0,3.5,4.0,3.5,4.25
+Guionista,Gemini (gemini-2.5-flash),4/4,0.0074,15.5425,4/4,3.0,,0.0,4.0,4.0,3.5,4.25
+Q&A,Claude Sonnet 5.5,2.0,0.011,2.525,,,,0.0,,,,
+Q&A,Claude Haiku 4.5,2.0,0.0044,3.84,,,,0.0,,,,
+Q&A,Gemini (gemini-2.5-flash),2.0,0.0018,3.11,,,,0.0,,,,

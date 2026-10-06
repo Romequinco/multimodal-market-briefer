@@ -1,0 +1,140 @@
+{
+  "20261006-134527-44869c": {
+    "scenario": "cartera_banca_es",
+    "model": "claude-sonnet-5-5",
+    "provider": "anthropic",
+    "latency_s": 6.19,
+    "cost_eur": 0.014448,
+    "fidelidad": {
+      "score": 3,
+      "justification": "Casi todo es trazable, pero el guion afirma que el impulso de Santander viene de la primera vuelta de Brasil sin la cautela del análisis (la fuente habla de Bolsonaro y de otra fecha), añade que «los analistas» relacionan lo de CaixaBank y que «el mercado ha celebrado» la venta, y presenta como causa algo que las fuentes no demuestran."
+    },
+    "claridad": {
+      "score": 4,
+      "justification": "Estructura sencilla y ordenada por valor con transiciones naturales, aunque es algo plana, con algún fallo de redacción («la lanzamiento») y mezcla las cifras mensuales sin contexto."
+    },
+    "sin_consejo": {
+      "score": 5,
+      "justification": "Solo informa, sin compra/venta ni precios objetivo, e incluye un aviso explícito de que no es asesoramiento."
+    },
+    "utilidad": {
+      "score": 4,
+      "justification": "Prioriza los tres valores de la cartera con precio, variación, contexto mensual y motivos posibles, pero omite matices (discrepancia de cifras de las fuentes) y dedica poco a explicar por qué importa cada noticia."
+    }
+  },
+  "20261006-134637-845111": {
+    "scenario": "cartera_tech_usa",
+    "model": "claude-sonnet-5-5",
+    "provider": "anthropic",
+    "latency_s": 4.85,
+    "cost_eur": 0.014453,
+    "fidelidad": {
+      "score": 3,
+      "justification": "Casi todo es trazable, pero hay deslices: el guion dice \"Hay titulares sobre ciberataques y computación cuántica\" bien, aunque añade que Cook \"vende acciones\" sin precisar que la cifra de 63.800 millones es dudosa, sugiere que octubre \"puede ser activo para el valor\", y atribuye 'la banca impulsando' sin respaldo directo para el cierre; los porcentajes desde el 8/09 no están en el contexto."
+    },
+    "claridad": {
+      "score": 4,
+      "justification": "Estructura de diálogo natural, con transiciones por valor y explicación de amplitud de mercado, aunque algo repetitivo en el patrón pregunta-respuesta y el cierre es plano."
+    },
+    "sin_consejo": {
+      "score": 4,
+      "justification": "Informa y atribuye el precio objetivo de BNP, pero frases como \"aquí hay algo que os debería preocupar\" y \"octubre puede ser activo para el valor\" rozan la insinuación."
+    },
+    "utilidad": {
+      "score": 4,
+      "justification": "Prioriza NVDA, MSFT y AAPL con precios, variaciones y fechas clave (resultados 18 de noviembre, 13 de octubre), pero dedica poco a explicar por qué importa cada cosa y la noticia de Cook queda sin contexto."
+    }
+  },
+  "20261006-134731-ef9961": {
+    "scenario": "cartera_mixta_defensiva",
+    "model": "claude-sonnet-5-5",
+    "provider": "anthropic",
+    "latency_s": 5.06,
+    "cost_eur": 0.014596,
+    "fidelidad": {
+      "score": 3,
+      "justification": "Casi todo es trazable, pero hay deslices: los porcentajes desde el 7 de septiembre y del último mes no aparecen en el contexto, 'Jefferies mantiene' y 'según los titulares' en los cambios de banca rozan lo no respaldado, y se afirma 'cierra' con datos que podrían ser intradía."
+    },
+    "claridad": {
+      "score": 4,
+      "justification": "Estructura clara por valor con transiciones naturales y diálogo fluido, aunque las cifras son densas para escucharlas y el estilo es algo repetitivo con las cláusulas 'es opinión de terceros'."
+    },
+    "sin_consejo": {
+      "score": 4,
+      "justification": "Atribuye siempre las recomendaciones a Goldman, Deutsche Bank y Jefferies y añade descargo, aunque citar el potencial del 26 % y 'ahí están los datos' puede leerse levemente como sugerencia."
+    },
+    "utilidad": {
+      "score": 4,
+      "justification": "Cubre los tres tickers del usuario con precio, contexto y noticias relevantes, pero explica poco por qué importa cada cosa (p. ej. la venta de Cook sin contexto) y dedica espacio a índices genéricos."
+    }
+  },
+  "20261006-134823-89a7d2": {
+    "scenario": "tickers_ibex_varios",
+    "model": "claude-sonnet-5-5",
+    "provider": "anthropic",
+    "latency_s": 4.43,
+    "cost_eur": 0.013548,
+    "fidelidad": {
+      "score": 3,
+      "justification": "En general se apoya en el contexto, pero añade afirmaciones no respaldadas como 'Esas son noticias de largo plazo, y el mercado tiene otros factores más inmediatos', 'Telefónica tiene dos noticias positivas' y 'sesión... con cautela', además de que el -5,17 % y el -2,56 % desde el 7 de septiembre no constan en el contexto."
+    },
+    "claridad": {
+      "score": 4,
+      "justification": "Estructura de diálogo clara, con transiciones lógicas por valor y cifras comprensibles, aunque algo repetitivo y con un ritmo plano en las cifras."
+    },
+    "sin_consejo": {
+      "score": 4,
+      "justification": "Informa y atribuye las opiniones de Barclays y Renta 4 a terceros, pero 'los analistas ven potencial' y 'suena a un buen negocio para Indra' rozan la valoración."
+    },
+    "utilidad": {
+      "score": 3,
+      "justification": "Cubre los tres tickers con precios y noticias relevantes, pero abre con Indra (que no es valor del usuario) y no explica bien por qué importa cada noticia para su cartera."
+    }
+  },
+  "20261006-134913-9f8aba": {
+    "scenario": "tickers_usa_megacaps",
+    "model": "claude-sonnet-5-5",
+    "provider": "anthropic",
+    "latency_s": 4.57,
+    "cost_eur": 0.014285,
+    "fidelidad": {
+      "score": 4,
+      "justification": "Cifras y fuentes coinciden con el contexto y se admite que no hay causa clara, pero «Meta, la estrella» y «Wells Fargo ha emitido» son ligeras exageraciones, y los datos desde el 8/09 (+20,93 %, -2,17 %) no constan en el contexto."
+    },
+    "claridad": {
+      "score": 3,
+      "justification": "Estructura correcta con transiciones, pero es plano y lleno de cifras, con un «cambiando de tercio» forzado y un cierre repetitivo."
+    },
+    "sin_consejo": {
+      "score": 4,
+      "justification": "Solo informa y atribuye la recomendación de Wells Fargo a un tercero con aviso legal, aunque «Impresionante» y «estrella» aportan un tono algo valorativo."
+    },
+    "utilidad": {
+      "score": 4,
+      "justification": "Cubre los cuatro tickers con precios y contexto y reconoce honestamente cuándo no hay causa clara, pero no explica por qué importan la demanda a Alphabet ni el acuerdo nuclear."
+    }
+  },
+  "20261006-135000-2ceb28": {
+    "scenario": "tickers_con_pdf_y_grafico",
+    "model": "claude-sonnet-5-5",
+    "provider": "anthropic",
+    "latency_s": 4.53,
+    "cost_eur": 0.015267,
+    "fidelidad": {
+      "score": 3,
+      "justification": "Casi todo es trazable, pero afirma que la I-24 \"es lo que está presionando la cotización\" (causalidad no sostenida), omite el precio objetivo de 50 euros, y la cifra del 9,13 % desde el 7 de septiembre y el \"cierre anterior\" no constan en el contexto."
+    },
+    "claridad": {
+      "score": 4,
+      "justification": "Diálogo natural con buenas transiciones y estructura lógica, aunque hay muchas cifras seguidas y algo de jerga como \"neutral\" o \"I-24\" sin explicar."
+    },
+    "sin_consejo": {
+      "score": 5,
+      "justification": "Solo informa, atribuye la rebaja a JPMorgan, no sugiere operar y cierra con un aviso de que no es asesoramiento."
+    },
+    "utilidad": {
+      "score": 3,
+      "justification": "Prioriza Ferrovial y Amadeus, que son los valores del usuario, pero el análisis es superficial, no explica el alcance de la rebaja (precio objetivo de 50 euros, mínimos anuales) y dedica tiempo al mercado general."
+    }
+  }
+}

@@ -2,10 +2,12 @@
 
 > **Qué está medido y qué no.** Las columnas **«Medido»** salen de los `StepMetric` de ejecuciones reales del
 > 05-oct-2026 y, para la fase 1 (vídeo, router CLIP, cartera desde captura), del 06-oct-2026 (ver
-> [método](#método-de-medición)). La portada local (SDXS) se midió el 06-oct por la tarde; la portada con Gemini
-> imagen y el envío por Telegram **no se han ejecutado en real**: su coste es la tarifa oficial y su latencia no
-> está medida. Todo lo demás (columna «Estimación», escenarios de
-> monetización, pasos aún no implementados) sigue siendo **estimación a verificar**. El coste «medido» es a su
+> [método](#método-de-medición)). La portada local (SDXS) se midió el 06-oct por la tarde y el envío por Telegram
+> se verificó en real ese mismo día; la portada con Gemini imagen **no se ha ejecutado en real**: su coste es la
+> tarifa oficial y su latencia no está medida. Todo lo demás (columna «Estimación», costes fijos, escenarios de
+> monetización y punto de equilibrio, pasos aún no implementados) sigue siendo **estimación a verificar**; las
+> tarifas públicas de terceros de [§ 6](#6-monetización) se consultaron el **06-oct-2026** (URL en
+> [Fuentes](#fuentes-de-las-tarifas-públicas)). El coste «medido» es a su
 > vez una **estimación con tokens reales**: tokens que devuelve la API × tarifas de `src/briefer/costs.py`; no es
 > la factura del proveedor (contraste pendiente, ver [05 · D2](05_roadmap_TODO.md#nuevas-y-heredadas-de-d1-prioridad-alta)).
 
@@ -62,7 +64,10 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | Gemini 2.5 Flash | ~0,30 $/M entrada, ~2,50 $/M salida | Estimación a verificar |
 | OpenAI STT | `gpt-4o-mini-transcribe` 0,003 $/min · `whisper-1` 0,006 $/min | `costs.STT_PRICES_USD_PER_MIN`; tarifa pública, a verificar con la factura |
 | ElevenLabs | ~0,18-0,30 $ por 1.000 caracteres según plan | Estimación a verificar; muy dependiente del plan |
-| edge-tts | 0 € | Servicio gratuito no oficial, sin SLA (ver riesgos). TTS **por defecto** |
+| edge-tts | 0 € | Servicio gratuito no oficial, sin SLA (ver riesgos). TTS **por defecto** del MVP; **no apto para producción comercial** (sin contrato ni licencia de uso) |
+| Azure AI Speech, voces neuronales estándar (producción) | **15 $/M caracteres** (Neural HD 22 $/M); 0,5 M caracteres/mes gratis en el nivel F0 | Tarifa pública consultada el 06-oct-2026 (página de precios de Azure Speech; la página oficial no renderiza el importe sin JavaScript y se contrastó con dos fuentes secundarias). Tiene voces es-ES equivalentes a las de edge-tts (mismo motor neuronal de Microsoft) y niveles de compromiso con descuento |
+| Google Cloud TTS (producción, alternativa) | **Chirp 3 HD 30 $/M** caracteres (1 M gratis/mes) · WaveNet 4 $/M (4 M gratis/mes, *legacy*) | Tarifa pública consultada el 06-oct-2026 |
+| Caracteres por episodio | **≈ 3.800** para 4 min | **Derivado** del ritmo medido (158 palabras/min → ~630 palabras × ~6 caracteres con espacios); coherente con los 856 tokens de texto medidos en el pregenerado de 3:38 |
 | Gemini TTS (`gemini-3.8-flash-tts`) | ~0,50 $/M tokens de texto, ~10 $/M tokens de audio | **Estimación, verificar** (`costs.TTS_PRICES_USD_PER_MTOK`: se toma la tarifa publicada de los modelos *flash* TTS anteriores). Medido: ≈ 25 tokens de audio por segundo → **≈ 0,013 €/min de audio** (estimado) |
 | FinBERT (`ProsusAI/finbert`) | 0 € | Modelo abierto, local en CPU; solo cuesta la traducción previa con Haiku |
 | CLIP (`openai/clip-vit-base-patch32`) | 0 € | Modelo abierto, local en CPU (router de imágenes). Se ignora la electricidad |
@@ -83,6 +88,7 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | Agente Guionista | Haiku 4.5 (con puertas deterministas, [ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md)) | ~0,01 € | **0,0081 €** | **0,0100 €** |
 | TTS 2 voces | **edge-tts** | 0 € | **0 €** | **0 €** |
 | TTS 2 voces (premium) | **Gemini TTS multi-locutor** (`BRIEFER_TTS_PROVIDER=gemini`) | — | — | **0,0471 €** estimado (pregenerado actual: 856 tokens de texto + 5.436 de audio, 3:38) |
+| TTS 2 voces (producción) | **Azure AI Speech** neuronal (no implementado; misma familia de voces que edge-tts) | — | — | **≈ 0,049 €** estimado (3.800 caracteres × 15 $/M); Google Chirp 3 HD ≈ 0,098 €, WaveNet ≈ 0,013 € |
 | TTS 2 voces (premium alternativo) | ElevenLabs | ~0,55-0,90 € (~3.500 caracteres) | no implementado | no implementado |
 | «Impacto de la noticia» (opcional) | Haiku 4.5 (traducción) + FinBERT local | — | — | **0,0082 €** (19 noticias, 19 traducidas) |
 | Verificación del podcast con STT (opcional) | OpenAI STT | — | — | **0,0187 €** con `whisper-1` (pregenerado actual, 3:38); ≈ la mitad con `gpt-4o-mini-transcribe` |
@@ -90,7 +96,7 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | Portada (opcional) | SDXS local en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`) | 0 € | — | **0 €** medido (06-oct) |
 | Portada alternativa (de pago) | Gemini imagen `gemini-3.1-flash-lite-image` | ~0,02-0,04 € | — | **≈ 0,029 €** por portada (**tarifa oficial, no medida**: sin prueba real por falta de facturación) |
 | Vídeo (opcional) | Pillow + ffmpeg (libx264) | 0 € | — | **0 €** medido (06-oct) |
-| Envío por Telegram (opcional) | Bot API | 0 € | — | 0 € (tarifa; sin prueba real) |
+| Envío por Telegram (opcional) | Bot API | 0 € | — | **0 €** (verificado en real el 06-oct: mensaje, audio, imagen y vídeo) |
 | **Total briefing base** (sin subidas, edge-tts) | | ~0,06-0,08 € | **≈ 0,033 €** (derivado) | **≈ 0,036 €** (derivado: Analista + Guionista) · **0,0340 €** medido en 1 briefing sin subidas (`20261005-135612-88b415`, [§ 3](#medido-con-metrics_reportpy-briefings-guardados)) |
 | **Total con PDF + gráfico** | | ~0,12-0,17 € | **≈ 0,065 €** (0,0640-0,0660 €) | **0,0662 €** |
 | **Total pregenerado actual** (PDF + gráfico + Gemini TTS + FinBERT + verificación STT) | | — | — | **≈ 0,1836 €** estimado (Analista 0,0637 € con 1 reintento de *grounding* · podcast 0,0471 € · PDF 0,0204 € · verificación 0,0187 € · gráfico 0,0165 € · Guionista 0,0089 € · FinBERT + Haiku 0,0082 €) |
@@ -143,7 +149,10 @@ Otras: `scripts/smoke_real.py` completo ≈ 0,005 € (incluye STT con WER); dem
 
 **Conclusión:** con TTS gratuito el coste es de **céntimos por briefing** (≈ 0,035-0,07 €) y de medio céntimo por
 pregunta, también por voz. ElevenLabs multiplicaría el coste por ~10-15: solo tiene sentido si el audio se
-genera **una vez y se comparte** entre muchos usuarios (ver estrategias).
+genera **una vez y se comparte** entre muchos usuarios (ver estrategias). En producción edge-tts debe sustituirse
+por un TTS con contrato: con Azure (≈ 0,049 € por episodio, estimación) el briefing base pasa de ≈ 0,034 € a
+**≈ 0,083 €** y la voz es ya el ~60 % del coste; de ahí que la compartición de audio de [§ 6](#6-monetización)
+importe más que la del análisis. Gemini TTS (≈ 0,047 € estimado) cuesta casi lo mismo que Azure.
 
 ## 3. Latencias
 
@@ -170,6 +179,7 @@ Dos regímenes distintos:
 | Router CLIP (opcional, por imagen) | — | — | **70-85 ms** por imagen con el modelo cargado · 1.ª clasificación del proceso 3,7 s · carga del modelo 0,5 s · imports en frío ≈ 11 s · **1.ª descarga** (~600 MB) ≈ 28 s | Modelo cargado una vez por proceso; embeddings de texto en caché; en paralelo con la ingesta |
 | Cartera desde captura (página «Mi cartera», fuera del briefing) | — | — | **8,5 s** (visión + Haiku) | Una llamada de visión + una de Haiku; el mapeo es determinista |
 | Portada local (opcional; SDXS en CPU de 12 hilos, 768x432) | — | — | **4-7 s** por portada · 1.ª del proceso 23-36 s (calentamiento) · carga del modelo 15-138 s en frío (1-5 s con caché de disco caliente) · import de torch/diffusers ≈ 35 s en frío · 1.ª descarga ~1,8 GB | Modelo cargado una vez por proceso + textos con Pillow |
+| Envío por Telegram (opcional) | — | — | **8,5 s** (06-oct, bot de prueba: mensaje, audio, imagen y vídeo) | Bot API; tras guardar el briefing |
 | Portada con Gemini (opcional) | — | — | **no medida** (sin prueba real) | Una llamada a Gemini imagen (1 reintento del SDK ante 408/429/5xx, *timeout* 90 s) + textos con Pillow |
 | TTS premium Gemini (por tramos de ≤ 12 líneas / ≤ 2.000 caracteres, hasta 3 en paralelo) | — | — | **24,7 s** (3:38 de audio; pregenerado actual) · 27,4 s para un episodio de 3:20 en la cata | Diálogo entero por tramos; si falla, cae a edge-tts |
 | «Impacto de la noticia» (Haiku + FinBERT, opcional) | — | — | **32,1 s** en paralelo con el Analista (19 noticias) | 1.ª carga del modelo ≈ 28 s con descarga (~840 MB en Windows sin enlaces simbólicos); después ≈ 13 s por proceso con importaciones; clasificar < 0,1 s |
@@ -262,7 +272,7 @@ silencio se corta en local sin llamar a la API.
 
 | Estrategia | Efecto | Estado en MVP |
 | --- | --- | --- |
-| **Generación por ticker compartida** entre usuarios: el análisis de «SAN.MC hoy» se calcula una vez y se reutiliza para todos los que lo siguen; por usuario solo se compone el guion | El coste deja de crecer con usuarios y pasa a crecer con tickers distintos | Diseño |
+| **Generación por ticker compartida** entre usuarios: el análisis de «SAN.MC hoy» se calcula una vez y se reutiliza para todos los que lo siguen; por usuario solo se compone el guion | El coste deja de crecer con usuarios y pasa a crecer con tickers distintos. Variante con **segmentos de audio por valor** (≈ 1 min por ticker, sintetizado una vez al día) para que también se comparta la voz, que con un TTS de pago es el mayor coste ([§ 6](#6-monetización)) | Diseño (hoy solo se comparte la caché diaria de noticias y precios; reutilizar el briefing entero entre usuarios con la misma lista de valores también es diseño) |
 | **Caché diaria de entradas** (noticias y precios por fuente y ticker) + caché de 7 días de URL finales, extractos y `robots.txt` | Ingesta de ~6-12 s → ~0,3 s en la 2.ª ejecución del día; extractos del ~45-50 % al ~80 %; menos *rate limit* | **Hecho** (`ingest/cache.py`, `ingest/article_meta.py`; purga automática a 7 días) |
 | **Batch nocturno** | Latencia percibida 0 para el briefing; se puede usar la API batch del proveedor (más barata) | Fuera del MVP (script manual) |
 | **Modelos baratos donde basta** (Haiku para guion, Q&A y estructurado de documentos; Sonnet para análisis y visión) | Guionista ≈ 0,009 € frente a ≈ 0,025 € con Sonnet | **Hecho** ([ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md); `BRIEFER_SCRIPTWRITER_MODEL` para cambiarlo) |
@@ -315,7 +325,39 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
 | Exposición de la app | `run.ps1` / `run.sh` escuchan solo en `localhost` (`-Expose` / `--expose` para la red); Docker publica en `127.0.0.1:8501`; telemetría de Streamlit desactivada; subida máxima 50 MB |
 | Base jurídica y consentimiento | Sin persistencia de la cartera no hace falta consentimiento para guardarla. El envío por Telegram (06-oct) lo configura el propio usuario con su bot y su chat (`scripts/telegram_setup.py`) y se elige en cada briefing; en un producto con usuarios haría falta consentimiento expreso para enviar a un canal externo. El envío nunca incluye el gráfico de cartera. Email: retirado el 06-oct |
 | Derechos | Sin cuentas de usuario en el MVP; el histórico se borra con la carpeta `data/outputs/` |
-| Encargados de tratamiento | Proveedores de IA con DPA y opción de no entrenar con los datos enviados (a verificar por proveedor); transferencias internacionales (EE. UU.) a documentar. Telegram (si se usa) también recibe el resumen, el audio y el vídeo del briefing |
+| Encargados de tratamiento | Proveedores de IA con DPA y sin entrenamiento con los datos de la API (ver la tabla siguiente). Telegram (si se usa) recibe el resumen, el audio y el vídeo del briefing |
+
+### RGPD · transferencias internacionales
+
+Qué dato sale, a quién y con qué base. Situación **del MVP** (claves de los autores, sin usuarios reales) y lo que
+haría falta para producción. Comprobado en la documentación pública de cada proveedor el 06-oct-2026; las
+certificaciones del *Data Privacy Framework* (DPF) se verifican en dataprivacyframework.gov antes de firmar.
+
+| Proveedor (rol) | Datos que recibe | Dónde se procesan | Base de la transferencia | Mitigación ya en el código | Pendiente para producción |
+| --- | --- | --- | --- | --- | --- |
+| **Anthropic** (encargado: Analista, Guionista, Q&A, visión de PDF, gráfico y captura de cartera, traducción para FinBERT) | Noticias públicas; **tickers y pesos** de la cartera (sin cantidades ni identidad); texto de la pregunta; PDF y capturas subidos (la de cartera puede llevar nombre o nº de cuenta si no se recorta) | EE. UU. (la API directa ofrece geografías de inferencia «us» y «global», sin región UE; Claude en región UE solo vía AWS Bedrock o Google Vertex) | DPF (Anthropic certificada) + **DPA con cláusulas contractuales tipo** (módulos 2 y 3) incorporado a los *Commercial Terms*; la API no entrena con los datos | Cartera nunca en disco y solo tickers/pesos al LLM (ADR-005); captura procesada en memoria y no guardada; contenido de terceros delimitado como dato; secretos redactados | Aceptar y archivar el DPA; valorar Bedrock/Vertex en región UE si un cliente B2B2C exige residencia; recorte automático de cabeceras de la captura |
+| **OpenAI** (encargado: STT de la pregunta y verificación opcional del podcast) | Audio de la pregunta (voz = dato personal; no biométrico porque no se usa para identificar) y audio sintético del podcast | EE. UU. por defecto; **residencia de datos en Europa** disponible en proyectos nuevos para *endpoints* elegibles (comprobar que incluye transcripción) | DPA de OpenAI con cláusulas tipo (comprobar DPF de OpenAI en el buscador oficial); la API no entrena por defecto | Silencio cortado en local (no se envía); audio **borrado** tras transcribir; sin `prompt` con datos del usuario más allá de nombres de empresas del briefing | Proyecto con residencia UE; DPA firmado; aviso en la UI de que la voz sale a un tercero |
+| **Google** (encargado: Gemini TTS premium, LLM alternativo, Gemini imagen) | Guion del episodio (sin datos de cartera salvo los tickers); prompt de portada (sin cifras ni empresas) | EE. UU./global | DPF (Google certificada) + *Cloud Data Processing Addendum* con cláusulas tipo | La portada recomendada es **local** (SDXS, no sale nada); Q&A siempre con edge-tts | **Solo nivel de pago**: con la cuota gratuita de la API de Gemini, Google puede usar entradas y salidas para mejorar sus productos (revisión humana incluida), así que en producción no se usa la clave gratuita |
+| **Microsoft** (edge-tts en el MVP; Azure AI Speech en producción) | Texto del guion y de la respuesta del Q&A | edge-tts: servicio no documentado, sin contrato · Azure: **región UE** elegible (p. ej. West Europe) | edge-tts: ninguna (motivo de más para no usarlo en producción) · Azure: DPA de Microsoft (*Products and Services DPA*) + DPF | El guion no lleva datos identificativos ni la cartera completa | Migrar a Azure Speech en región UE |
+| **Telegram** (destinatario elegido por el usuario; no es encargado de Briefly) | Resumen, audio, portada y vídeo del briefing (nunca el gráfico de cartera) | Usuarios del EEE: centros de datos en **Países Bajos** (política de privacidad de Telegram); Telegram es responsable de sus propios datos y tiene representante en la UE (art. 27) | Comunicación a petición del interesado (el usuario configura su bot y chat) | Opt-in por briefing; token redactado en errores y log | Consentimiento expreso y revocable en la cuenta del usuario; informar de que Telegram no cifra de extremo a extremo los chats con bots |
+| **Hugging Face** (solo descarga) | **Nada**: se descargan pesos de CLIP, FinBERT y SDXS; la inferencia es local | — | No hay transferencia de datos personales | Modelos en caché local o volumen de Docker | Fijar revisiones de los modelos (`revision=`) |
+| Yahoo, Google News, Bing, medios RSS | Solo los **tickers** consultados (en la URL de la petición) | EE. UU./UE | No son datos personales mientras no se asocien a un usuario | Peticiones desde el servidor, no desde el navegador del usuario | Sustituir por proveedores con licencia ([§ 6](#6-monetización)) |
+
+**Para producción** (además de la columna «Pendiente»):
+
+1. **Registro de actividades de tratamiento** (art. 30): finalidades (generar el briefing, Q&A, envío), categorías
+   (cartera como tickers y pesos, voz, cuenta, Telegram), plazos (cartera: sesión; audio de la pregunta: segundos;
+   briefings: lo que diga la política de retención) y encargados de la tabla.
+2. **EIPD** (art. 35): recomendable aunque no se elabore perfil con efectos jurídicos, porque se tratan datos
+   financieros con IA generativa y voz; documentaría por qué la cartera no se guarda y el análisis de las
+   transferencias.
+3. **DPA firmado** con cada encargado, preferencia por **región UE** donde exista (Azure Speech, residencia UE de
+   OpenAI, Claude vía Bedrock/Vertex UE para clientes B2B2C que lo exijan) y evaluación de impacto de las
+   transferencias a EE. UU. que no cubra el DPF.
+4. **Información y derechos**: política de privacidad por capas, consentimiento para Telegram, borrado de cuenta y
+   de histórico, y DPO (externo; coste en [§ 6](#6-monetización)).
+5. **B2B2C**: el banco o *broker* es responsable del tratamiento de sus clientes y Briefly su **encargado**; los
+   proveedores de IA pasan a ser subencargados, que el contrato con el cliente debe listar y autorizar.
 
 ### Derechos de autor de las noticias
 
@@ -330,13 +372,18 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
   `KeyPoint.sources`, citas `[id]` en el Q&A). Se enlaza la URL **final del medio**, no la de redirección.
 - Fuentes con feed público (Google News, Bing News, Yahoo Finance, Expansión, Europa Press). La resolución de
   enlaces de Google News y el RSS de Bing News son **mecanismos no oficiales**, sin SLA ni licencia: si fallan se
-  deja el enlace original. Para uso comercial habría que licenciar las noticias (coste fijo pendiente).
+  deja el enlace original. Para uso comercial hay que licenciar noticias y precios (coste fijo estimado en
+  [§ 6.1](#61-costes-fijos-mensuales)).
 
 ### AI Act · transparencia
 
+- Las obligaciones de transparencia del art. 50 se aplican desde el **2-ago-2026**: el producto ya las cumple
+  en todos sus canales (web y Telegram; el email se retiró el 06-oct).
 - Aviso explícito de que el audio es **generado por IA** y las voces son **sintéticas** (art. 50): en la UI, en
   el cierre hablado del podcast y en los **metadatos ID3 del MP3**
-  (`podcast.AI_AUDIO_METADATA`: «Market Briefer (voces sintéticas IA)»).
+  (`podcast.AI_AUDIO_METADATA`: artista «Briefly (voces sintéticas IA)», comentario y *copyright* «Contenido
+  generado por IA»). En Telegram, el intérprete del audio es «Briefly · voces sintéticas IA»
+  (`telegram_sender.AUDIO_PERFORMER`).
 - No se clonan voces de personas reales: voces neuronales de catálogo (edge-tts es-ES por defecto; voces
   precompuestas de Gemini TTS en la versión premium).
 - **Vídeo** (06-oct): rótulo fijo **«Voces sintéticas generadas con IA»** y «Información, no asesoramiento
@@ -345,7 +392,12 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
   (voces sintéticas IA)», comentario y *copyright* «Contenido generado por IA»). El pie de Telegram del audio y del vídeo repite «Voces sintéticas generadas con IA».
 - **Portada** (06-oct): placa **«Imagen generada por IA»** siempre visible en la esquina superior derecha
   (`cover.AI_LABEL`), dibujada por Pillow y no por el modelo (los modelos de imagen escriben mal el texto). La
-  ilustración no representa datos (no lleva cifras ni empresas) y no imita marcas ni personas reales.
+  ilustración no representa datos (no lleva cifras ni empresas) y no imita marcas ni personas reales. El modelo
+  local SDXS tiene licencia **CreativeML OpenRAIL++**, que permite uso comercial con restricciones de uso
+  (no engañar, no suplantar); la placa y el prompt sin personas ni marcas las respetan.
+- **Riesgo de sistema**: Briefly no es un sistema de alto riesgo del anexo III (no evalúa solvencia ni fija
+  precios de seguros); es un sistema con obligaciones de transparencia. Usa modelos de propósito general de
+  terceros (Claude, Gemini, OpenAI) como implantador, sin modificarlos.
 
 ### Riesgos de proveedor de la fase 1
 
@@ -354,28 +406,151 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
 | **Facturación de Google para Gemini imagen**: los modelos de imagen no tienen nivel gratuito; con la clave actual (nivel gratuito) responden 429 con cuota 0 | Solo afecta a `gemini`: sin portada (paso opcional fallido, aviso claro: `gemini_image.is_no_billing_error`); el resto del briefing sale igual | **Mitigado** (06-oct): la opción recomendada es la portada local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS, 0 €). Gemini queda como alternativa de pago |
 | **Portada local**: ~1,8 GB de descarga y carga en frío lenta en CPU (hasta ~2 min la primera vez) | La primera portada del día puede tardar | Descargar el modelo antes de la demo (caché de Hugging Face; en Docker, volumen `hf-cache`); el paso es opcional y un fallo no rompe el briefing |
 | **Descarga de CLIP** (~600 MB la 1.ª vez, ≈ 28 s) y `torch` + `transformers` en `requirements-local.txt` | La primera subida del día puede tardar; sin las dependencias, no hay router | `route_image` nunca rompe: sin CLIP, la imagen va a visión sin pista (como antes). Descargar el modelo antes de la demo (caché de Hugging Face) |
-| **Telegram**: sin bot creado, sin prueba real | El canal no aparece en la UI (solo se ofrece con token y chat) | Crear el bot y ejecutar `scripts/telegram_setup.py --write --test` antes de la demo |
+| **Telegram**: depende de un bot y un chat configurados | Sin token y chat, el canal no aparece en la UI | **Mitigado** (06-oct): bot creado y envío verificado en real (mensaje, audio, imagen y vídeo en 8,5 s); `scripts/telegram_setup.py --write --test` para otra máquina |
 
 ## 6. Monetización
 
-Números **orientativos** para dimensionar, no previsiones. Los costes variables usan los costes **medidos**
-(≈ 0,035 € por briefing base, ≈ 0,065 € con dos subidas, ≈ 0,005 € por pregunta, también por voz).
+Números **orientativos** para dimensionar, no previsiones. Tres tipos de cifra, siempre marcadas:
+**medido** (coste por paso de [§ 2](#2-coste-por-briefing), tokens reales × tarifa), **tarifa pública** (precio
+publicado por el proveedor, consultado el **06-oct-2026**, URL en [Fuentes](#fuentes-de-las-tarifas-públicas)) y
+**estimación** (sin precio público o con hipótesis de uso; se explica la hipótesis). Precios sin IVA salvo que se
+diga; 1 $ ≈ 0,86 €. **No incluyen salarios** salvo en la fila de sensibilidad «con equipo».
 
-| Plan | Precio | Incluye | Coste variable estimado por usuario y mes |
+### 6.1 Costes fijos mensuales
+
+Dos escenarios: **A · Lanzamiento B2C** (lo mínimo legal y técnico para cobrar a usuarios en España) y
+**B · Listo para B2B2C** (licencias de agencia, nube con SLA en la UE, auditoría de seguridad que pediría un banco).
+
+| Partida | Qué sustituye del MVP | A · Lanzamiento | B · B2B2C | Fuente / hipótesis |
+| --- | --- | --- | --- | --- |
+| **Precios de mercado** con licencia de visualización (cierre o retrasados, BME + EE. UU.) | `yfinance` (no oficial, sin licencia de redistribución) | **300 €** | **800 €** | **Estimación.** Los planes individuales publicados (EODHD 19,99-99,99 $/mes; Twelve Data 29-329 $/mes) son de uso personal/no comercial o «display interno»; el uso comercial con visualización a terceros va en planes *business* sin precio público. Hipótesis: plan comercial de un agregador con datos de cierre/retrasados, que evitan casi todas las tasas de bolsa por datos en tiempo real |
+| **Noticias** con licencia (titular + extracto + enlace) | RSS de Google News, Bing, Yahoo y medios | **85 €** | **1.085 €** | **Tarifa pública**: Marketaux Pro 99 $/mes (≈ 85 €; 25.000 peticiones/día; las condiciones comerciales hay que confirmarlas en sus términos). B añade una **agencia en español** (Europa Press o EFE): sin precio público → **estimación** 1.000 €/mes por un servicio de teletipo para producto digital |
+| **TTS oficial** | edge-tts (gratuito, no oficial) | 0 € fijo | 0 € fijo | Azure AI Speech es **pago por uso** (15 $/M caracteres, tarifa pública): va en el coste variable ([§ 6.2](#62-coste-variable-por-usuario-y-mes)). Los niveles de compromiso solo compensan con volumen |
+| **Hosting** de la app (Streamlit, 2-4 vCPU) + *worker* de modelos locales (CLIP, FinBERT, SDXS en CPU) y del batch nocturno | Portátil | **31 €** | **250 €** | **Tarifa pública.** A: 2 VPS de **OVHcloud** en Europa: VPS-3 (6 vCores, 12 GB, 10,40 €) para la app y VPS-4 (8 vCores, 24 GB, 19,96 €) para modelos y batch (SDXS + CLIP + FinBERT caben en ~8 GB de RAM). Alternativa europea: Hetzner tras su subida del 15-jun-2026, CPX42 (8 vCPU compartidas) 69,49 € o CCX23 (dedicada) 85,99 € (fuente secundaria). B: **Google Cloud Run** en `europe-west1`, instancia siempre activa de 4 vCPU y 16 GiB (0,000018 $/vCPU-s y 0,000002 $/GiB-s): ≈ 264 $ ≈ **227 €** + *worker* batch ≈ 10 € + copias ≈ 13 € (**derivado** de la tarifa) |
+| **Almacenamiento y CDN del audio** (MP3, vídeo, portada) | Disco local | **5 €** | **20 €** | **Tarifa pública**: Cloudflare R2 0,015 $/GB-mes, **sin coste de salida**, 10 GB gratis. Hipótesis: episodio de ~4 MB (MP3 de 4 min) + vídeo opcional, 30 días de retención |
+| **Dominio** y certificados | — | **2 €** | **2 €** | **Estimación** (≈ 15-25 €/año por un `.com`/`.es`; TLS gratuito) |
+| **Telegram** Bot API | — | 0 € | 0 € | Gratuita (verificado en real el 06-oct) |
+| **Catálogo compartido** (semi-fijo): segmento diario por valor, generado una vez y servido a todos ([§ 6.2](#62-coste-variable-por-usuario-y-mes)) | — | **25 €** (50 valores) | **150 €** (300 valores) | **Derivado** de lo medido: ≈ 0,023 € por valor y día (análisis ≈ 0,008 € con Sonnet + guion del segmento ≈ 0,003 € con Haiku + ≈ 1 min de Azure ≈ 0,012 €) × 22 días |
+| **Cumplimiento** | — | **600 €** | **1.300 €** | **Estimación.** DPO externo 150-300 €/mes (los servicios de adaptación al RGPD para pymes se publicitan desde 180-450 €; no hay tarifa mensual pública de DPO); asesoría legal inicial (MiFID II, condiciones, privacidad, AI Act) de 4.000-6.000 € amortizada en 12 meses ≈ 400 €/mes; seguro de RC profesional y ciberriesgo ≈ 50-100 €/mes. B añade auditoría de seguridad/pentest anual (≈ 5.000 €/año ≈ 400 €/mes) y más horas legales por contratos con clientes |
+| Monitorización, copias, correo transaccional de la cuenta | — | **20 €** | **100 €** | **Estimación** (planes de entrada de servicios SaaS) |
+| **Total fijo** | | **≈ 1.070 €/mes** | **≈ 3.700 €/mes** | Sin salarios ni marketing |
+| Sensibilidad · **con equipo** | | — | **≈ 14.200 €/mes** | **Estimación**: B + 3 personas × 3.500 €/mes de coste de empresa |
+
+Lectura: en el escenario A el **cumplimiento** es más de la mitad del fijo y los datos licenciados, más de un
+tercio; la infraestructura es residual (≈ 4 %) gracias a que los modelos locales corren en CPU barata. En B pesan
+las licencias de contenido (noticias de agencia y precios), que son precisamente lo que un banco exige.
+
+### 6.2 Coste variable por usuario y mes
+
+Hipótesis de uso: **22 briefings al mes** (días hábiles), episodio de 4 min (≈ 3.800 caracteres de voz), TTS de
+**producción con Azure** (≈ 0,049 € por episodio, estimación sobre tarifa pública), respuesta hablada del Q&A
+≈ 500 caracteres (≈ 0,0065 €). Costes de IA **medidos**: briefing base 0,034 € (Analista + Guionista), Q&A
+0,0014-0,0055 € según haya caché de prompt, subida de PDF o gráfico ≈ 0,016 €, captura de cartera 0,0054 €,
+portada local 0 €, vídeo 0 €.
+
+**Compartición (caché).** Dos niveles: (1) usuarios con **la misma lista de valores** reutilizan el briefing
+entero del día (hipótesis: 20 % de los briefings Pro); (2) **segmentos por valor**: el análisis y ≈ 1 min de
+audio de cada valor del catálogo se generan una vez al día (≈ 0,023 € por valor, fijo en [§ 6.1](#61-costes-fijos-mensuales))
+y cada episodio se monta concatenando segmentos con intro y cierre (incluido el aviso legal hablado). El
+segundo nivel es diseño ([§ 4](#4-estrategias-de-coste-y-latencia)); el MVP genera hoy un episodio por ejecución.
+
+| Perfil | Composición | Coste variable/mes | Cálculo |
 | --- | --- | --- | --- |
-| Free | 0 € | 3 tickers, briefing compartido por ticker, sin Q&A por voz (o 3/mes), edge-tts | ~0,05-0,10 € |
-| Pro | 5,99 €/mes *(a validar)* | Cartera completa, Q&A por voz (~20/mes), PDFs y gráficos, vídeo, Telegram | ~0,9-1,5 € (22 briefings × ~0,035 € + 20 Q&A × ~0,006 € + ~5 subidas × ~0,015 €; sin compartición por ticker) |
-| White-label B2B2C | Fijo de integración + ~0,20-0,50 € por usuario activo/mes *(a negociar)* | Marca del cliente, API, contenido compartido por ticker | ~0,05-0,10 € gracias a la compartición |
+| **Free** | Hasta 3 valores del catálogo, episodio por segmentos compartidos, 3 preguntas de texto/mes, voces estándar | **≈ 0,015 €** | 3 × ~0,003 € de Q&A + entrega; el audio es del catálogo (fijo) |
+| **Pro · episodio propio** (lo que hace hoy el MVP) | Cartera completa, episodio personalizado, 20 preguntas por voz, 5 subidas, 1 captura | **≈ 2,11 €** (≈ 1,75 € con un 20 % de listas repetidas) | 22 × (0,034 + 0,049) = 1,83 € + 20 × 0,010 € + 5 × 0,016 € + 0,005 € |
+| **Pro · híbrido** (propuesto para producción) | Valores del catálogo por segmentos + intro personalizada de ~20 s que nombra la cartera + análisis propio solo de lo que sube el usuario y de valores fuera del catálogo | **≈ 0,75 €** | 22 × 0,007 € (intro: Haiku + ~400 caracteres de Azure) + Q&A 0,20 € + subidas 0,08 € + valores fuera de catálogo ≈ 0,30 € (**estimación**: 1-2 valores/día) |
+| Pro con voz premium Gemini | Igual que «episodio propio» | ≈ 2,1 € | Gemini TTS (≈ 0,047 €, estimado) cuesta casi lo mismo que Azure |
+| Referencia MVP con edge-tts | Igual que «episodio propio» | ≈ 0,92 € | Solo IA; **no vale para producción** (edge-tts sin contrato) |
+| **B2B2C · segmentos** | Catálogo del cliente compartido, intro y cierre con su marca pregrabados, 4 preguntas por voz/mes | **≈ 0,05 €/MAU** | 4 × 0,010 € + entrega |
+| **B2B2C · personalizado** | Lo anterior + intro personalizada diaria | **≈ 0,20 €/MAU** | 0,05 € + 22 × 0,007 € |
 
-Escenario ilustrativo (supuestos, no datos): 10.000 usuarios registrados, 4 % de conversión a Pro.
+Riesgo al alza: un reintento del Analista sube un briefing a 0,10-0,11 € ([§ 2](#2-coste-por-briefing)); en el
+perfil «episodio propio» eso puede añadir ~0,3-0,5 €/mes. Con «híbrido» o «segmentos» el reintento se paga una
+vez por valor, no por usuario.
 
-| Concepto | Cálculo | Mensual |
-| --- | --- | --- |
-| Ingresos Pro | 400 × 5,99 € | ~2.400 € |
-| Coste variable Pro | 400 × ~1,2 € | ~480 € |
-| Coste variable Free | 9.600 × ~0,08 € | ~770 € |
-| Margen bruto antes de infraestructura, licencias de noticias y personal | | ~1.150 € |
+### 6.3 Planes y precios
 
-Lectura: el B2C solo es viable con **compartición por ticker** y cuotas al free; el B2B2C (un broker con
-50.000 usuarios activos) es donde está el volumen. Faltan los costes fijos (noticias licenciadas, TTS oficial
-tipo Azure Speech, hosting), pendientes en D2.
+| Plan | Precio | Incluye | Justificación |
+| --- | --- | --- | --- |
+| **Free** | 0 € | Hasta 3 valores de un catálogo de ~50 (IBEX 35 + grandes de EE. UU.), edición de noche, voces estándar, 3 preguntas de texto/mes, web y Telegram | Escaparate y embudo; coste marginal ≈ 0,015 €/mes gracias al catálogo compartido |
+| **Pro** | **6,99 €/mes IVA incl.** o 59,99 €/año *(a validar)* | Cartera completa (captura o manual), Q&A por voz (~20/mes), PDFs y gráficos propios, vídeo, voces premium | Dentro de la banda de [01](01_producto_y_propuesta_valor.md#monetización) (4,99-7,99 €). Referencia: Seeking Alpha Premium cuesta 299 $/año (≈ 21 €/mes) por análisis escrito en inglés; Briefly es más estrecho (solo tu cartera, 4 min/día) y debe quedar en precio de suscripción de consumo (podcast/streaming), por debajo de 10 € |
+| **Marca blanca B2B2C** | **Alta de 15.000 €** (integración, marca, locutores) + **cuota de plataforma 1.500 €/mes** + **0,30 €/MAU/mes** *(a negociar; banda 0,20-0,50 €)* | Marca del cliente, catálogo de sus valores, API, contenido compartido por valor, informes de uso | El precio por MAU es 6 veces el coste por segmentos (≈ 0,05 €); la cuota cubre el catálogo y el soporte del cliente |
+
+Ingreso neto de un Pro: 6,99 € − 21 % de IVA = 5,78 €; − Stripe (1,5 % + 0,25 € por tarjeta estándar del EEE
++ 0,7 % de Billing, tarifa pública) ≈ 0,40 € → **≈ 5,37 €/mes**. Margen de contribución: **≈ 3,26 €** con
+«episodio propio» (coste = 39 % del ingreso neto) y **≈ 4,62 €** con «híbrido» (14 %, dentro del objetivo
+< 15 % de [01](01_producto_y_propuesta_valor.md#métricas-de-producto)).
+
+### 6.4 Punto de equilibrio
+
+**B2C.** Contribución por cada 1.000 usuarios registrados = Pro × margen − Free × 0,015 €. Con conversión del
+4 % (objetivo 3-5 % de [01](01_producto_y_propuesta_valor.md#métricas-de-producto)) y «episodio propio»:
+40 × 3,26 € − 960 × 0,015 € ≈ **116 € por cada 1.000 registrados**.
+
+| Escenario B2C | Fijo/mes | Registrados para cubrirlo | De ellos, Pro |
+| --- | --- | --- | --- |
+| A, conversión 3 % | 1.070 € | ≈ 12.900 | ≈ 390 |
+| **A, conversión 4 %** | 1.070 € | **≈ 9.200** | **≈ 370** |
+| A, conversión 5 % | 1.070 € | ≈ 7.200 | ≈ 360 |
+| A, 4 %, Pro híbrido (170 € por 1.000) | 1.070 € | ≈ 6.300 | ≈ 250 |
+| B, 4 % | 3.700 € | ≈ 31.900 | ≈ 1.280 |
+| B con equipo, 4 % | 14.200 € | ≈ 122.000 | ≈ 4.900 |
+| B con equipo, 4 %, Pro híbrido | 14.200 € | ≈ 83.000 | ≈ 3.300 |
+
+Sin contar el **coste de adquisición** (marketing): en B2C cada usuario hay que conseguirlo uno a uno.
+
+**B2B2C.** Contribución por MAU = 0,30 € − coste variable: **0,25 €** (segmentos, 83 %) o **0,10 €**
+(personalizado, 33 %). Cada cliente aporta además 1.500 € de cuota menos ≈ 250 €/mes de coste propio (catálogo de
+300 valores ≈ 150 € + soporte e infraestructura ≈ 100 €, estimación) = **1.250 €**. El alta (15.000 €) no se
+cuenta como recurrente.
+
+| Escenario B2B2C | Fijo/mes | Clientes | MAU para cubrirlo (segmentos · personalizado) |
+| --- | --- | --- | --- |
+| B, 1 cliente | 3.700 € | 1 | **≈ 9.800** · ≈ 24.500 |
+| B, 2 clientes | 3.700 € | 2 | ≈ 4.800 en total · ≈ 12.000 |
+| B con equipo, 1 cliente | 14.200 € | 1 | ≈ 51.800 · ≈ 129.500 |
+| B con equipo, 2 clientes | 14.200 € | 2 | ≈ 46.800 en total · ≈ 117.000 |
+| **Un *broker* mediano con 50.000 MAU** (segmentos) | 3.700 € | 1 | Ingresa 16.500 €/mes (1.500 + 15.000), cuesta ≈ 2.750 € variable + cliente → **≈ 13.750 €** de contribución: cubre el fijo B y deja ≈ 10.000 €/mes; con equipo queda a ≈ 450 € del equilibrio |
+
+### 6.5 Conclusión: por qué el B2B2C es el motor
+
+1. **Escala de un contrato.** El fijo de producción B (≈ 3.700 €/mes) se cubre con **un** cliente de ~10.000 MAU;
+   en B2C hacen falta ~32.000 registrados y ~1.300 suscriptores captados uno a uno.
+2. **Coste de adquisición.** En B2B2C la distribución la pone el banco o *broker* (su app, sus notificaciones);
+   en B2C el marketing no está en estas cuentas y es el mayor riesgo.
+3. **El contenido compartido encaja con el canal.** Un *broker* tiene un catálogo cerrado de valores: con
+   segmentos por valor el coste variable cae a ≈ 0,05 €/MAU y el margen por MAU es del 83 %, frente al 61-86 %
+   de un Pro según cuánto se personalice.
+4. **Regulación.** El cliente ya es una entidad supervisada (MiFID II) que integra Briefly como comunicación
+   informativa; la responsabilidad del canal y la del tratamiento (Briefly como encargado) se fijan por contrato.
+5. **El B2C sigue siendo necesario** como escaparate y laboratorio: demuestra el producto, genera métricas de
+   hábito (escucha ≥ 3 días/semana) que venden el B2B2C y, con el Pro híbrido, se autofinancia con ~6.000-9.000
+   registrados en el escenario A.
+
+Condición para que todo lo anterior se cumpla: implementar la **generación por segmentos** y migrar la voz a un
+TTS con contrato (Azure); sin ellos, el Pro cuesta ~2 €/mes y el B2B2C por MAU no es rentable por debajo de
+≈ 2,5 €/MAU.
+
+### Fuentes de las tarifas públicas
+
+Todas consultadas el **06-oct-2026**. Cuando la página oficial no mostraba el importe sin JavaScript, se indica la
+fuente secundaria usada; esas cifras deben confirmarse en la calculadora del proveedor antes de contratar.
+
+| Dato | Fuente |
+| --- | --- |
+| Azure AI Speech: 15 $/M caracteres (Neural), 22 $/M (Neural HD), 0,5 M gratis/mes (F0) | https://azure.microsoft.com/es-es/pricing/details/speech/ (importe contrastado en https://speechactors.com/article/?p=3863 y https://costbench.com/software/ai-voice-tools/microsoft-speech/) |
+| Google Cloud TTS: Chirp 3 HD 30 $/M, WaveNet 4 $/M, niveles gratuitos | https://cloud.google.com/text-to-speech/pricing |
+| OVHcloud VPS-1 a VPS-4 (3,81-19,96 €/mes sin IVA) | https://www.ovhcloud.com/es-es/vps/ ; subida del 1-abr-2026: https://next.ink/225720/ovhcloud-augmente-fortement-le-prix-de-ses-vps-2026-et-ipv4/ |
+| Hetzner tras la subida del 15-jun-2026 (CPX42 69,49 €, CCX23 85,99 €) | https://privatedevops.com/news/hetzner-june-2026-cloud-price-increase-what-to-do (secundaria) |
+| Google Cloud Run `europe-west1` (0,000018 $/vCPU-s, 0,000002 $/GiB-s, siempre activa) | https://cloud.google.com/run/pricing |
+| Cloudflare R2 (0,015 $/GB-mes, sin salida, 10 GB gratis) | https://developers.cloudflare.com/r2/pricing/ |
+| Marketaux (Basic 29 $, Standard 49 $, Pro 99 $, Pro 50K 199 $/mes) | https://marketaux.com/pricing |
+| EODHD (planes personales 19,99-99,99 $/mes; comercial bajo consulta) | https://eodhd.com/pricing |
+| Twelve Data (individuales 29-329 $/mes, uso no comercial; *business* bajo consulta) | https://twelvedata.com/pricing |
+| Stripe España (1,5 % + 0,25 € tarjeta estándar del EEE; Billing 0,7 %) | https://stripe.com/es/pricing |
+| Seeking Alpha Premium (299 $/año) | https://about.seekingalpha.com/premium-subscription-price-update |
+| DPO / adaptación RGPD (servicios desde 180-450 €; DPO interno ≈ 55.000 €/año) | https://www.unir.net/revista/derecho/dpo-salario/ y https://protecciondatos-lopd.com/empresas/ |
+| Anthropic: DPA con cláusulas tipo en los *Commercial Terms*, DPF; API sin región UE propia | https://privacy.anthropic.com/ (artículo «¿Cómo puedo ver y firmar el DPA?») y https://tianpan.co/blog/2026-06-02-the-inference-region-your-data-residency-policy-forgot-to-pin (secundaria) |
+| OpenAI: residencia de datos en Europa para la API; la API no entrena por defecto | https://openai.com/index/introducing-data-residency-in-europe/ y https://openai.com/business-data/ |
+| Gemini API: la cuota gratuita puede usarse para mejorar productos; la de pago no | https://ai.google.dev/gemini-api/terms |
+| Telegram: datos de usuarios del EEE en Países Bajos; representante art. 27 | https://telegram.org/privacy |

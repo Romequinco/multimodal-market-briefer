@@ -1,0 +1,633 @@
+{
+ "date": "2026-10-06",
+ "tickers": [
+  "SAN.MC",
+  "AAPL"
+ ],
+ "news": [
+  {
+   "id": "n-ad828c504f4966dc",
+   "title": "La banca sigue abriéndole el camino a un Ibex 35 que se despierta por encima de los 19.400 puntos",
+   "summary": "El precio del petróleo Brent se abarata por debajo de los 100 dólares",
+   "source": "Valencia Plaza",
+   "url": "https://valenciaplaza.com/valenciaplaza/bolsas/la-banca-sigue-abriendole-el-camino-a-un-ibex-35-que-se-despierta-por-encima-de-los-19400-puntos",
+   "published_at": "2026-10-06T07:20:47Z",
+   "tickers": [
+    "^IBEX"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-7590524685c25892",
+   "title": "El Ibex toma impulso con el tirón de los bancos",
+   "summary": "Los nuevos máximos de 2022 que vuelve a tocar el interés de la deuda de EEUU se unen a los temores que genera la prima de riesgo de Francia, y a la debilidad del euro. La renta variable europea…",
+   "source": "Mercados // expansion",
+   "url": "https://www.expansion.com/mercados/cronica-bolsa/2026/10/06/6ac48e93e5fdea62798b4589.html",
+   "published_at": "2026-10-06T07:20:36Z",
+   "tickers": [
+    "^IBEX"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-b9199a8106d7004c",
+   "title": "El Ibex 35 abre con un alza del 0,7% y supera los 19.400 puntos, con el petróleo a menos de 100 dólares",
+   "summary": "El índice Ibex 35 de la Bolsa de Madrid ha arrancado la sesión de este martes con un avance del 0,66% que le ha llevado a situarse en los 19.427,5 puntos tras cerrar el lunes con una subida del 1,1%…",
+   "source": "Europa Press",
+   "url": "https://www.europapress.es/economia/bolsa-00348/noticia-ibex-35-abre-alza-07-supera-19400-puntos-petroleo-menos-100-dolares-20261006091622.html",
+   "published_at": "2026-10-06T07:16:22Z",
+   "tickers": [
+    "^IBEX"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-c2e615e41e647df8",
+   "title": "El IBEX 35 avanza mientras el mercado rebaja las apuestas de subida de tipos",
+   "summary": "El IBEX 35 abrió al alza el martes y encaraba la que podría ser su tercera sesión consecutiva en positivo, en una jornada marcada por la euforia tecnológica que llevó la víspera al Nasdaq a un nuevo…",
+   "source": "TradingView",
+   "url": "https://es.tradingview.com/news/reuters.com,2026:newsml_L6N45S0DT:0/",
+   "published_at": "2026-10-06T07:12:41Z",
+   "tickers": [
+    "^IBEX"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-da93dc43d1decf1c",
+   "title": "Santander dispara su acción un 4,52% y arrastra al Ibex 35 hasta 19.299 puntos",
+   "summary": "El Ibex 35 sube un 1,12% el 5-10-2026 impulsado por Santander tras la victoria de Bolsonaro en Brasil",
+   "source": "El blog del Euríbor",
+   "url": "https://www.euribor.com.es/2026/10/06/santander-dispara-su-accion-un-452-y-arrastra-al-ibex-35-hasta/",
+   "published_at": "2026-10-06T07:05:52Z",
+   "tickers": [
+    "SAN.MC",
+    "^IBEX"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-901c4e8761d94594",
+   "title": "US Real Estate Stocks Hit All-Time Low Relative To S&P 500, Prompting Peter Schiff’s ‘Industry Is Dead’ Warning",
+   "summary": "Weak housing demand and shifting investor preferences pressure the sector.",
+   "source": "Yahoo Finance",
+   "url": "https://stocktwits.com/news-articles/markets/equity/us-real-estate-stocks-hit-all-time-low-relative-to-s-and-p-500-prompting-peter-schiff-s-industry-is-dead-warning/cZDsHSXRBkf?.tsrc=rss",
+   "published_at": "2026-10-06T06:43:44Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "en"
+  },
+  {
+   "id": "n-e160dc456cbc685a",
+   "title": "Timothy Cook, de Apple, vende acciones por $63.8 mil millones",
+   "summary": "",
+   "source": "Investing.com México",
+   "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxQWmQwM3I1cGFPdjF0Tk9ta1FQazBnWHgzeHJrcThSRnhkdDk0YnhwNHNFZk9qNHUxOU1MaEYta0E1QzUyWG9HSXpIM0tzb21BTXZPb3lXM1dwQzljZTNSdTF2cDVMd3hXenU0aWpyemdCTnlERVRZT2FvVEljMlB0Y29MdThWME9QcFJZaWFNY01uUGpyZlZUSjJHdVFqMy1RMWRYWHJlNXlhVXpRaTI5Ml9PYUE5Ym1FdC1jdzlR?oc=5",
+   "published_at": "2026-10-06T06:31:57Z",
+   "tickers": [
+    "AAPL"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-3a572df54b1e5277",
+   "title": "Timothy Cook, presidente ejecutivo de Apple, vende acciones por 63.800 millones de dólares",
+   "summary": "",
+   "source": "es.investing.com",
+   "url": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxNT3pNQm84em9FWVlYZjZRQnhRRzJONnpreFAzd2hZRWgxdHFVN0xQaWVHYk80a2lvX3NzMVBNczVtSTZrZkFzRnAtWkpfUXg2MzZ0WVNMT2FHcnZjRldTSnktVVpRNUx3a001QUN0cUI5QjV2amV5Mzd6d3dSX1pHOGJNNWpqOGZTdGl1d1NJeGtpUlZXRUVYaXR1RUdlem11RFkwV2Mzc0ZhUGMyQ21aZXZmdFVESDFpS2pJMlpBa2tIT19jTFdQU0pmaDFJOTl2V2pYbm56dEFHdTMtTGFabk1wWVdIdw?oc=5",
+   "published_at": "2026-10-06T05:46:00Z",
+   "tickers": [
+    "AAPL"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-a4c3f756eeceaf55",
+   "title": "El S&P 500 subió ligeramente tras el cierre de la Bolsa de Estocolmo el lunes",
+   "summary": "",
+   "source": "MarketScreener España",
+   "url": "https://news.google.com/rss/articles/CBMizAFBVV95cUxQQTBsRG42ZGJSM3ZWRVRzSkxReXNNTzVUZEducWJjdi1yaHRzNzhyZ3hvMXBFZlRqdXRVQjBTcmNQTkRhQTQ2dkVRbTZ5Wi1jVkxLa0tMd1FORllnbGFSOE4tRGpNY1VzaXNjMWpDZXhZLTgtdDRlajh1Qi1XSXRDT1cwSmUxd1ZSak96dWlSV0RIZXlacENJN0RKVF9SbGZaQkpBeUlaTFVMR0o5MHp3ZDFLQzdlUVV5aEdZa3lldG1tMkVwb3dySllEVWQ?oc=5",
+   "published_at": "2026-10-06T04:44:27Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-fcf1ab10f2fef7cd",
+   "title": "Banco Santander ante el duelo Lula-Bolsonaro: ¿qué escenario favorece más al banco?",
+   "summary": "Banco Santander se la juega en el cara a cara entre Lula y Bolsonaro en la segunda vuelta de las elecciones del 25 de octubre. El banco español obtuvo un 16% de su beneficio en el país el año pasado.",
+   "source": "Estrategias de Inversión",
+   "url": "https://www.estrategiasdeinversion.com/actualidad/noticias/bolsa-espana/banco-santander-ante-el-duelo-lula-bolsonaro-que-n-957101",
+   "published_at": "2026-10-06T04:10:00Z",
+   "tickers": [
+    "SAN.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-62941e234eb6fb08",
+   "title": "El efecto Faro Santander: turismo, empleo y millones para la economía local",
+   "summary": "",
+   "source": "Estrategias de Inversión",
+   "url": "https://news.google.com/rss/articles/CBMipAFBVV95cUxNMGVodmRGRm9iV0QtTlg0cDUxeXpHZmw2QWNZSXZtazZrR0xlNEcxRC0wMlY4WXhWNDFVdk9waWQ1TDZSbW5CY2JHd0VFekFEZDFlUUN1Yl9ibGhkYW1JNmZTWER0ZFk5WExsY19SdVR3VXVzZHBVYWdtc29HZmhKTThSaWZFMGp6WHZoeFFMZy1tMGZkRDZFS2ZJYzQ4UDR2NjlKVdIBpAFBVV95cUxNMGVodmRGRm9iV0QtTlg0cDUxeXpHZmw2QWNZSXZtazZrR0xlNEcxRC0wMlY4WXhWNDFVdk9waWQ1TDZSbW5CY2JHd0VFekFEZDFlUUN1Yl9ibGhkYW1JNmZTWER0ZFk5WExsY19SdVR3VXVzZHBVYWdtc29HZmhKTThSaWZFMGp6WHZoeFFMZy1tMGZkRDZFS2ZJYzQ4UDR2NjlKVQ?oc=5",
+   "published_at": "2026-10-06T04:00:00Z",
+   "tickers": [
+    "SAN.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-171515c5dfc15d08",
+   "title": "Banco Santander Colombia nombra a Camila Vásquez como nueva Chief Financial Officer",
+   "summary": "",
+   "source": "Valora Analitik",
+   "url": "https://news.google.com/rss/articles/CBMitgFBVV95cUxORmtuclg1SnliejRncTdZSDFMWmEzVWl2SDFZb01uaWJvRVNjdnpOWktrVTVHMWhwMTIzbG9PTnRoSF9zUVo2QUJnRlAtRmxEd1RBeThFblczbHNYTWdPZ2RSRUpEQWY5WF9GNDBRZmFFUUNwcld6WEV6bjZ2WFd1cEQ4cFJaOHNGZEppTWEwaTU2YUpoYlNhc0VCdk16TjBqUkQ0SDZib044Q2FMT1otYWhRZUxEUdIBuwFBVV95cUxPaUQ3WUVwZXNrOVFkWWNYVWhqZUJoRDVtb0FPSnFlUzV0bV9NSVJIQVRTVEtlVFlFXzNCV1Atd3dTQUwtS3lMczVyS1h5QVM1b0hxX0kxUEVndWtWWFQwWV91MFlnREtYcEZzNWNNTnNTWGJRd0hrdnEzN0VRaDRQTndsZnJlRTZBcUJEQ0xtaEFWOUpHTEd2bVJhYlNZbGs4WVhUSXlTcnA2eGJPS1NKUFRtemxNTzhPNUNn?oc=5",
+   "published_at": "2026-10-06T03:03:39Z",
+   "tickers": [
+    "SAN.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-d9ae0424a0218587",
+   "title": "S&P 500 desafía el desplome de mitad de mandato mientras Bank of America afirma que la historia favorece las ganancias postelectorales",
+   "summary": "",
+   "source": "investingLive",
+   "url": "https://news.google.com/rss/articles/CBMipAJBVV95cUxOVkNaRElDbDRILUVzZVIwRy1ack5lY3pLaHY2elE3OFByWjZWS0ZELXRlSjlPTU5PcHlaQ2dXMEYwTjVrSjZVNHJmNXg4TVdLbHpHMVdxT0E1a3FrN2JueE41MnJrVDBob3BRTjhBT3drN0sza0RoRnMxeDdNWDdIcXpDVHFsSTBuR1RUMnk0N3pOMVlhY083ODVILXd3Vi1xNG10X3JKRWkyei0tUWVUZXJ6dmFFQ1lobEVuOHFFYjVpU05FclVNTFJEeWlST29YejVmNExJSDc2R0hYMVkzSVBDTWNxSFEwMzYzaGVib1RQSjNIaXdqYkhYc3JqQXRxb0tIdnJUdVc4YWNLdnFiZkt6VWxmSFB0eC0tVnR6ZkpoTzhq?oc=5",
+   "published_at": "2026-10-06T02:49:39Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-09ec699637237ef6",
+   "title": "Los precios del azúcar superan al S&P 500 en 2026: ¿puede continuar el mercado alcista del azúcar?",
+   "summary": "",
+   "source": "tradingkey.com",
+   "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNZDhqM09uUjBNN21ucGJUUlF3ME9qODJBR1h3a1pQSEwzZkd5bHBYUmI2X2VnTzUyU3pXcEI4MVhtSi1ocU5vNm1ESUNtZko2emsxbUNmdFJKVEx1SkdqZlJYLWZ5OWNPTzM3TVhvT0RiUG53dU93WmxLMFRkZ3VvdTRMTzhVclpVY05PLUQyakY4bXk5TmZzUFI0U2ItSFpkeW5xTF9qRTdyVG54RWY3R0tn?oc=5",
+   "published_at": "2026-10-06T02:04:59Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-8cb1ddc790a181dc",
+   "title": "Directiva de Apple Deirdre O’Brien vende acciones por $15.4 mil millones",
+   "summary": "",
+   "source": "Investing.com México",
+   "url": "https://news.google.com/rss/articles/CBMizgFBVV95cUxQUXc4S3c0NFZUazhiSzg5R1FtanNOeWRlU216MEU4bFNpUVR5MVFZWklfaUJIYWpBMzFEcDNGTFo5c0RjT2daeFh4X2xxejdPOEpid1lkQXNGUHpzS2ZSWkhubzZWNFRQakxQRU5weWtVcjhUZFlPc1diLWlFU0MzT3dneEdERldsaTVpYXE2Wmx0bE9PQ2tfQnVmamZjM0hiSmZjeEhBTHpnaEZBNUVIaXFkNVY3RVJVOExqZFQtNWRFWEZYNHpJQUNFMzl5QQ?oc=5",
+   "published_at": "2026-10-06T00:35:42Z",
+   "tickers": [
+    "AAPL"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-0d6d364805d97252",
+   "title": "Apple planea un octubre lleno de lanzamientos de nuevos dispositivos",
+   "summary": "Apple no solo presentará novedades el 13 de octubre; será un mes completamente lleno de lanzamientos ...",
+   "source": "El Nacional",
+   "url": "https://www.msn.com/es-es/noticias/otras/apple-planea-un-octubre-lleno-de-lanzamientos-de-nuevos-dispositivos/ar-AA2dEL5H",
+   "published_at": "2026-10-05T23:31:33Z",
+   "tickers": [
+    "AAPL"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-5a4ee050e957150e",
+   "title": "Apple Watch y glucosa: por qué la medición sin pinchazos sigue pendiente",
+   "summary": "¿Puede el Apple Watch medir la glucosa sin pinchazos? Te contamos qué se sabe, qué falla y por qué la función sigue pendiente.",
+   "source": "Soy de Mac",
+   "url": "https://www.msn.com/es-es/salud/general/apple-watch-y-glucosa-por-qu%C3%A9-la-medici%C3%B3n-sin-pinchazos-sigue-pendiente/ar-AA2dDVCW",
+   "published_at": "2026-10-05T20:50:59Z",
+   "tickers": [
+    "AAPL"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-4e4bdbdf6e87834a",
+   "title": "Dow Jones, S&P 500 y Nasdaq suben al cierre de cara a la temporada de resultados",
+   "summary": "El Dow Jones, S&P 500 y Nasdaq suben al cierre del lunes de cara a la temporada de resultados del tercer trimestre, mientras sopesan el aumento del rendimiento de los bonos y la incertidumbre…",
+   "source": "Estrategias de Inversión",
+   "url": "https://www.estrategiasdeinversion.com/actualidad/noticias/bolsa-eeuu/dow-jones-sp-500-y-nasdaq-suben-al-cierre-de-cara-n-957363",
+   "published_at": "2026-10-05T20:10:00Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-af79d49cab65204f",
+   "title": "Banco Santander, Mapfre y Telefónica impactan en Bolsa los resultados de Brasil",
+   "summary": "Telefónica, que avanza un 2,5% en bolsa, es el otro valor español donde los inversores más celebran hoy el resultado de la primera vuelta. En menor medida, Iberdrola, Indra y Naturgy también tienen…",
+   "source": "CapitalMadrid",
+   "url": "https://www.capitalmadrid.com/2026/10/5/72521/banco-santander-mapfre-y-telefonica-impactan-en-bolsa-los-resultados-de-brasil.html",
+   "published_at": "2026-10-05T16:31:04Z",
+   "tickers": [
+    "SAN.MC",
+    "TEF.MC",
+    "IBE.MC"
+   ],
+   "language": "es"
+  }
+ ],
+ "prices": [
+  {
+   "ticker": "SAN.MC",
+   "last": 12.504,
+   "change_pct": 5.89,
+   "currency": "EUR",
+   "history": [
+    [
+     "2026-09-07",
+     12.886
+    ],
+    [
+     "2026-09-08",
+     12.932
+    ],
+    [
+     "2026-09-09",
+     12.696
+    ],
+    [
+     "2026-09-10",
+     12.642
+    ],
+    [
+     "2026-09-11",
+     12.886
+    ],
+    [
+     "2026-09-14",
+     12.772
+    ],
+    [
+     "2026-09-15",
+     12.666
+    ],
+    [
+     "2026-09-16",
+     12.69
+    ],
+    [
+     "2026-09-17",
+     12.952
+    ],
+    [
+     "2026-09-18",
+     12.524
+    ],
+    [
+     "2026-09-21",
+     12.74
+    ],
+    [
+     "2026-09-22",
+     12.698
+    ],
+    [
+     "2026-09-23",
+     12.61
+    ],
+    [
+     "2026-09-24",
+     12.528
+    ],
+    [
+     "2026-09-25",
+     12.572
+    ],
+    [
+     "2026-09-28",
+     12.502
+    ],
+    [
+     "2026-09-29",
+     12.51
+    ],
+    [
+     "2026-09-30",
+     12.328
+    ],
+    [
+     "2026-10-01",
+     11.812
+    ],
+    [
+     "2026-10-02",
+     11.808
+    ],
+    [
+     "2026-10-06",
+     12.504
+    ]
+   ]
+  },
+  {
+   "ticker": "AAPL",
+   "last": 332.89,
+   "change_pct": -0.24,
+   "currency": "USD",
+   "history": [
+    [
+     "2026-09-08",
+     316.22
+    ],
+    [
+     "2026-09-09",
+     315.34
+    ],
+    [
+     "2026-09-10",
+     326.57
+    ],
+    [
+     "2026-09-11",
+     332.27
+    ],
+    [
+     "2026-09-14",
+     333.08
+    ],
+    [
+     "2026-09-15",
+     331.34
+    ],
+    [
+     "2026-09-16",
+     332.41
+    ],
+    [
+     "2026-09-17",
+     337.0
+    ],
+    [
+     "2026-09-18",
+     336.13
+    ],
+    [
+     "2026-09-21",
+     338.98
+    ],
+    [
+     "2026-09-22",
+     339.75
+    ],
+    [
+     "2026-09-23",
+     337.02
+    ],
+    [
+     "2026-09-24",
+     335.92
+    ],
+    [
+     "2026-09-25",
+     341.07
+    ],
+    [
+     "2026-09-28",
+     338.4
+    ],
+    [
+     "2026-09-29",
+     329.4
+    ],
+    [
+     "2026-09-30",
+     333.02
+    ],
+    [
+     "2026-10-01",
+     330.32
+    ],
+    [
+     "2026-10-02",
+     333.69
+    ],
+    [
+     "2026-10-05",
+     332.89
+    ]
+   ]
+  },
+  {
+   "ticker": "^IBEX",
+   "last": 19508.5,
+   "change_pct": 1.08,
+   "currency": "EUR",
+   "history": [
+    [
+     "2026-09-07",
+     20021.8008
+    ],
+    [
+     "2026-09-08",
+     19997.0996
+    ],
+    [
+     "2026-09-09",
+     19695.3008
+    ],
+    [
+     "2026-09-10",
+     19659.8008
+    ],
+    [
+     "2026-09-11",
+     19838.5
+    ],
+    [
+     "2026-09-14",
+     19565.5
+    ],
+    [
+     "2026-09-15",
+     19555.9004
+    ],
+    [
+     "2026-09-16",
+     19635.8008
+    ],
+    [
+     "2026-09-17",
+     19831.8008
+    ],
+    [
+     "2026-09-18",
+     19513.8008
+    ],
+    [
+     "2026-09-21",
+     19724.4004
+    ],
+    [
+     "2026-09-22",
+     19754.0996
+    ],
+    [
+     "2026-09-23",
+     19632.1992
+    ],
+    [
+     "2026-09-24",
+     19573.4004
+    ],
+    [
+     "2026-09-25",
+     19700.0996
+    ],
+    [
+     "2026-09-28",
+     19600.3008
+    ],
+    [
+     "2026-09-29",
+     19517.5
+    ],
+    [
+     "2026-09-30",
+     19426.1992
+    ],
+    [
+     "2026-10-01",
+     19005.3008
+    ],
+    [
+     "2026-10-02",
+     19085.3008
+    ],
+    [
+     "2026-10-05",
+     19299.6992
+    ],
+    [
+     "2026-10-06",
+     19508.5
+    ]
+   ]
+  },
+  {
+   "ticker": "^GSPC",
+   "last": 7773.9502,
+   "change_pct": 0.66,
+   "currency": "USD",
+   "history": [
+    [
+     "2026-09-08",
+     7673.52
+    ],
+    [
+     "2026-09-09",
+     7636.3599
+    ],
+    [
+     "2026-09-10",
+     7591.7002
+    ],
+    [
+     "2026-09-11",
+     7656.98
+    ],
+    [
+     "2026-09-14",
+     7619.98
+    ],
+    [
+     "2026-09-15",
+     7585.73
+    ],
+    [
+     "2026-09-16",
+     7551.8101
+    ],
+    [
+     "2026-09-17",
+     7637.7598
+    ],
+    [
+     "2026-09-18",
+     7650.5
+    ],
+    [
+     "2026-09-21",
+     7764.7002
+    ],
+    [
+     "2026-09-22",
+     7764.6401
+    ],
+    [
+     "2026-09-23",
+     7706.0298
+    ],
+    [
+     "2026-09-24",
+     7704.1299
+    ],
+    [
+     "2026-09-25",
+     7743.4102
+    ],
+    [
+     "2026-09-28",
+     7683.6899
+    ],
+    [
+     "2026-09-29",
+     7670.8398
+    ],
+    [
+     "2026-09-30",
+     7651.54
+    ],
+    [
+     "2026-10-01",
+     7666.4502
+    ],
+    [
+     "2026-10-02",
+     7722.7202
+    ],
+    [
+     "2026-10-05",
+     7773.9502
+    ]
+   ]
+  }
+ ],
+ "insights": [
+  {
+   "source_type": "chart",
+   "source_name": "grafico_ejemplo.png",
+   "extracted_text": "# Análisis del gráfico\n\n**Tipo:** Sí es un gráfico financiero de velas japonesas, diario (1D), con media móvil y panel de volumen. Lleva el aviso \"EJEMPLO FICTICIO · datos inventados, no reales\" (texto naranja, arriba a la derecha). Son datos ficticios, no de mercado.\n\n## Identificación\n- **Activo:** EJMP · Ejemplo Industrial S.A.\n- **Divisa:** EUR\n- **Periodo:** del 1 de julio a finales de septiembre (el eje marca 01-Jul, 15-Jul, 29-Jul, 12-Ago, 26-Ago y 09-Sep). Son unas 63 sesiones aproximadamente.\n- **Última vela:** apertura 22,20, máximo 22,62, mínimo 22,15, cierre 22,44 (+0,74 %).\n- **Indicador:** media de 20 sesiones (línea naranja), que termina en torno a 22,6.\n\n## Tendencia por fases\n1. **Principios de julio a finales de julio, bajista:** el precio cae desde ~24,3 hasta el mínimo del periodo, cerca de 21,5-21,6 (en torno al 29-Jul), con una vela roja larga.\n2. **Finales de julio a finales de agosto, rebote alcista:** recuperación fuerte hasta ~24,4-24,5 (máximo del periodo, hacia el 26-Ago). La media 20 pasa de mínimos (~22,7) a un máximo cercano a 23,5.\n3. **Desde finales de agosto, bajista:** fuerte caída tras la vela roja larga cerca de 24,0, con precios entre 22,0 y 22,8. La media gira a la baja, de ~23,5 a ~22,6, y el precio queda en torno a ella.\n\n## Niveles relevantes\n- **Soporte:** 21,5-21,6 (mínimo de finales de julio). Soporte intermedio en 22,0-22,2 (mínimos de septiembre, con una mecha cerca de 21,75).\n- **Resistencia:** 23,5 (zona de consolidación y techo de la media), 24,0-24,5 (máximos de agosto).\n- **Zona actual:** 22,2-22,6, con el precio cerca de la media 20 (~22,6).\n\n## Volumen\nEscala en millones, con picos de 2,4-2,5 M (principios de julio, mediados de septiembre) y valores habituales de 1-2 M. No se aprecia una tendencia clara de volumen. Hay picos en las velas de caída y en las de rebote.\n\n## Conclusión\nRango amplio entre ~21,5 y ~24,5, con un máximo y un mínimo relativos claros. A corto plazo el sesgo es bajista o lateral, con el precio pegado a una media descendente. Una ruptura de 22,0 apuntaría a 21,5, mientras que superar 22,6-22,8 abriría camino hacia 23,0. Al ser datos ficticios, solo sirve como ejemplo ilustrativo.",
+   "key_figures": {
+    "Activo": "EJMP · Ejemplo Industrial S.A.",
+    "Divisa": "EUR",
+    "Período": "1 de julio a finales de septiembre (~63 sesiones)",
+    "Última vela - Apertura": "22,20 EUR",
+    "Última vela - Máximo": "22,62 EUR",
+    "Última vela - Mínimo": "22,15 EUR",
+    "Última vela - Cierre": "22,44 EUR",
+    "Última vela - Variación": "+0,74%",
+    "Media móvil 20 sesiones": "~22,6 EUR",
+    "Mínimo del período": "~21,5-21,6 EUR",
+    "Máximo del período": "~24,4-24,5 EUR",
+    "Soporte intermedio": "22,0-22,2 EUR",
+    "Resistencia zona media": "23,5 EUR",
+    "Resistencia máxima": "24,0-24,5 EUR",
+    "Volumen promedio": "1-2 millones",
+    "Volumen máximo": "2,4-2,5 millones"
+   },
+   "summary": "El gráfico muestra el activo EJMP en EUR durante julio-septiembre con un rango amplio entre 21,5 y 24,5 EUR, presentando una fase bajista inicial, un rebote alcista hasta máximos de agosto y una nueva caída desde finales de agosto. El precio se encuentra actualmente en torno a 22,44 EUR cerca de la media móvil de 20 sesiones (~22,6 EUR), con sesgo bajista o lateral a corto plazo. Este es un gráfico ficticio utilizado únicamente con fines ilustrativos."
+  }
+ ],
+ "portfolio": null
+}

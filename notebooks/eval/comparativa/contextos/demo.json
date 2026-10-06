@@ -1,0 +1,932 @@
+{
+ "date": "2026-10-05",
+ "tickers": [
+  "SAN.MC",
+  "ITX.MC",
+  "IBE.MC",
+  "AAPL",
+  "NVDA"
+ ],
+ "news": [
+  {
+   "id": "n-daa5d5ec4c51475c",
+   "title": "Kalshi obtiene luz verde para llevar los perpetuos del S&P 500 a su plataforma",
+   "summary": "La CFTC aprobó a Kalshi para ofrecer futuros perpetuos vinculados al S&P 500, un paso que amplía su negocio más allá de las criptomonedas y la acerca a la competencia con CME y Cboe.",
+   "source": "DiarioBitcoin",
+   "url": "https://www.diariobitcoin.com/regulacion/kalshi-obtiene-luz-verde-para-llevar-los-perpetuos-del-sp-500-a-su-plataforma/",
+   "published_at": "2026-10-05T11:26:15Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-79ae475ba35328b1",
+   "title": "Amazon Wants to Sell Its Nvidia Chips and Rent Them Back. Here’s Why",
+   "summary": "Amazon is reportedly exploring an $8 billion Nvidia chip leaseback after free cash flow fell to negative $26.99 billion in the first half of 2026.",
+   "source": "tikr.com",
+   "url": "https://www.tikr.com/es/blog/amazon-wants-to-sell-its-nvidia-chips-and-rent-them-back-heres-why",
+   "published_at": "2026-10-05T11:24:16Z",
+   "tickers": [
+    "NVDA",
+    "AMZN"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-b965364207e1c893",
+   "title": "Los valores del Ibex más alcistas por el 'efecto Brasil'",
+   "summary": "El Ibex despunta por momentos como el mejor índice bursátil de la jornada en Europa. Este impulso es fruto, en gran medida, de las subidas que se anotan las empresas españolas con mayor exposición…",
+   "source": "Mercados // expansion",
+   "url": "https://www.expansion.com/mercados/2026/10/05/6ac36942e5fdeaf20b8b4584.html",
+   "published_at": "2026-10-05T10:59:07Z",
+   "tickers": [
+    "^IBEX"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-d8ea3ca89d4ca810",
+   "title": "El Ibex, condicionado por el euro, la deuda y la política",
+   "summary": "La semana comienza con varios frentes abiertos en los mercados. El euro cae a mínimos de 17 meses en medio de los temores que generan deudas como la de Francia. El Cac francés destaca en las caídas…",
+   "source": "Mercados // expansion",
+   "url": "https://www.expansion.com/mercados/cronica-bolsa/2026/10/05/6ac33c2f468aeb7e468b4590.html",
+   "published_at": "2026-10-05T10:48:17Z",
+   "tickers": [
+    "^IBEX"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-eec6bcd879aff09e",
+   "title": "Nvidia Just Authorized a $235 Billion Buyback, Backed by Free Cash Flow That Grew From $27.02 Billion",
+   "summary": "Nvidia’s $150B buyback lifts capacity to $235B, about 2.4x fiscal 2026 free cash flow of $96.68B. Cash growth must keep pace through fiscal 2028.",
+   "source": "tikr.com",
+   "url": "https://www.tikr.com/es/blog/nvidia-just-authorized-a-235-billion-buyback-backed-by-free-cash-flow-that-grew-from-27-02-billion",
+   "published_at": "2026-10-05T09:41:47Z",
+   "tickers": [
+    "NVDA"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-c7a19cbf11c5237d",
+   "title": "TSMC marca otro récord; la demanda de Nvidia y Apple podría ser un problema",
+   "summary": "",
+   "source": "Invezz",
+   "url": "https://invezz.com/es/noticias/2026/10/05/tsmc-marca-otro-record-la-demanda-de-nvidia-y-apple-podria-ser-un-problema/",
+   "published_at": "2026-10-05T09:40:03Z",
+   "tickers": [
+    "AAPL",
+    "NVDA"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-05bd7e8ecf44dc2c",
+   "title": "Récord de optimismo empresarial: 72 compañías del S&P 500 anticipan beneficios superiores al consenso",
+   "summary": "Puntos clave Un récord de 72 compañías del S&P 500 ha publicado previsiones de beneficio trimestral superiores al consenso. De las 116 empresas que ofrecieron previsiones, aproximadamente el 62%…",
+   "source": "Bolsamania",
+   "url": "https://www.bolsamania.com/capitalbolsa/noticias/empresas/record-de-optimismo-empresarial-72-companias-del-sp-500-anticipan-beneficios-superiores-al-consenso--23752992.html",
+   "published_at": "2026-10-05T09:19:03Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-4ccf050f72ae7a04",
+   "title": "El éxito de la colaboración de Zara y Galliano da alas a Inditex: potencial del 26% en Bolsa",
+   "summary": "Jefferies da una recomendación de ‘comprar’ para Inditex y un potencial alcista del 26% tras destacar el éxito del lanzamiento de su marca con Galliano.",
+   "source": "Estrategias de Inversión",
+   "url": "https://www.estrategiasdeinversion.com/actualidad/noticias/bolsa-espana/el-exito-de-la-colaboracion-de-zara-y-galliano-n-957017",
+   "published_at": "2026-10-05T08:20:00Z",
+   "tickers": [
+    "ITX.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-dac2cf1a84e73cb4",
+   "title": "El índice S&P 500 apenas registró variaciones tras el cierre de la Bolsa de Estocolmo",
+   "summary": "",
+   "source": "MarketScreener España",
+   "url": "https://es.marketscreener.com/noticias/el-ndice-s-p-500-apenas-registr-variaciones-tras-el-cierre-de-la-bolsa-de-estocolmo-ce785ddbdf8cf62c",
+   "published_at": "2026-10-05T04:26:27Z",
+   "tickers": [
+    "^GSPC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-d99d1f2ced151477",
+   "title": "El IBEX 35 se da la vuelta al alza de la mano de Santander y Telefónica tras las elecciones en Brasil",
+   "summary": "El IBEX 35 abre con caídas suaves en una jornada donde se ha conocido la convocatoria de elecciones y con los inversores pendientes del euro y los bonos ...",
+   "source": "finanzas.com",
+   "url": "https://www.finanzas.com/ibex-35/ibex-35-rebota-pese-tensiones-bonos-castigo-euro.html",
+   "published_at": "2026-10-05T04:13:00Z",
+   "tickers": [
+    "^IBEX",
+    "SAN.MC",
+    "TEF.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-7bafe0100e862fa9",
+   "title": "Análisis de Banco Santander: Necesario pero no suficiente",
+   "summary": "Los fuertes avances de hoy permiten reforzar las señales de agotamiento bajistas acaecidas en la sesión del viernes, sin embargo es un movimiento que debemos clasificar como insuficiente, de…",
+   "source": "Estrategias de Inversión",
+   "url": "https://www.estrategiasdeinversion.com/analisis/trading/analisis-de-banco-santander-necesario-pero-no-n-957091",
+   "published_at": "2026-10-05T04:10:00Z",
+   "tickers": [
+    "SAN.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-0c3a7ba827a04926",
+   "title": "Jefferies apuesta por Inditex y anticipa un \"impresionante crecimiento\" en el tercer trimestre",
+   "summary": "Jefferies mantiene su visión positiva sobre Inditex y considera que el grupo todavía tiene recorrido al alza, apoyado en unas sólidas perspectivas de crecimiento y en la capacidad de Zara para…",
+   "source": "Bolsamania",
+   "url": "https://www.bolsamania.com/noticias/empresas/jefferies-apuesta-inditex-anticipa-impresionante-crecimiento-tercer-trimestre--23752766.html",
+   "published_at": "2026-10-05T03:25:00Z",
+   "tickers": [
+    "ITX.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-1d689152d6d9f06e",
+   "title": "JP Morgan es prudente sobre Banco Santander, aunque sí ve un potencial moderado",
+   "summary": "JP Morgan retoma la cobertura de Banco Santander con un consejo de ‘neutral’ y un precio objetivo de 12,60 euros que supone un potencial alcista del 6,68%.",
+   "source": "Estrategias de Inversión",
+   "url": "https://www.estrategiasdeinversion.com/analisis/los-brokers-recomiendan/recomendaciones-espana/jp-morgan-es-prudente-sobre-banco-santander-aunque-n-956991",
+   "published_at": "2026-10-05T02:41:00Z",
+   "tickers": [
+    "SAN.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-63878153f878f1cd",
+   "title": "7 novedades de watchOS 27 que merece la pena probar en el Apple Watch",
+   "summary": "¿Aún no actualizas tu Apple Watch a watchOS 27? Te contamos 7 nuevas funciones por las que vale la pena ...",
+   "source": "El Nacional",
+   "url": "https://www.msn.com/es-es/noticias/otras/7-novedades-de-watchos-27-que-merece-la-pena-probar-en-el-apple-watch/ar-AA2du6E4",
+   "published_at": "2026-10-05T01:41:58Z",
+   "tickers": [
+    "AAPL"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-fc03bad980cd6114",
+   "title": "Iberdrola, PNV y PP reabren el troceo de Red Eléctrica: golpe al monopolio de Redeia",
+   "summary": "El troceo de Red Eléctrica vuelve al Congreso con Iberdrola, el PNV y el PP presionando para retirar a Redeia el monopolio del transporte eléctrico.",
+   "source": "Merca2",
+   "url": "https://www.merca2.es/2026/10/05/troceo-red-electrica-iberdrola-redeia-2467510/",
+   "published_at": "2026-10-05T01:38:00Z",
+   "tickers": [
+    "IBE.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-41f8cc75887c20c7",
+   "title": "Iberdrola, PNV y PP calientan el “viejo” debate para un posible troceo de Red Eléctrica: “Es la gallina de los huevos de oro”",
+   "summary": "Tras el apagón y su guerra con Redeia, la eléctrica ha intensificado una ofensiva para quitar el monopolio del transporte a la empresa semipública. PNV y, con menos ímpetu, PP, han planteado en el…",
+   "source": "elDiario.es",
+   "url": "https://www.eldiario.es/economia/iberdrola-pnv-pp-calientan-viejo-debate-posible-troceo-red-electrica-gallina-huevos-oro_1_13556087.html",
+   "published_at": "2026-10-04T22:30:00Z",
+   "tickers": [
+    "IBE.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-f15d1aa3c58809e2",
+   "title": "Iberdrola lanza los Premios FP para atraer a los mejores estudiantes de electricidad y redes de España",
+   "summary": "El sector eléctrico español necesita manos expertas para sostener la transición energética, y la mayor eléctrica de Europa ha decidido ir a buscarlas directamente a las aulas. Iberdrola lanza los…",
+   "source": "Okdiario",
+   "url": "https://okdiario.com/okgreen/iberdrola-lanza-premios-fp-atraer-mejores-estudiantes-electricidad-redes-espana-20486974",
+   "published_at": "2026-10-04T15:41:00Z",
+   "tickers": [
+    "IBE.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-ebf02b4a669cd6fa",
+   "title": "Inditex mira por el retrovisor a Shein y ya es seis veces más rentable",
+   "summary": "La amenaza que supuso la compañía 'low cost' para los de Arteixo tras la pandemia se disipa ahora, impactada por los aranceles y el alza del combustible ...",
+   "source": "Economía Digital",
+   "url": "https://www.economiadigital.es/galicia/empresas/inditex-mira-retrovisor-shein-seis-veces-rentable.html",
+   "published_at": "2026-10-04T02:55:00Z",
+   "tickers": [
+    "ITX.MC"
+   ],
+   "language": "es"
+  },
+  {
+   "id": "n-729cd61f7fbbb558",
+   "title": "Apple Watch Serie 12 vs Serie 11: ¿merece la pena saltar a la nueva generación?",
+   "summary": "Mostramos las diferencias entre los dos relojes de la firma de Cupertino para que tengas claras las mejoras que se incluyen en el nuevo modelo.",
+   "source": "Cinco Días",
+   "url": "https://cincodias.elpais.com/smartlife/gadgets/2026-10-04/apple-watch-serie-12-vs-apple-watch-serie-11.html",
+   "published_at": "2026-10-04T01:31:00Z",
+   "tickers": [
+    "AAPL"
+   ],
+   "language": "es"
+  }
+ ],
+ "prices": [
+  {
+   "ticker": "SAN.MC",
+   "last": 12.158,
+   "change_pct": 2.96,
+   "currency": "EUR",
+   "history": [
+    [
+     "2026-09-07",
+     12.886
+    ],
+    [
+     "2026-09-08",
+     12.932
+    ],
+    [
+     "2026-09-09",
+     12.696
+    ],
+    [
+     "2026-09-10",
+     12.642
+    ],
+    [
+     "2026-09-11",
+     12.886
+    ],
+    [
+     "2026-09-14",
+     12.772
+    ],
+    [
+     "2026-09-15",
+     12.666
+    ],
+    [
+     "2026-09-16",
+     12.69
+    ],
+    [
+     "2026-09-17",
+     12.952
+    ],
+    [
+     "2026-09-18",
+     12.524
+    ],
+    [
+     "2026-09-21",
+     12.74
+    ],
+    [
+     "2026-09-22",
+     12.698
+    ],
+    [
+     "2026-09-23",
+     12.61
+    ],
+    [
+     "2026-09-24",
+     12.528
+    ],
+    [
+     "2026-09-25",
+     12.572
+    ],
+    [
+     "2026-09-28",
+     12.502
+    ],
+    [
+     "2026-09-29",
+     12.51
+    ],
+    [
+     "2026-09-30",
+     12.328
+    ],
+    [
+     "2026-10-01",
+     11.812
+    ],
+    [
+     "2026-10-02",
+     11.808
+    ],
+    [
+     "2026-10-05",
+     12.158
+    ]
+   ]
+  },
+  {
+   "ticker": "ITX.MC",
+   "last": 53.42,
+   "change_pct": 0.34,
+   "currency": "EUR",
+   "history": [
+    [
+     "2026-09-07",
+     57.56
+    ],
+    [
+     "2026-09-08",
+     56.52
+    ],
+    [
+     "2026-09-09",
+     54.48
+    ],
+    [
+     "2026-09-10",
+     54.58
+    ],
+    [
+     "2026-09-11",
+     54.02
+    ],
+    [
+     "2026-09-14",
+     53.72
+    ],
+    [
+     "2026-09-15",
+     52.58
+    ],
+    [
+     "2026-09-16",
+     52.78
+    ],
+    [
+     "2026-09-17",
+     52.4
+    ],
+    [
+     "2026-09-18",
+     51.74
+    ],
+    [
+     "2026-09-21",
+     51.78
+    ],
+    [
+     "2026-09-22",
+     53.28
+    ],
+    [
+     "2026-09-23",
+     53.02
+    ],
+    [
+     "2026-09-24",
+     52.9
+    ],
+    [
+     "2026-09-25",
+     53.26
+    ],
+    [
+     "2026-09-28",
+     53.34
+    ],
+    [
+     "2026-09-29",
+     53.28
+    ],
+    [
+     "2026-09-30",
+     53.92
+    ],
+    [
+     "2026-10-01",
+     53.06
+    ],
+    [
+     "2026-10-02",
+     53.24
+    ],
+    [
+     "2026-10-05",
+     53.42
+    ]
+   ]
+  },
+  {
+   "ticker": "IBE.MC",
+   "last": 20.92,
+   "change_pct": 0.48,
+   "currency": "EUR",
+   "history": [
+    [
+     "2026-09-07",
+     19.83
+    ],
+    [
+     "2026-09-08",
+     19.88
+    ],
+    [
+     "2026-09-09",
+     19.925
+    ],
+    [
+     "2026-09-10",
+     20.02
+    ],
+    [
+     "2026-09-11",
+     20.16
+    ],
+    [
+     "2026-09-14",
+     19.715
+    ],
+    [
+     "2026-09-15",
+     20.04
+    ],
+    [
+     "2026-09-16",
+     20.24
+    ],
+    [
+     "2026-09-17",
+     20.52
+    ],
+    [
+     "2026-09-18",
+     20.29
+    ],
+    [
+     "2026-09-21",
+     20.3
+    ],
+    [
+     "2026-09-22",
+     20.37
+    ],
+    [
+     "2026-09-23",
+     20.12
+    ],
+    [
+     "2026-09-24",
+     20.25
+    ],
+    [
+     "2026-09-25",
+     20.33
+    ],
+    [
+     "2026-09-28",
+     20.34
+    ],
+    [
+     "2026-09-29",
+     20.49
+    ],
+    [
+     "2026-09-30",
+     20.61
+    ],
+    [
+     "2026-10-01",
+     20.73
+    ],
+    [
+     "2026-10-02",
+     20.82
+    ],
+    [
+     "2026-10-05",
+     20.92
+    ]
+   ]
+  },
+  {
+   "ticker": "AAPL",
+   "last": 333.69,
+   "change_pct": 1.02,
+   "currency": "USD",
+   "history": [
+    [
+     "2026-09-03",
+     328.21
+    ],
+    [
+     "2026-09-04",
+     319.97
+    ],
+    [
+     "2026-09-08",
+     316.22
+    ],
+    [
+     "2026-09-09",
+     315.34
+    ],
+    [
+     "2026-09-10",
+     326.57
+    ],
+    [
+     "2026-09-11",
+     332.27
+    ],
+    [
+     "2026-09-14",
+     333.08
+    ],
+    [
+     "2026-09-15",
+     331.34
+    ],
+    [
+     "2026-09-16",
+     332.41
+    ],
+    [
+     "2026-09-17",
+     337.0
+    ],
+    [
+     "2026-09-18",
+     336.13
+    ],
+    [
+     "2026-09-21",
+     338.98
+    ],
+    [
+     "2026-09-22",
+     339.75
+    ],
+    [
+     "2026-09-23",
+     337.02
+    ],
+    [
+     "2026-09-24",
+     335.92
+    ],
+    [
+     "2026-09-25",
+     341.07
+    ],
+    [
+     "2026-09-28",
+     338.4
+    ],
+    [
+     "2026-09-29",
+     329.4
+    ],
+    [
+     "2026-09-30",
+     333.02
+    ],
+    [
+     "2026-10-01",
+     330.32
+    ],
+    [
+     "2026-10-02",
+     333.69
+    ]
+   ]
+  },
+  {
+   "ticker": "NVDA",
+   "last": 233.95,
+   "change_pct": 1.34,
+   "currency": "USD",
+   "history": [
+    [
+     "2026-09-03",
+     228.45
+    ],
+    [
+     "2026-09-04",
+     230.36
+    ],
+    [
+     "2026-09-08",
+     225.73
+    ],
+    [
+     "2026-09-09",
+     223.67
+    ],
+    [
+     "2026-09-10",
+     218.36
+    ],
+    [
+     "2026-09-11",
+     218.29
+    ],
+    [
+     "2026-09-14",
+     210.96
+    ],
+    [
+     "2026-09-15",
+     212.17
+    ],
+    [
+     "2026-09-16",
+     213.9
+    ],
+    [
+     "2026-09-17",
+     219.34
+    ],
+    [
+     "2026-09-18",
+     222.27
+    ],
+    [
+     "2026-09-21",
+     227.38
+    ],
+    [
+     "2026-09-22",
+     228.87
+    ],
+    [
+     "2026-09-23",
+     225.51
+    ],
+    [
+     "2026-09-24",
+     224.58
+    ],
+    [
+     "2026-09-25",
+     225.07
+    ],
+    [
+     "2026-09-28",
+     228.86
+    ],
+    [
+     "2026-09-29",
+     227.21
+    ],
+    [
+     "2026-09-30",
+     228.38
+    ],
+    [
+     "2026-10-01",
+     230.86
+    ],
+    [
+     "2026-10-02",
+     233.95
+    ]
+   ]
+  },
+  {
+   "ticker": "^IBEX",
+   "last": 19256.4004,
+   "change_pct": 0.9,
+   "currency": "EUR",
+   "history": [
+    [
+     "2026-09-07",
+     20021.8008
+    ],
+    [
+     "2026-09-08",
+     19997.0996
+    ],
+    [
+     "2026-09-09",
+     19695.3008
+    ],
+    [
+     "2026-09-10",
+     19659.8008
+    ],
+    [
+     "2026-09-11",
+     19838.5
+    ],
+    [
+     "2026-09-14",
+     19565.5
+    ],
+    [
+     "2026-09-15",
+     19555.9004
+    ],
+    [
+     "2026-09-16",
+     19635.8008
+    ],
+    [
+     "2026-09-17",
+     19831.8008
+    ],
+    [
+     "2026-09-18",
+     19513.8008
+    ],
+    [
+     "2026-09-21",
+     19724.4004
+    ],
+    [
+     "2026-09-22",
+     19754.0996
+    ],
+    [
+     "2026-09-23",
+     19632.1992
+    ],
+    [
+     "2026-09-24",
+     19573.4004
+    ],
+    [
+     "2026-09-25",
+     19700.0996
+    ],
+    [
+     "2026-09-28",
+     19600.3008
+    ],
+    [
+     "2026-09-29",
+     19517.5
+    ],
+    [
+     "2026-09-30",
+     19426.1992
+    ],
+    [
+     "2026-10-01",
+     19005.3008
+    ],
+    [
+     "2026-10-02",
+     19085.3008
+    ],
+    [
+     "2026-10-05",
+     19256.4004
+    ]
+   ]
+  },
+  {
+   "ticker": "^GSPC",
+   "last": 7722.7202,
+   "change_pct": 0.73,
+   "currency": "USD",
+   "history": [
+    [
+     "2026-09-03",
+     7747.71
+    ],
+    [
+     "2026-09-04",
+     7718.6001
+    ],
+    [
+     "2026-09-08",
+     7673.52
+    ],
+    [
+     "2026-09-09",
+     7636.3599
+    ],
+    [
+     "2026-09-10",
+     7591.7002
+    ],
+    [
+     "2026-09-11",
+     7656.98
+    ],
+    [
+     "2026-09-14",
+     7619.98
+    ],
+    [
+     "2026-09-15",
+     7585.73
+    ],
+    [
+     "2026-09-16",
+     7551.8101
+    ],
+    [
+     "2026-09-17",
+     7637.7598
+    ],
+    [
+     "2026-09-18",
+     7650.5
+    ],
+    [
+     "2026-09-21",
+     7764.7002
+    ],
+    [
+     "2026-09-22",
+     7764.6401
+    ],
+    [
+     "2026-09-23",
+     7706.0298
+    ],
+    [
+     "2026-09-24",
+     7704.1299
+    ],
+    [
+     "2026-09-25",
+     7743.4102
+    ],
+    [
+     "2026-09-28",
+     7683.6899
+    ],
+    [
+     "2026-09-29",
+     7670.8398
+    ],
+    [
+     "2026-09-30",
+     7651.54
+    ],
+    [
+     "2026-10-01",
+     7666.4502
+    ],
+    [
+     "2026-10-02",
+     7722.7202
+    ]
+   ]
+  }
+ ],
+ "insights": [
+  {
+   "source_type": "pdf",
+   "source_name": "resultados_ejemplo.pdf",
+   "extracted_text": "[Página 1]\nEJEMPLO FICTICIO · datos inventados, no reales\nResultados del tercer trimestre de 2026\nEjemplo Industrial S.A. (ticker ficticio EJMP)\nResumen ejecutivo (datos inventados):\n- Ingresos de 1.245 millones de euros, un 8,4 % más que en el 3T 2025.\n- EBITDA de 312 millones de euros (+11,2 %), con un margen del 25,1 %.\n- Beneficio neto atribuido de 158 millones de euros (+6,9 %).\n- Deuda financiera neta de 890 millones de euros, 1,6 veces EBITDA.\nLa compañía ficticia atribuye el crecimiento a la división de servicios digitales,\nque aporta ya el 34 % de los ingresos, y a la mejora de precios en Europa.\nLos costes energéticos se moderan respecto al mismo periodo del año anterior.\nPerspectivas: la dirección mantiene el objetivo de crecimiento de ingresos de un\ndígito alto para el conjunto de 2026 y un dividendo complementario de 0,42 euros\npor acción, sujeto a la aprobación de la junta.\nT odos los nombres, cifras y previsiones de este documento son ficticios y se han\ncreado únicamente para probar la lectura automática de PDFs.\nDocumento de ejemplo generado para la demo de Market Briefer. No contiene información real ni constituye asesoramiento financiero.\n\n[Página 2]\nMagnitud 3T 2025 3T 2026 Variación\nIngresos 1.149 1.245 +8,4 %\nEBITDA 281 312 +11,2 %\nMargen EBITDA 24,5 % 25,1 % +0,6 p.p.\nBeneficio neto 148 158 +6,9 %\nDeuda financiera neta 940 890 -5,3 %\nBPA (euros) 0,59 0,63 +6,8 %\nEJEMPLO FICTICIO · datos inventados, no reales\nPrincipales magnitudes (millones de euros)\nDesglose de ingresos por división (ficticio): Industrial 52 %, Servicios\ndigitales 34 %, Otros 14 %. Plantilla media: 6.480 empleados.\n\n[Página 3]\nEJEMPLO FICTICIO · datos inventados, no reales\nEvolución bursátil\n\n[Página 3 · página renderizada 1 (descripción por visión)]\n# Descripción de la imagen\n\n**Tipo de documento:** página de un informe con un gráfico bursátil de velas japonesas (candlestick). Incluye media móvil y un panel de volumen. Está marcada como ejemplo ficticio.\n\n**Textos visibles (transcritos como contenido):**\n- Encabezado en rojo: \"EJEMPLO FICTICIO · datos inventados, no reales\"\n- Título de sección: \"Evolución bursátil\"\n- Título del gráfico: \"EJMP · cotización diaria jul-sep 2026 (ficticia)\"\n- Leyenda: \"Media 20 sesiones\" (línea naranja)\n- Eje Y superior: \"EUR\"; eje Y inferior: \"Vol. (M)\" (millones)\n- Eje X: fechas 01-Jul, 15-Jul, 29-Jul, 12-Aug, 26-Aug, 09-Sep\n\nNo hay instrucciones dirigidas al lector o al analista en la imagen.\n\n## Estructura del gráfico\n\n- **Panel superior:** cotización diaria en EUR, con escala de 21,5 a 24,5. Las velas verdes/turquesas y rojas distinguen días alcistas y bajistas. No hay leyenda explícita, así que esa interpretación del color es la convención habitual.\n- **Panel inferior:** barras de volumen, con escala de 0 a unos 2,5 millones.\n- **Periodo:** aproximadamente del 1 de julio a mediados/finales de septiembre de 2026.\n\n## Cifras aproximadas (leídas del gráfico, no exactas)\n\n- **Inicio (1-jul):** cierre en torno a 24,3 EUR, cerca del máximo del periodo (~24,4–24,5).\n- **Mínimo del periodo:** ~21,5–21,6 EUR, hacia el 28-29 de julio.\n- **Rebote:** hasta ~24,2–24,4 EUR a finales de agosto, con máximos intradía de ~24,5.\n- **Caída posterior:** tras el 26-ago baja hasta ~22,5 EUR en septiembre, con un mínimo puntual ~21,8 EUR a principios de septiembre.\n- **Cierre final:** ~22,4–22,5 EUR (mediados de septiembre).\n- **Media de 20 sesiones:** empieza hacia el 28-jul en ~23,2 EUR, baja a ~22,7 a principios de agosto, sube a un máximo de ~23,5 a finales de agosto/principios de septiembre y desciende hasta ~22,6 al final, donde cruza el precio.\n- **Volumen diario:** entre ~0,8 y ~2,5 millones de acciones, sin tendencia clara. Los picos rondan 2,4–2,5 M.\n\n## Lectura analítica\n\n1. Tendencia bajista en julio (de ~24,3 a ~21,6 EUR, aprox. -11%).\n2. Recuperación fuerte en agosto, por encima de la media de 20 sesiones.\n3. Giro a la baja desde el 26-ago, con pérdida de la media y retorno a la zona de 22,5 EUR.\n4. El volumen no confirma claramente los movimientos.\n\n**Advertencia:** los datos son inventados según la propia imagen, y los valores son estimaciones visuales. No hay tablas ni cifras de resultados (ingresos, beneficios, etc.).",
+   "key_figures": {
+    "Ingresos 3T 2026": "1.245 millones EUR (+8,4%)",
+    "EBITDA 3T 2026": "312 millones EUR (+11,2%)",
+    "Margen EBITDA": "25,1% (+0,6 p.p.)",
+    "Beneficio neto 3T 2026": "158 millones EUR (+6,9%)",
+    "Deuda financiera neta": "890 millones EUR (-5,3%)",
+    "BPA 3T 2026": "0,63 EUR (+6,8%)",
+    "Ratio Deuda/EBITDA": "1,6x",
+    "Ingresos Servicios digitales": "34% del total",
+    "Plantilla media": "6.480 empleados",
+    "Dividendo complementario proyectado": "0,42 EUR/acción"
+   },
+   "summary": "Este documento contiene datos ficticios e inventados para demostración de lectura automática de PDFs, sin información real ni asesoramiento financiero. Ejemplo Industrial S.A. (EJMP) reportó resultados positivos en 3T 2026 con crecimientos en ingresos (+8,4%), EBITDA (+11,2%) y beneficio neto (+6,9%), impulsados por la división de servicios digitales (34% de ingresos) y mejora de precios en Europa. La deuda se redujo a 890 millones EUR (1,6x EBITDA) con costes energéticos moderados, mientras la dirección mantiene objetivo de crecimiento de dígito alto para 2026. El gráfico bursátil muestra volatilidad en julio-septiembre 2026, con caída inicial (~11%), rebote en agosto y nueva corrección posterior, sin clara confirmación del volumen en los movimientos."
+  },
+  {
+   "source_type": "chart",
+   "source_name": "grafico_ejemplo.png",
+   "extracted_text": "# Análisis del gráfico\n\n**Aviso:** el propio gráfico indica en naranja «EJEMPLO FICTICIO · datos inventados, no reales». Es un gráfico financiero, pero con datos ilustrativos. No contiene instrucciones dirigidas al lector.\n\n## Identificación\n- **Activo:** EJMP, Ejemplo Industrial S.A.\n- **Tipo:** velas japonesas diarias (1D), cotización en EUR.\n- **Indicador:** media móvil de 20 sesiones (línea naranja).\n- **Panel inferior:** volumen en millones (M). Las barras verdes marcan sesiones alcistas y las rojas, bajistas.\n- **Periodo:** aproximadamente del 1 de julio a finales de septiembre. El eje marca 01-Jul, 15-Jul, 29-Jul, 12-Ago, 26-Ago y 09-Sep.\n\n## Última sesión (cabecera)\n- Apertura 22,20; máximo 22,62; mínimo 22,15; cierre **22,44** (+0,74 %).\n\n## Estructura y tendencia\n1. **Caída inicial (1 jul – ~30 jul):** baja desde ~24,3 hasta un mínimo cercano a **21,5–21,6** hacia el 29-30 de julio, con velas rojas de cuerpo grande.\n2. **Rebote (finales de jul – ~25 ago):** recuperación fuerte hasta máximos en **~24,4–24,5** (en torno al 25-26 de agosto), con un pico intradía cercano a 24,45.\n3. **Corrección (finales de ago – septiembre):** nueva caída, con mínimos más bajos en **~21,75** (a inicios de septiembre y a mediados de mes), y cierre actual en 22,4–22,6.\n- **Tendencia general:** lateral-bajista en el rango 21,5–24,5. En el último tramo predomina la bajista a corto plazo.\n\n## Niveles relevantes\n- **Resistencia:** 24,0–24,5 (máximos de inicios de julio y finales de agosto, formando una posible doble techo).\n- **Soporte:** 21,5–21,7 (mínimo de julio); soporte intermedio en ~22,0 y ~21,75.\n- **Media de 20 sesiones:** comienza a verse a finales de julio en ~23,2, baja a ~22,7 a inicios de agosto, sube hasta ~23,5 a finales de agosto y desciende hasta ~22,6 al final. El precio (22,44) está **ligeramente por debajo de la media**, que apunta a la baja y actúa como resistencia dinámica.\n\n## Volumen\n- Oscila entre ~0,8 y ~2,5 M por sesión, sin un patrón claro de picos. Los mayores volúmenes (~2,4–2,5 M) se dan en algunas sesiones de julio, finales de agosto y mediados de septiembre, incluida una vela roja de ~2,5 M en septiembre. Hay volumen elevado en las caídas, lo que da algo de peso a la presión vendedora.\n\n## Conclusión\nEl activo cotiza cerca de 22,4, por debajo de su media de 20 sesiones y con sesgo bajista a corto plazo. Una ruptura de 22,0 abriría el camino hacia 21,5–21,7. Para un giro alcista habría que recuperar la media (~22,6–22,7) y después 23,0–23,5. Como los datos son ficticios, el análisis solo sirve como ejercicio.",
+   "key_figures": {
+    "Precio de cierre": "22,44 EUR",
+    "Variación sesión": "+0,74%",
+    "Apertura": "22,20 EUR",
+    "Máximo sesión": "22,62 EUR",
+    "Mínimo sesión": "22,15 EUR",
+    "Máximo período": "~24,4-24,5 EUR",
+    "Mínimo período": "~21,5-21,6 EUR",
+    "Media móvil 20 sesiones": "~22,6 EUR",
+    "Volumen mínimo": "~0,8 M",
+    "Volumen máximo": "~2,5 M",
+    "Resistencia": "24,0-24,5 EUR",
+    "Soporte principal": "21,5-21,7 EUR",
+    "Soporte intermedio": "~22,0 y ~21,75 EUR"
+   },
+   "summary": "EJMP cotiza a 22,44 EUR con sesgo bajista a corto plazo, por debajo de su media móvil de 20 sesiones (~22,6 EUR). El activo presenta una estructura lateral-bajista en el rango 21,5-24,5 EUR, con resistencia en torno a 24,0-24,5 EUR y soporte principal en 21,5-21,7 EUR. Nota: datos ficticios, gráfico de ejemplo ilustrativo."
+  }
+ ],
+ "portfolio": null
+}
