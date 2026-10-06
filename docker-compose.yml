@@ -18,6 +18,8 @@ services:
       # escritura a estas carpetas (p. ej. chmod -R a+rwX data/outputs data/cache).
       - ./data/outputs:/app/data/outputs
       - ./data/cache:/app/data/cache
+      # Pesos de Hugging Face (CLIP, FinBERT, portada local): se descargan una vez.
+      - hf-cache:/home/app/.cache/huggingface
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=4).status == 200 else 1)"]
       interval: 30s
@@ -25,3 +27,6 @@ services:
       start_period: 30s
       retries: 3
     restart: unless-stopped
+
+volumes:
+  hf-cache:
