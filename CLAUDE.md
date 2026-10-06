@@ -39,7 +39,7 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 | Tono de noticias (opcional) | Haiku traduce → FinBERT local (`BRIEFER_FINBERT`, PR #1 de Daniel) | desactivado |
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
 | Gráficos / vídeo | matplotlib / vídeo 9:16 con Pillow (diapositivas) + ffmpeg de `imageio-ffmpeg` (concat + subtítulos ASS), sin moviepy | — |
-| Portada (opcional) | Gemini imagen `gemini-3.1-flash-lite-image` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`; exige facturación, sin prueba real) | none, mock (SDXL-Turbo: *stub*) |
+| Portada (opcional) | Local y gratis: SDXS `IDKiro/sdxs-512-dreamshaper` en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; diffusers, 1 paso, OpenRAIL++) | Gemini imagen (`gemini`, de pago, exige facturación), none, mock |
 | Entrega | web · Telegram Bot API (`requests`; sin prueba real: falta el bot) | email (*stub*) |
 | Config | `.env` → `src/briefer/config.py` | — |
 
@@ -101,7 +101,7 @@ Carriles de trabajo paralelos (sin asignar personas): **A** entradas/procesado �
 ```bash
 scripts/run.sh [--expose]             # Linux/macOS: venv + deps + streamlit en localhost:8501
 scripts/run.ps1 [-Expose]             # Windows (-Expose / --expose: visible en la red local)
-docker compose up --build             # contenedor, http://localhost:8501 (sin probar todavía)
+docker compose up --build             # contenedor con modelos locales (LOCAL_MODELS=true), http://localhost:8501 (build sin verificar)
 python -m pytest -q                   # tests sin red (mock/fixtures); los "live" (red + claves + coste) con -m live
 python scripts/demo.py --mock         # briefing de punta a punta por CLI, todo mock (sin red)
 python scripts/demo.py --demo-voices  # sin claves: datos de ejemplo + LLM mock + edge-tts real (necesita red)

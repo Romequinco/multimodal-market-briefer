@@ -2,8 +2,9 @@
 
 > **Qué está medido y qué no.** Las columnas **«Medido»** salen de los `StepMetric` de ejecuciones reales del
 > 05-oct-2026 y, para la fase 1 (vídeo, router CLIP, cartera desde captura), del 06-oct-2026 (ver
-> [método](#método-de-medición)). La portada con Gemini imagen y el envío por Telegram **no se han ejecutado en
-> real**: su coste es la tarifa oficial y su latencia no está medida. Todo lo demás (columna «Estimación», escenarios de
+> [método](#método-de-medición)). La portada local (SDXS) se midió el 06-oct por la tarde; la portada con Gemini
+> imagen y el envío por Telegram **no se han ejecutado en real**: su coste es la tarifa oficial y su latencia no
+> está medida. Todo lo demás (columna «Estimación», escenarios de
 > monetización, pasos aún no implementados) sigue siendo **estimación a verificar**. El coste «medido» es a su
 > vez una **estimación con tokens reales**: tokens que devuelve la API × tarifas de `src/briefer/costs.py`; no es
 > la factura del proveedor (contraste pendiente, ver [05 · D2](05_roadmap_TODO.md#nuevas-y-heredadas-de-d1-prioridad-alta)).
@@ -65,7 +66,8 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | Gemini TTS (`gemini-3.8-flash-tts`) | ~0,50 $/M tokens de texto, ~10 $/M tokens de audio | **Estimación, verificar** (`costs.TTS_PRICES_USD_PER_MTOK`: se toma la tarifa publicada de los modelos *flash* TTS anteriores). Medido: ≈ 25 tokens de audio por segundo → **≈ 0,013 €/min de audio** (estimado) |
 | FinBERT (`ProsusAI/finbert`) | 0 € | Modelo abierto, local en CPU; solo cuesta la traducción previa con Haiku |
 | CLIP (`openai/clip-vit-base-patch32`) | 0 € | Modelo abierto, local en CPU (router de imágenes). Se ignora la electricidad |
-| Gemini imagen (`gemini-3.1-flash-lite-image`) | **0,0336 $ por imagen 1K** (≈ 0,029 €) | **Tarifa oficial** consultada el 06-oct-2026 (`costs.IMAGE_GEN_PRICES_USD_PER_IMAGE`; `gemini-3.1-flash-image` 0,067 $). Los < 200 tokens de texto del prompt se ignoran. **No tiene nivel gratuito**: sin facturación, la API responde 429 con cuota 0 |
+| SDXS (`IDKiro/sdxs-512-dreamshaper`) | 0 € | Portada local en CPU (diffusers, 1 paso; CreativeML OpenRAIL++, permite uso comercial). Se ignora la electricidad |
+| Gemini imagen (`gemini-3.1-flash-lite-image`) | **0,0336 $ por imagen 1K** (≈ 0,029 €) | **Tarifa oficial** consultada el 06-oct-2026 (`costs.IMAGE_GEN_PRICES_USD_PER_IMAGE`; `gemini-3.1-flash-image` 0,067 $). Los < 200 tokens de texto del prompt se ignoran. **No tiene nivel gratuito**: sin facturación, la API responde 429 con cuota 0. Un modelo de imagen de pago desconocido se cobra con la tarifa más alta conocida de su proveedor (con aviso de log), y el coste se anota aunque falle el titular (`pipeline._MeteredImageGen`) |
 | ffmpeg (`imageio-ffmpeg`) y Telegram Bot API | 0 € | Local / gratuita |
 | Tipo de cambio | 1 $ ≈ 0,86 € | `costs.USD_TO_EUR`, estimación oct-2026 |
 
@@ -85,7 +87,8 @@ Hay dos tandas, las dos del lun 5-oct-2026 en un portátil Windows 10 con conexi
 | «Impacto de la noticia» (opcional) | Haiku 4.5 (traducción) + FinBERT local | — | — | **0,0082 €** (19 noticias, 19 traducidas) |
 | Verificación del podcast con STT (opcional) | OpenAI STT | — | — | **0,0187 €** con `whisper-1` (pregenerado actual, 3:38); ≈ la mitad con `gpt-4o-mini-transcribe` |
 | Gráficos, transcripción, guardado | matplotlib / local | 0 € | **0 €** | **0 €** |
-| Portada (opcional) | Gemini imagen `gemini-3.1-flash-lite-image` | ~0,02-0,04 € | — | **≈ 0,029 €** por portada (**tarifa oficial, no medida**: sin prueba real por falta de facturación) |
+| Portada (opcional) | SDXS local en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`) | 0 € | — | **0 €** medido (06-oct) |
+| Portada alternativa (de pago) | Gemini imagen `gemini-3.1-flash-lite-image` | ~0,02-0,04 € | — | **≈ 0,029 €** por portada (**tarifa oficial, no medida**: sin prueba real por falta de facturación) |
 | Vídeo (opcional) | Pillow + ffmpeg (libx264) | 0 € | — | **0 €** medido (06-oct) |
 | Envío por Telegram (opcional) | Bot API | 0 € | — | 0 € (tarifa; sin prueba real) |
 | **Total briefing base** (sin subidas, edge-tts) | | ~0,06-0,08 € | **≈ 0,033 €** (derivado) | **≈ 0,036 €** (derivado: Analista + Guionista) · **0,0340 €** medido en 1 briefing sin subidas (`20261005-135612-88b415`, [§ 3](#medido-con-metrics_reportpy-briefings-guardados)) |
@@ -103,8 +106,11 @@ de la sesión de revisión: **≈ 0,31 €** (3 briefings reales ≈ 0,28 €, Q
 **Fase 1 (06-oct).** Briefing real de verificación (SAN.MC y AAPL, edge-tts, sin verificación STT, con vídeo y
 tres subidas: gráfico, captura de cartera y una foto de paisaje): **0,0569 €** en total, 0 sustitutos. El gráfico
 fue a visión (0,0157 €); la captura de cartera se desvió y el paisaje se rechazó **sin llamar a visión** (0 €);
-el vídeo, 0 €. Sin el router, esas dos imágenes habrían costado otra lectura de visión cada una. Gasto real de toda
-la fase 1: **≈ 0,07 €**.
+el vídeo, 0 €. Sin el router, esas dos imágenes habrían costado otra lectura de visión cada una (sin CLIP, la
+captura de cartera también se desvía, pero tras una llamada de visión, ≈ 0,016 €). **Cartera desde captura en un
+briefing** (06-oct, tarde): `cartera_ejemplo.png` → 5/5 posiciones → briefing real con vídeo de 4:11, 0 fallos,
+**≈ 0,039 €** en total (captura 0,0054 € + briefing 0,0332 €), `portfolio: null` y sin gráfico de cartera en disco.
+Gasto real de toda la fase 1: **≈ 0,07 €** (sin contar esta última prueba).
 
 ### Coste de la cartera desde captura (página «Mi cartera»)
 
@@ -163,7 +169,8 @@ Dos regímenes distintos:
 | Vídeo (opcional) | 30-90 s | — | **8,5 s** de pared para los 217,8 s de audio del pregenerado (MP4 de 4,5 MB) · **6,3 s** en el briefing real del 06-oct | Una diapositiva fija por imagen (Pillow) + concat de ffmpeg, `-tune stillimage`, `-preset veryfast`, 720×1280 a 12 fps |
 | Router CLIP (opcional, por imagen) | — | — | **70-85 ms** por imagen con el modelo cargado · 1.ª clasificación del proceso 3,7 s · carga del modelo 0,5 s · imports en frío ≈ 11 s · **1.ª descarga** (~600 MB) ≈ 28 s | Modelo cargado una vez por proceso; embeddings de texto en caché; en paralelo con la ingesta |
 | Cartera desde captura (página «Mi cartera», fuera del briefing) | — | — | **8,5 s** (visión + Haiku) | Una llamada de visión + una de Haiku; el mapeo es determinista |
-| Portada (opcional) | — | — | **no medida** (sin prueba real) | Una llamada a Gemini imagen (1 reintento del SDK ante 408/429/5xx, *timeout* 90 s) + textos con Pillow |
+| Portada local (opcional; SDXS en CPU de 12 hilos, 768x432) | — | — | **4-7 s** por portada · 1.ª del proceso 23-36 s (calentamiento) · carga del modelo 15-138 s en frío (1-5 s con caché de disco caliente) · import de torch/diffusers ≈ 35 s en frío · 1.ª descarga ~1,8 GB | Modelo cargado una vez por proceso + textos con Pillow |
+| Portada con Gemini (opcional) | — | — | **no medida** (sin prueba real) | Una llamada a Gemini imagen (1 reintento del SDK ante 408/429/5xx, *timeout* 90 s) + textos con Pillow |
 | TTS premium Gemini (por tramos de ≤ 12 líneas / ≤ 2.000 caracteres, hasta 3 en paralelo) | — | — | **24,7 s** (3:38 de audio; pregenerado actual) · 27,4 s para un episodio de 3:20 en la cata | Diálogo entero por tramos; si falla, cae a edge-tts |
 | «Impacto de la noticia» (Haiku + FinBERT, opcional) | — | — | **32,1 s** en paralelo con el Analista (19 noticias) | 1.ª carga del modelo ≈ 28 s con descarga (~840 MB en Windows sin enlaces simbólicos); después ≈ 13 s por proceso con importaciones; clasificar < 0,1 s |
 | **Briefing completo** (con PDF + gráfico) | 1-3 min sin vídeo | **61,1-63,6 s** de pared | **82,9 s** de pared (134,4 s de suma) · **109,8 s** el pregenerado actual (Gemini TTS + FinBERT + verificación STT, noticias de la caché) | Batch nocturno; en vivo con barra de progreso |
@@ -262,7 +269,7 @@ silencio se corta en local sin llamar a la API.
 | **Caché de prompts** del sistema y del contexto del briefing en el Q&A | Menos coste y latencia en preguntas sucesivas | **Hecho** (05-oct): contexto en el 1.er mensaje `user` con `cache_control`. Medido con Haiku: 1.ª pregunta 0,0065 € (escritura 1,25×, 5.441 tokens), siguientes **0,0011 €** (lectura 0,1×) mientras la caché siga viva (5 min) |
 | **TTS gratuito por defecto** (edge-tts) y premium solo para contenido compartido | Coste de audio 0 € por defecto; Gemini ≈ 0,013 €/min (estimado) solo en la demo y el pregenerado | **Hecho** (05-oct: Gemini TTS premium con caída a edge-tts; el Q&A habla siempre con edge-tts) |
 | **STT barato** (`gpt-4o-mini-transcribe`) y silencio cortado en local | Mitad de coste y de latencia que `whisper-1`; sin llamadas inútiles | **Hecho** |
-| **Modelos locales** (Whisper, Qwen2.5-VL, SDXL-Turbo, CLIP) | 0 € de API a cambio de hardware | **CLIP hecho** (06-oct: router local de imágenes, 0 €); el resto, *stubs* fuera del MVP |
+| **Modelos locales** (Whisper, Qwen2.5-VL, SDXL-Turbo, CLIP) | 0 € de API a cambio de hardware | **CLIP y portada local hechos** (06-oct: router de imágenes y portada con SDXS, 0 €); Whisper local y Qwen2.5-VL, *stubs* fuera del MVP |
 | **Filtrar antes de pagar**: un modelo local y gratis (CLIP) decide si una imagen merece la llamada de visión | Ahorra ≈ 0,016 € (derivado) por imagen no financiera o captura de cartera subida al briefing | **Hecho** (06-oct; medido en el briefing de verificación) |
 | **Vídeo sin re-codificar fotogramas**: diapositivas fijas + concat de ffmpeg | Vídeo del episodio completo en 6-9 s y 0 € | **Hecho** (06-oct; medido) |
 | **Paralelismo** en ingesta, subidas y TTS | Pared 61-83 s frente a 82-134 s de suma de pasos | **Hecho** (medido) |
@@ -299,7 +306,7 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
 | Principio | Aplicación |
 | --- | --- |
 | Minimización | Solo se piden tickers y pesos/cantidades; nada de saldos, IBAN, identidad ni credenciales de broker |
-| Captura de cartera (06-oct) | La captura de la pantalla de posiciones **va entera** al proveedor de visión (Anthropic) para leerla, y su transcripción al LLM barato; puede contener nombre, nº de cuenta o saldo si el usuario no recorta. Medidas: la página «Mi cartera» **recomienda recortarla** para que solo se vean las posiciones, sin nombre ni número de cuenta; la imagen se procesa como `bytes` **en memoria** (sin fichero temporal) y **no se guarda**; la `Portfolio` resultante sigue las reglas de ADR-005; el `StepMetric.detail` del paso `ingest.portfolio_image` no lleva nombres ni cifras y el log de errores solo registra el tipo de excepción. Mejora pendiente: recorte o difuminado automático de cabeceras antes de enviar | `ingest/portfolio.portfolio_from_image`, `pipeline.portfolio_from_screenshot`, `app/pages/3_Mi_cartera.py` |
+| Captura de cartera (06-oct) | La captura de la pantalla de posiciones **va entera** al proveedor de visión (Anthropic) para leerla, y su transcripción al LLM barato; puede contener nombre, nº de cuenta o saldo si el usuario no recorta. Medidas: la página «Mi cartera» **recomienda recortarla** para que solo se vean las posiciones, sin nombre ni número de cuenta; la imagen se procesa como `bytes` **en memoria** (sin fichero temporal) y **no se guarda**; la `Portfolio` resultante sigue las reglas de ADR-005; el `StepMetric.detail` del paso `ingest.portfolio_image` no lleva nombres ni cifras y el log de errores solo registra el tipo de excepción; los errores de salida estructurada al leer la captura o un gráfico se registran con mensaje genérico (sin nombres ni importes en log, `StepMetric` ni UI). Si se sube en «Briefing», se desvía también sin CLIP (el prompt de visión la clasifica) sin estructurarla ni guardar nada. Si los pesos leídos no cubren todas las posiciones con una misma base, no se asigna ninguno (solo tickers) y la UI lo avisa. El vídeo nunca incluye el gráfico de cartera. Mejora pendiente: recorte o difuminado automático de cabeceras antes de enviar | `ingest/portfolio.portfolio_from_image`, `pipeline.portfolio_from_screenshot`, `app/pages/3_Mi_cartera.py` |
 | Qué sale a terceros | A los proveedores de datos (Yahoo, Google, Bing) solo los tickers. Al LLM, en memoria, **tickers y pesos** de la cartera (no cantidades) junto a las noticias, nunca con datos identificativos |
 | Almacenamiento | **La cartera no se persiste** ([ADR-005](decisiones/ADR-005-privacidad-cartera-no-persistida.md)): `briefing.json` lleva `portfolio: null` y no hay gráfico de cartera en `data/`; el gráfico de la sesión vive en una carpeta temporal del sistema que se borra a las 12 h. `.env`, `data/outputs/` y `data/cache/` fuera de git |
 | Ficheros subidos | Cada ejecución guarda las subidas en una carpeta temporal **única** que se borra al terminar (sin colisiones entre sesiones) |
@@ -344,7 +351,8 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
 
 | Riesgo | Efecto | Mitigación |
 | --- | --- | --- |
-| **Facturación de Google para Gemini imagen**: los modelos de imagen no tienen nivel gratuito; con la clave actual (nivel gratuito) responden 429 con cuota 0 | Sin portada (paso opcional fallido, aviso claro: `gemini_image.is_no_billing_error`); el resto del briefing sale igual | Activar la facturación en el proyecto de la clave antes de la demo si se quiere enseñar la portada, o dejar `BRIEFER_IMAGE_GEN_PROVIDER=none` (la UI desactiva la casilla en modo real). Coste acotado: ≈ 0,029 € por portada, solo si se marca la casilla |
+| **Facturación de Google para Gemini imagen**: los modelos de imagen no tienen nivel gratuito; con la clave actual (nivel gratuito) responden 429 con cuota 0 | Solo afecta a `gemini`: sin portada (paso opcional fallido, aviso claro: `gemini_image.is_no_billing_error`); el resto del briefing sale igual | **Mitigado** (06-oct): la opción recomendada es la portada local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS, 0 €). Gemini queda como alternativa de pago |
+| **Portada local**: ~1,8 GB de descarga y carga en frío lenta en CPU (hasta ~2 min la primera vez) | La primera portada del día puede tardar | Descargar el modelo antes de la demo (caché de Hugging Face; en Docker, volumen `hf-cache`); el paso es opcional y un fallo no rompe el briefing |
 | **Descarga de CLIP** (~600 MB la 1.ª vez, ≈ 28 s) y `torch` + `transformers` en `requirements-local.txt` | La primera subida del día puede tardar; sin las dependencias, no hay router | `route_image` nunca rompe: sin CLIP, la imagen va a visión sin pista (como antes). Descargar el modelo antes de la demo (caché de Hugging Face) |
 | **Telegram**: sin bot creado, sin prueba real | El canal no aparece en la UI (solo se ofrece con token y chat) | Crear el bot y ejecutar `scripts/telegram_setup.py --write --test` antes de la demo |
 

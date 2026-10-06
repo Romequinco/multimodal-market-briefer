@@ -5,9 +5,9 @@
 > VERIFICADO**. Las cifras de coste y latencia que no salgan de un `StepMetric` real se marcan **NO MEDIDO**.
 
 **Fecha:** mar 6-oct-2026, cierre de la **fase 1** (rama `fase1`): vídeo corto, router CLIP, cartera desde
-captura, portada con Gemini imagen y Telegram · **Fase:** F0, D1 y la parte multimodal de D2 cerradas ·
-**Siguiente:** portada y Telegram en real, Docker, resto de D2 (mié 7) + [caminos 1, 2 y 6](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) ·
-**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.5 ([03](03_contratos_modulos.md)) ·
+captura, portada local (SDXS) y Telegram · **Fase:** F0, D1 y la parte multimodal de D2 cerradas ·
+**Siguiente:** Telegram en real, *build* de Docker, `run.sh`, limpieza de *stubs*, resto de D2 (mié 7) + [caminos 1, 2 y 6](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) ·
+**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.6 ([03](03_contratos_modulos.md)) ·
 **Plan:** [05](05_roadmap_TODO.md)
 
 ## Resumen
@@ -24,12 +24,14 @@ medio y extracto breve → filtro por tickers con relevancia → PDF y gráfico 
 locutor, rótulo de voz sintética; 8,5 s para el pregenerado, 0 €), **router de imágenes con CLIP** local (rechaza
 lo no financiero sin llamar a visión y desvía las capturas de cartera; 5/5 imágenes de prueba bien, 0 €),
 **cartera desde una captura del broker** («Mi cartera»: visión + Haiku + mapeo determinista; 5/5 posiciones,
-8,5 s, ≈ 0,0054 €), **portada** con Gemini imagen y **envío por Telegram** (con `scripts/telegram_setup.py`). La UI
-los ofrece en «Opciones avanzadas: vídeo, portada y envíos». Briefing real de verificación (SAN.MC y AAPL, vídeo,
-gráfico + captura de cartera + paisaje): **0,0569 €**, **82,1 s**, 0 sustitutos. **1116 tests** sin red + 12 `live`;
-ruff y mypy limpios; gasto real de la fase ≈ 0,07 €. **Sin prueba real:** la portada (la clave de Gemini del
-equipo es de nivel gratuito y los modelos de imagen tienen cuota 0: 429) y Telegram (falta crear el bot). Faltan
-además: email, **probar Docker** y `run.sh`, y capturas, demo y pitch.
+8,5 s, ≈ 0,0054 €; briefing real con esa cartera: 5/5 valores, vídeo de 4:11, ≈ 0,039 € en total, 0 fallos),
+**portada local y gratuita** con SDXS en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`, 4-7 s, 0 €; verificada en real;
+Gemini imagen queda como alternativa de pago) y **envío por Telegram** (con `scripts/telegram_setup.py`). La UI
+los ofrece en «Opciones avanzadas: vídeo, portada y envíos» y el vídeo tiene pestaña propia. Briefing real de
+verificación (SAN.MC y AAPL, vídeo, gráfico + captura de cartera + paisaje): **0,0569 €**, **82,1 s**, 0
+sustitutos. **1149 tests** sin red + 13 `live`; ruff y mypy limpios; gasto real de la fase ≈ 0,07 €. **Sin prueba
+real:** Telegram (falta crear el bot). Faltan además: email, la *build* de **Docker** (intentada el 06-oct con la
+red degradada) y `run.sh`, limpieza de *stubs*, caminos 1, 2 y 6, y capturas, demo y pitch.
 
 La **tanda de refuerzo** (tarde del 05-oct, sin funcionalidades nuevas) endurece lo que ya había: tests aislados
 de la red (adiós al test intermitente), extracto en frío 65 % → 90 %, relevancia explicada en la traza, Q&A con el
@@ -80,6 +82,7 @@ ruff + mypy limpios.
 | Vídeo corto (06-oct) | Hecho, verificado en real | `media/video.make_video` (paso opcional `media.video`, `ffmpeg`/`libx264`, **sin moviepy**): MP4 vertical 720×1280 a 12 fps del episodio completo; Pillow compone una diapositiva por imagen (logo, titular, gráfico encajado sin deformar) y ffmpeg (de `imageio-ffmpeg`) las une con el *concat demuxer*; subtítulos ASS quemados con el locutor (TORO/OSA) en su color; rótulo fijo «Voces sintéticas generadas con IA» + «Información, no asesoramiento financiero» y metadatos de IA en el MP4. Los gráficos entran cuando el audio menciona su empresa (`plan_slides`). Pregenerado (217,8 s de audio): **8,5 s**, 4,5 MB; briefing real: **6,3 s**; 0 €. Casilla «Vídeo corto» en la UI; `demo.py --video` |
 | Router de imágenes CLIP (06-oct) | Hecho, verificado en real | `providers/image/clip_classifier.py` (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip`, `openai/clip-vit-base-patch32`, CPU, `requirements-local.txt`; varias frases en inglés por etiqueta) + `chart_reader.route_image` / `decide_route`: velas, líneas, tabla, captura de cartera y 3 no financieras; umbrales: no financiera ≥ 0,6 (suma de las tres), cartera ≥ 0,5, pista ≥ 0,5. **5/5** imágenes de prueba bien (0,92-0,997); `grafico_ejemplo.png` velas 0,987; `cartera_ejemplo.png` 0,884. En el briefing: no financiera → rechazada sin visión; captura de cartera → desviada sin visión con el aviso de subirla en «Mi cartera»; gráfico/tabla → visión con pista. Decisión en `StepMetric.detail` de `ingest.chart` («CLIP: gráfico de velas japonesas (99 %) · 0,08 s»). Si falta CLIP o falla, sigue sin clasificar. 0 € |
 | Cartera desde captura (06-oct) | Hecho, verificado en real | `ingest/portfolio.portfolio_from_image` vía `pipeline.portfolio_from_screenshot` (paso `ingest.portfolio_image`): visión (Sonnet 5.5) transcribe la tabla → Haiku 4.5 la estructura → mapeo determinista a tickers (`TICKER_UNIVERSE`), pesos por valor o por % de la captura; filas no reconocidas avisadas en la UI. Nada a disco (ADR-005); `detail` sin nombres ni cifras. Real con `data/samples/cartera_ejemplo.png` (ficticia): **5/5** posiciones correctas, **8,5 s**, **≈ 0,0054 €**. UI «Mi cartera»: subir captura o «Usar captura de ejemplo», con el consejo de recortar nombre y nº de cuenta |
+| Portada local (06-oct, tarde) | Hecho, verificado en real | `providers/image/sdxl_turbo.SDXLTurbo` (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; diffusers en CPU; `requirements-local.txt`): SDXS `IDKiro/sdxs-512-dreamshaper` (1 paso, CreativeML OpenRAIL++ con uso comercial, ~1,8 GB la 1.ª vez; `BRIEFER_SDXL_MODEL`, `BRIEFER_SDXL_STEPS`) con el prompt corto `media.cover.build_cover_prompt_local` (< 77 tokens de CLIP). Verificada generando la portada del pregenerado (titular y placa «Imagen generada por IA»). Descartados `stabilityai/sd-turbo` (licencia de uso comercial restringido) y `SimianLuo/LCM_Dreamshaper_v7` (MIT, 4,3 GB) |
 | Portada con Gemini imagen (06-oct) | Implementado, con tests; **NO VERIFICADO en real** | `media/cover.py` + `providers/image/gemini_image.GeminiImage` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, `BRIEFER_GEMINI_IMAGE_MODEL=gemini-3.1-flash-lite-image`, 16:9 a 1K): prompt de marca según el tono del día, sin cifras ni empresas; titular y «Briefly · fecha» superpuestos con Pillow y placa **«Imagen generada por IA»**; primera diapositiva del vídeo y foto de Telegram. Coste: 0,0336 $/imagen ≈ 0,029 € (**tarifa oficial**, consultada el 06-oct; no medido). Latencia **NO MEDIDA**. En mock funciona de punta a punta. Casilla «Portada con IA» desactivada en modo real si `BRIEFER_IMAGE_GEN_PROVIDER=none` |
 | Telegram (06-oct) | Implementado, con tests; **NO VERIFICADO en real** | `delivery/telegram_sender.send_briefing_telegram`: mensaje HTML (titular, puntos, fuentes, aviso legal) + audio + portada o gráfico general + vídeo; límites 50 MB audio/vídeo y 10 MB foto; un fallo posterior al mensaje no invalida lo enviado; el token nunca sale en errores ni logs. `scripts/telegram_setup.py [--write] [--test] [--chat-id]` saca el `chat_id` con `getUpdates` y lo escribe en `.env`. En la UI, «Enviar por → Telegram» solo aparece con token y chat. Falta crear el bot |
 | Tests y CI | Hecho | **1116 tests sin red** + 12 `live` (`-m live`) desde la fase 1 (antes 1019 + 11); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
@@ -110,6 +113,8 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Fase 1 · vídeo sobre el pregenerado (217,8 s de audio) | **8,5 s** de pared · 4,5 MB · 720×1280, 12 fps · 0 € |
 | Fase 1 · router CLIP (CPU) | 1.ª descarga ~600 MB ≈ 28 s · imports en frío ≈ 11 s · carga 0,5 s · 1.ª clasificación 3,7 s · después **70-85 ms** · 5/5 imágenes bien (0,92-0,997) · 0 € |
 | Fase 1 · cartera desde captura (`cartera_ejemplo.png`) | **8,5 s** · **≈ 0,0054 €** · 5/5 posiciones, pesos por valor |
+| Fase 1 · portada local (SDXS, CPU de 12 hilos, 768x432) | **4-7 s** por portada (1.ª 23-36 s) · carga del modelo 15-138 s en frío (1-5 s con caché caliente) · import de torch/diffusers ≈ 35 s en frío · **0 €** |
+| Fase 1 · briefing real con la cartera de la captura (5 valores, vídeo) | **≈ 0,039 €** (captura 0,0054 € + briefing 0,0332 €) · vídeo de 4:11 · 0 fallos · `portfolio: null` y sin gráfico de cartera en disco |
 | Fase 1 · portada (Gemini imagen) | **NO MEDIDO** (sin facturación: 429). Tarifa oficial 0,0336 $ ≈ 0,029 € por imagen |
 | Fase 1 · gasto real total | ≈ 0,07 € (estimado con `costs.py`) |
 | FinBERT («impacto de la noticia») | 1.ª carga del modelo ≈ 28 s con descarga (~840 MB en Windows sin enlaces simbólicos); después ≈ 13 s por proceso con importaciones; clasificar < 0,1 s. En el pregenerado: 19 noticias (19 traducidas con Haiku) ▲ 7 · ▼ 9 · ● 3, **32,1 s** en paralelo con el Analista, **0,0082 €** |
@@ -118,13 +123,13 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 
 | Elemento | Fichero / función | Fase |
 | --- | --- | --- |
-| Portada en real | `media/cover.py`, `providers/image/gemini_image.py` implementados; falta una clave de Gemini **con facturación activa** (los modelos de imagen no tienen nivel gratuito: 429 con cuota 0) | D2 (Should) |
+| Portada con Gemini en real | Opcional: la portada ya funciona en local y gratis; Gemini necesitaría una clave **con facturación activa** (429 con cuota 0) | Won't salvo que sobre tiempo |
 | Telegram en real | `send_briefing_telegram` implementado; falta crear el bot (@BotFather → `/newbot` → `TELEGRAM_BOT_TOKEN` en `.env` → escribir al bot → `python scripts/telegram_setup.py --write` → `--test`) | D2 (Should) |
 | Email | `send_briefing_email` (*stub*; no se ofrece en la UI) | D2 (Could) |
-| Docker | `Dockerfile`, `docker-compose.yml` endurecidos pero **NO VERIFICADOS** (sin daemon) | D2 Sync 4 / D3 |
+| Docker | `Dockerfile` con modelos locales por defecto (`ARG LOCAL_MODELS=true`: torch CPU + transformers + diffusers + accelerate; `false` para imagen mínima), volumen `hf-cache`, pip con `PIP_DEFAULT_TIMEOUT=120` / `PIP_RETRIES=10`; `docker compose config` válido, pero la *build* **NO VERIFICADA** (06-oct: intentada con Docker Desktop, red degradada, se paró) | D2 Sync 4 / D3 |
 | `run.sh` y clon limpio en Linux/macOS | `scripts/run.sh` | D3 |
 | p50/p95 con N ≥ 5 y contraste con la factura | `scripts/metrics_report.py` ya calcula p50/p95 (hoy N = 2-3); la factura se mira en la consola de Anthropic (lo hace el equipo) | D2-D3 |
-| Proveedores sin implementar | `OpenAILLM` (*stub* documentado), Qwen-VL, Whisper local, ElevenLabs (la voz premium es ya Gemini TTS), SDXL-Turbo (la portada usa Gemini imagen) | Won't; limpieza D3 |
+| Proveedores sin implementar | `OpenAILLM` (*stub* documentado), Qwen-VL, Whisper local, ElevenLabs (la voz premium es ya Gemini TTS); `SDXLTurbo` ya **no** es *stub* (portada local) | Won't; limpieza D3 |
 | Capturas, demo grabada, pitch | — | D3 |
 
 ## Riesgos abiertos
@@ -139,8 +144,8 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | `warmup` del LLM variable (5-57 s en `models.retrieve`) | Si el usuario pregunta antes de que termine, la 1.ª pregunta va en frío | Corre en segundo plano al abrir «Preguntar»; medido en 3 procesos |
 | **Mecanismos no oficiales**: resolución de enlaces de Google News (`batchexecute`), RSS de Bing News, edge-tts, yfinance | Sin SLA: pueden dejar de funcionar sin aviso | Nunca lanzan; si fallan, enlace original, menos noticias o sustituto marcado; caché; noticias licenciadas y TTS oficial en producción |
 | Variabilidad de la API de visión (31 s en el pregenerado, 63 s en una ejecución de la F1) | Demo en vivo lenta | Subidas en paralelo, barra de progreso, pregenerado; en la demo grabada usar caché |
-| Modalidades prometidas > demostradas (06-oct: solo quedan portada y Telegram sin prueba real; email pendiente) | Nota de 4.2 | Vídeo, CLIP y captura de cartera ya verificados en real; columna «Activo en la demo» honesta en el README; recortes en [05](05_roadmap_TODO.md#recortes-si-no-da-tiempo) |
-| **Facturación de Google para la portada**: la clave de Gemini del equipo es de nivel gratuito y los modelos de imagen tienen cuota 0 | Sin portada en real (el briefing sale igual, con aviso claro en la traza) | Activar la facturación del proyecto de la clave antes de la demo (≈ 0,029 € por portada) o dejar `BRIEFER_IMAGE_GEN_PROVIDER=none` (la casilla se desactiva); en mock se ve el flujo completo |
+| Modalidades prometidas > demostradas (06-oct: solo queda Telegram sin prueba real; email pendiente) | Nota de 4.2 | Vídeo, CLIP, captura de cartera y portada local ya verificados en real; columna «Activo en la demo» honesta en el README; recortes en [05](05_roadmap_TODO.md#recortes-si-no-da-tiempo) |
+| **Facturación de Google para la portada** (mitigado el 06-oct) | Solo afecta a `gemini` | La portada recomendada es la local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS, 0 €); descargar el modelo (~1,8 GB) antes de la demo |
 | **CLIP: descarga y primera carga** | ~600 MB la 1.ª vez (≈ 28 s) e imports en frío ≈ 11 s: la 1.ª subida del día tarda más; `torch` pesado en Docker | Opcional (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER`); dependencias en `requirements-local.txt`; si falta, la imagen va a visión sin pista; descargar el modelo antes de la demo |
 | Telegram sin probar en real | El canal puede fallar en la demo (formato HTML, límites, red) | Crear el bot y ejecutar `telegram_setup.py --test` + un briefing con envío antes del *feature freeze*; si falla, solo web |
 | Capturas, demo y pitch al 0 % | Entregable | Code freeze jue 11:00; D3 dedicado |
@@ -152,9 +157,9 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 
 ## Próximos pasos (D2, en orden)
 
-1. **Mar 6 tarde / mié mañana** · crear el bot de Telegram y probar un envío real; decidir si se activa la
-   facturación de Gemini para la portada (o se deja `none`); fusionar `fase1` en `main`.
-2. **Probar Docker** en una máquina con daemon y `run.sh` en Linux/macOS; caminos **1** (evaluación con p50/p95),
+1. **Mar 6 tarde / mié mañana** · crear el bot de Telegram y probar un envío real; dejar descargado el modelo
+   de la portada local (SDXS); fusionar `fase1` en `main`.
+2. **Completar la *build* de Docker** con buena red y `run.sh` en Linux/macOS; caminos **1** (evaluación con p50/p95),
    **2** (comparativa de modelos) y **6** (cuaderno de recorrido).
 3. **Hasta mié 18:00** · revisión de prompts con 3 carteras; `docs/04` con costes fijos; email solo si sobra tiempo.
 4. **mié 22:00** · *feature freeze*. Regenerar el pregenerado en D3 (con vídeo si se quiere enseñar en la portada).
@@ -172,3 +177,4 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | 05-oct-2026 (identidad de marca) | Marca **Briefly** decidida y aplicada ([08](08_identidad_marca.md)): `brand.py` como fuente única; logo SVG/PNG, favicon y banner generados con `scripts/generar_marca.py`; logo, eslogan y página «Quiénes somos» en la app; locutores Toro (optimista) y Osa (prudente, cierra con el aviso legal) en guion, transcripción y prompts; edición de noche («Buenas noches»); «Briefly» en gráficos, metadatos ID3, email y Telegram; README, docs 01/02/08, pitch y CLAUDE.md al día. Pregenerado regenerado (`20261005-175326-1e7df9`, 3:39, WER 0,9 %). Contratos v0.3.3. 983 tests sin red. |
 | 05-oct-2026 (FinBERT y voces) | PR #1 de Daniel integrada: «impacto de la noticia» con Haiku + FinBERT (`ingest/sentiment.py`, paso opcional `ingest.impact` en paralelo con el Analista, `news_impact.json`, `storage.load_news_impact`, etiqueta junto a cada fuente en «Puntos clave», nunca por ticker); cuaderno de Daniel solo de lectura. Cata a ciegas de 6 voces: por defecto edge-tts Álvaro + Ximena a +10 % con pausas variables (158 ppm medidas); premium Gemini 3.8 TTS multi-locutor (Puck / Kore) por tramos con caída a edge-tts y Q&A siempre en edge-tts. Pregenerado regenerado (`20261005-213416-87a2a9`: Gemini + FinBERT, 3:38, WER 1,4 %, ≈ 0,18 € est., 109,8 s). Contratos v0.3.4. 1019 tests sin red + 11 `live`; ruff + mypy limpios. |
 | 06-oct-2026 (fase 1) | Rama `fase1`: **vídeo corto** 9:16 con Pillow + ffmpeg (subtítulos ASS con el locutor, gráficos alineados con las menciones, rótulo de voz sintética y metadatos de IA; 8,5 s para el pregenerado), **router CLIP** local (5/5 imágenes; lo no financiero se rechaza y la captura de cartera se desvía sin llamar a visión; decisión en la traza), **cartera desde captura del broker** (visión + Haiku + mapeo determinista; 5/5 posiciones, 8,5 s, ≈ 0,0054 €; página «Mi cartera»), **portada** con Gemini imagen (titular y «Imagen generada por IA» con Pillow; sin prueba real por falta de facturación) y **Telegram** (mensaje, audio, imagen y vídeo; `scripts/telegram_setup.py`; sin prueba real, falta el bot). UI: «Opciones avanzadas: vídeo, portada y envíos». Comprobado que el Analista ya reintentaba ante una recomendación. `google-genai>=2.25`. Contratos v0.3.5. 1116 tests sin red + 12 `live`; ruff + mypy limpios. Briefing real de verificación: 0,0569 €, 82,1 s. Gasto real de la fase ≈ 0,07 €. |
+| 06-oct-2026 (fase 1, tarde) | **Portada local y gratuita** (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS `IDKiro/sdxs-512-dreamshaper` en CPU, OpenRAIL++; 4-7 s, 0 €; verificada en real) que sustituye a Gemini como opción recomendada. **Docker** con modelos locales por defecto (`LOCAL_MODELS`), volumen `hf-cache` y pip con reintentos (*build* sin verificar: red degradada). **Privacidad y costes:** captura de cartera desviada también sin CLIP (marca `TIPO: cartera` en visión), errores de salida estructurada sin datos de la cartera, pesos incompletos → sin pesos y aviso en la UI, coste de la portada anotado aunque falle el titular (`_MeteredImageGen`), tarifa más alta conocida para modelos de imagen de pago desconocidos, vídeo sin gráfico de cartera y con metadatos de IA completos. **Prueba real** de la captura en un briefing: 5/5 posiciones, vídeo de 4:11, ≈ 0,039 €, `portfolio: null`. **UI:** pestaña «Vídeo» propia en el briefing y en la portada; aviso de cartera de ejemplo en modo demo. 1149 tests sin red + 13 `live`; ruff y mypy limpios |

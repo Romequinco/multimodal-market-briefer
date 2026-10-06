@@ -31,11 +31,12 @@ responde también por voz.
 >
 > **Fase 1 cerrada (mar 6-oct-2026):** **vídeo corto** vertical 9:16 con subtítulos por locutor (Pillow + ffmpeg,
 > 0 €, ≈ 6-9 s), **router de imágenes con CLIP** local (rechaza lo no financiero sin gastar en visión, 0 €),
-> **cartera desde una captura del broker** (visión + Haiku, ≈ 0,005 €), **portada con Gemini imagen** y **envío por
-> Telegram**. Briefing real de verificación con vídeo y tres subidas: **0,057 € y 82 s**. 1116 tests sin red
-> (+ 12 «live») y ruff + mypy en la CI. La portada y Telegram están implementados y probados sin red, pero **sin
-> prueba real**: la portada necesita una clave de Gemini con facturación activa y Telegram, crear el bot.
-> Pendiente: email, probar Docker y `run.sh`, capturas, demo grabada y pitch. Plan en
+> **cartera desde una captura del broker** (visión + Haiku, ≈ 0,005 €; briefing real con la cartera leída: 5/5
+> posiciones, vídeo de 4:11, ≈ 0,039 € en total), **portada local y gratuita** con SDXS en CPU (0 €, 4-7 s por
+> portada) y **envío por Telegram**. Briefing real de verificación con vídeo y tres subidas: **0,057 € y 82 s**.
+> 1149 tests sin red (+ 13 «live») y ruff + mypy en la CI. Telegram está implementado y probado sin red, pero
+> **sin prueba real** (falta crear el bot).
+> Pendiente: Telegram en real, email, la *build* de Docker y `run.sh`, limpieza de *stubs*, capturas, demo grabada y pitch. Plan en
 > [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md) (*feature freeze* mié 7 a las 22:00 · **jue 8** capturas,
 > demo grabada y pitch, entrega 16:30). Estado vivo en [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
@@ -137,7 +138,7 @@ flowchart LR
         AU["Audio podcast<br/>2 voces · media/podcast.py"]
         TR["Transcripción + SRT<br/>media/transcript.py"]
         VI["Vídeo corto 9:16<br/>Pillow + ffmpeg · media/video.py"]
-        PO["Portada (opcional)<br/>Gemini imagen · media/cover.py"]
+        PO["Portada (opcional)<br/>SDXS local · media/cover.py"]
     end
 
     subgraph D["5 · Entrega"]
@@ -184,8 +185,9 @@ flowchart LR
 > Como en el diagrama original, la cartera puede entrar por **imagen** (captura de la pantalla de posiciones del
 > broker, página «Mi cartera»: visión transcribe, Haiku estructura y un mapeo determinista da los tickers) o como
 > CSV; en ambos casos sus tickers alimentan el filtro de noticias. Si la captura de cartera se sube junto a las de
-> gráficos en «Generar briefing», el router la desvía (sin gastar en visión) con el aviso de subirla en «Mi
-> cartera». El agente Q&A usa como contexto el briefing ya generado. El email sigue pendiente.
+> gráficos en «Generar briefing», el router CLIP la desvía (sin gastar en visión) con el aviso de subirla en «Mi
+> cartera»; sin CLIP, el propio prompt de visión la reconoce y se desvía igual, sin estructurarla ni guardar
+> nada (una llamada de visión, ≈ 0,016 €). El agente Q&A usa como contexto el briefing ya generado. El email sigue pendiente.
 
 Arquitectura completa, diagramas de secuencia y mapeo caja → módulo en
 [docs/02_arquitectura_y_flujo_datos.md](docs/02_arquitectura_y_flujo_datos.md).
@@ -214,7 +216,7 @@ externa.
 | 9 | Datos → imagen | Salida | Gráficos del día (variación con bloque «Índices de referencia», cotización por ticker, reparto de la cartera solo en la sesión) con fecha y fuente | matplotlib | — | **Sí** (todos los modos; «precios sintéticos (demo)» en la demo) |
 | 10 | Audio → texto (subtítulos) | Salida | Transcripción y fichero SRT sincronizado | Derivado del guion + tiempos reales del TTS (con Gemini, tiempos por línea aproximados dentro de cada tramo) | — | **Sí** (todos los modos) |
 | 10b | Audio → texto (control de calidad) | Bucle | El STT escucha el podcast generado y mide el WER contra el guion (`media.verify`; peores líneas en la traza) | OpenAI `gpt-4o-mini-transcribe` / `whisper-1` | `BRIEFER_VERIFY_PODCAST=false` | **Sí** (real; medido WER 1,1 % con edge-tts y 1,4 % con Gemini en el pregenerado) |
-| 11 | Texto → imagen | Salida | Portada del episodio *(opcional)*: ilustración según el tono del día (sin cifras ni empresas), con el titular superpuesto por Pillow y la placa «Imagen generada por IA» | Gemini imagen `gemini-3.1-flash-lite-image` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, ≈ 0,029 € por imagen, tarifa oficial) | `none`, `mock` (SDXL-Turbo local: *stub*) | **Implementado; requiere facturación de Google** (la clave del equipo es de nivel gratuito: los modelos de imagen responden 429). En mock funciona |
+| 11 | Texto → imagen | Salida | Portada del episodio *(opcional)*: ilustración según el tono del día (sin cifras ni empresas), con el titular superpuesto por Pillow y la placa «Imagen generada por IA» | SDXS local `IDKiro/sdxs-512-dreamshaper` en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`, diffusers, 1 paso, licencia CreativeML OpenRAIL++ con uso comercial; 0 €, 4-7 s por portada) | Gemini imagen `gemini-3.1-flash-lite-image` (`gemini`, ≈ 0,029 € por imagen, requiere facturación), `none`, `mock` | **Sí** (con `local`; verificada en real sobre el pregenerado: titular y placa «Imagen generada por IA»). Gemini, sin prueba real (sin facturación) |
 | 12 | Imagen + audio → vídeo | Salida | Vídeo corto vertical 9:16 del episodio completo: una diapositiva por imagen (portada o gráfico general primero; cada gráfico entra cuando el audio nombra su empresa), subtítulos quemados con el locutor y rótulo «Voces sintéticas generadas con IA» | Pillow + ffmpeg (`imageio-ffmpeg`, libx264), sin moviepy; 720×1280, 12 fps, 0 € | — | **Sí** (todos los modos; casilla «Vídeo corto». Medido: 8,5 s y 4,5 MB para los 217,8 s del pregenerado) |
 | 13 | Briefing → mensajería | Entrega | Envío por **Telegram**: resumen HTML + audio + portada o gráfico general + vídeo | Bot API (`requests`) | — | **Implementado; requiere bot** (sin probar en real: falta crearlo con @BotFather; ver [Telegram](#telegram)) |
 
@@ -282,7 +284,7 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 │   ├── agents/                  # analyst, scriptwriter, qa, guardrails + prompts/{analyst,scriptwriter,qa}.md
 │   ├── media/                   # charts, podcast, speech (normalización para TTS), transcript, video, cover
 │   └── delivery/                # email_sender, telegram_sender
-├── tests/                       # 1116 tests sin red (mock y fixtures; red bloqueada) + 12 «live» (-m live)
+├── tests/                       # 1149 tests sin red (mock y fixtures; red bloqueada) + 13 «live» (-m live)
 ├── scripts/                     # run.ps1 · run.sh · demo.py · smoke_real.py · telegram_setup.py
 ├── .github/workflows/tests.yml  # CI: pytest en modo mock (Python 3.11 y 3.13) en cada push a main y PR
 ├── .streamlit/config.toml       # tema, subida máxima 50 MB, sin telemetría
@@ -342,9 +344,13 @@ docker compose up --build      # http://localhost:8501
 
 Requiere **Docker Compose ≥ 2.24** (usa `env_file` con `required: false`: si no hay `.env`, arranca en modo
 mock). La imagen (Python 3.11, usuario **no root** con UID 1000, `TZ=Europe/Madrid`, *healthcheck* en
-`/_stcore/health`) incluye ffmpeg pero no los modelos locales; `data/outputs/` y `data/cache/` se montan como
+`/_stcore/health`) incluye ffmpeg y, por defecto (`ARG LOCAL_MODELS=true`), torch CPU + transformers + diffusers +
+accelerate, de modo que CLIP, FinBERT y la portada local funcionan en el contenedor (`--build-arg
+LOCAL_MODELS=false` para una imagen mínima). Los modelos de Hugging Face se guardan en el volumen con nombre
+`hf-cache`; pip usa `PIP_DEFAULT_TIMEOUT=120` y `PIP_RETRIES=10`. `data/outputs/` y `data/cache/` se montan como
 volúmenes (en Linux, si tu UID no es 1000, da permisos de escritura a esas carpetas). Compose publica el puerto
-**solo en este equipo** (`127.0.0.1:8501`). **Pendiente de probar:** en la revisión no había daemon de Docker.
+**solo en este equipo** (`127.0.0.1:8501`). **Pendiente de probar:** `docker compose config` es válido, pero la
+*build* no se ha completado (el 06-oct se intentó con Docker Desktop y la red estaba degradada).
 
 ### Lo primero que se ve: el briefing pregenerado
 
@@ -379,7 +385,7 @@ python scripts/demo.py --mock --strict                            # sale con 3 s
 python scripts/smoke_real.py                                      # prueba de humo de cada proveedor con clave (< 0,01 €)
 python scripts/demo.py --mock --video --cover                     # + vídeo 9:16 y portada (mock), sin red
 python scripts/telegram_setup.py --write --test                   # configura el chat de Telegram (ver «Telegram»)
-python -m pytest -q                                               # 1116 tests sin red (los «live» con -m live)
+python -m pytest -q                                               # 1149 tests sin red (los «live» con -m live)
 python scripts/metrics_report.py --include-demo                   # p50/p95 de latencia y coste de los briefings guardados
 python scripts/measure_qa_voice.py                                # cadena de voz del Q&A (audio → STT → Q&A → voz), en frío y caliente
 ruff check src app scripts tests && mypy                          # estilo y tipos, como la CI (pip install -r requirements-dev.txt)
@@ -410,7 +416,9 @@ respuesta hablada **≈ 0,005 €, 5,2 s la primera del proceso** (con el precal
 «Preguntar») y 4,4 s las siguientes; transcripción de la pregunta 1,3 s. Medido el 06-oct-2026 (fase 1): briefing
 real con vídeo y tres subidas (gráfico, captura de cartera y una foto de paisaje) **0,057 € y 82 s**; el vídeo
 añade 6,3 s y 0 €; la captura de cartera y el paisaje se descartan sin llamar a visión (0 €); cartera leída desde
-captura en «Mi cartera» 8,5 s y ≈ 0,005 €.
+captura en «Mi cartera» 8,5 s y ≈ 0,005 €; con esa cartera (5/5 posiciones), briefing real con vídeo de 4:11:
+≈ 0,033 €, 0 fallos, `portfolio: null` y sin gráfico de cartera en disco. Portada local (SDXS en CPU de 12
+hilos): 4-7 s por portada y 0 € (la primera del proceso, 23-36 s, más la carga del modelo).
 
 ---
 
@@ -433,7 +441,7 @@ queda al copiar la plantilla. La pregunta por voz real necesita `OPENAI_API_KEY`
 | `BRIEFER_VISION_PROVIDER` | `claude` · `qwen_local` · `mock` | `mock` | `claude` | Lectura de gráficos y páginas de PDF |
 | `BRIEFER_STT_PROVIDER` | `whisper_api` · `whisper_local` · `mock` | `mock` | `whisper_api` | Pregunta por voz |
 | `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` · `elevenlabs` · `mock` | `mock` | `edge` | Podcast y respuesta hablada. `gemini` (de pago, `GEMINI_API_KEY`) solo cambia el podcast: si falla, cae a edge-tts, y el Q&A habla siempre con edge-tts |
-| `BRIEFER_IMAGE_GEN_PROVIDER` | `gemini` · `sdxl_turbo` (*stub*) · `none` · `mock` | `none` | `none` | Portada (opcional). `gemini` es de pago (≈ 0,029 € por portada, `GEMINI_API_KEY` **con facturación activa**: sin ella, 429 y el briefing sale sin portada). Con `none`, la casilla «Portada con IA» se desactiva en modo real |
+| `BRIEFER_IMAGE_GEN_PROVIDER` | `local` (alias `sdxl_turbo`) · `gemini` · `none` · `mock` | `none` | `none` | Portada (opcional). `local` es gratis (SDXS en CPU, `requirements-local.txt`, ~1,8 GB la primera vez; la primera portada del proceso tarda más por la carga del modelo). `gemini` es de pago (≈ 0,029 € por portada, `GEMINI_API_KEY` **con facturación activa**: sin ella, 429 y el briefing sale sin portada). Con `none`, la casilla «Portada con IA» se desactiva en modo real |
 | `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` · `none` · `mock` | `none` | `none` | Router de las imágenes subidas (opcional, local y gratis). `clip` necesita `requirements-local.txt`; la primera vez descarga ~600 MB |
 | `BRIEFER_FALLBACK_TO_MOCK` | `true` · `false` | `true` | `true` | Si falta clave o librería: mock con aviso (`true`) o `ProviderConfigError` (`false`) |
 
@@ -451,7 +459,8 @@ queda al copiar la plantilla. La pregunta por voz real necesita `OPENAI_API_KEY`
 | `BRIEFER_WHISPER_API_MODEL` | `gpt-4o-mini-transcribe` (alternativa: `whisper-1`) | STT por API (OpenAI). Medido: WER 0, 1,3 s y la mitad de coste que `whisper-1`; máximo 25 MB por audio |
 | `BRIEFER_WHISPER_LOCAL_MODEL` | `base` (`tiny` · `base` · `small` · `medium`) | STT local (`faster-whisper`) |
 | `BRIEFER_GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-lite-image` | Portada con Gemini (el más barato: 0,0336 $ por imagen 1K, tarifa oficial consultada el 06-oct-2026; `gemini-3.1-flash-image`, 0,067 $) |
-| `BRIEFER_SDXL_MODEL` | `stabilityai/sdxl-turbo` | Portada local (*stub*) |
+| `BRIEFER_SDXL_MODEL` | `IDKiro/sdxs-512-dreamshaper` | Portada local (SDXS, OpenRAIL++, uso comercial; `SimianLuo/LCM_Dreamshaper_v7`, MIT, ~4,3 GB). Descartado `stabilityai/sd-turbo` por su licencia (uso comercial restringido) |
+| `BRIEFER_SDXL_STEPS` | `0` | Pasos de la portada local (`0` = los del modelo: 1 en SDXS) |
 | `BRIEFER_CLIP_MODEL` | `openai/clip-vit-base-patch32` | Router de imágenes local (CPU) |
 | `BRIEFER_LOCAL_DEVICE` | `auto` (`auto` · `cpu` · `cuda` · `mps`) | Dispositivo de los modelos locales |
 
@@ -553,10 +562,10 @@ Guion previsto de la demo:
 1. Portada: propuesta de valor y briefing pregenerado sonando.
 2. Elegir tickers / cargar cartera de ejemplo (no se guarda en disco).
 3. Subir un PDF de resultados y una captura de gráfico.
-4. Generar el briefing: mostrar análisis, podcast a dos voces, transcripción y gráficos (y vídeo, si llega en D2).
+4. Generar el briefing: mostrar análisis, podcast a dos voces, transcripción, gráficos y pestaña «Vídeo» (9:16 con subtítulos).
 5. Preguntar por voz sobre el briefing y escuchar la respuesta.
 6. Enseñar «Cómo se hizo» (modelos, latencia y coste estimado por paso) y el modo sin claves.
-7. Envío por email / Telegram, si llega en D2.
+7. Envío por Telegram (implementado; sin prueba real hasta crear el bot). El email sigue pendiente.
 
 ---
 
