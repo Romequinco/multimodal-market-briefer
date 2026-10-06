@@ -73,6 +73,7 @@ from briefer.config import Settings, get_settings
 from briefer.delivery import email_sender, telegram_sender
 from briefer.ingest import chart_reader, pdf_reader, voice
 from briefer.ingest import news as news_mod
+from briefer.ingest import portfolio as portfolio_mod
 from briefer.ingest import prices as prices_mod
 from briefer.ingest import sentiment as sentiment_mod
 from briefer.ingest import tickers as tickers_mod
@@ -663,20 +664,67 @@ def process_upload(
     if ext in IMAGE_EXTS:
         llm, vision = _MeteredLLM(providers.llm_cheap), _MeteredVision(providers.vision)
         with track_step("ingest.chart", vision.provider_name, vision.model, metrics) as step:
-            insight = chart_reader.read_chart(
-                path.read_bytes(),
-                source_name=path.name,
-                vision=vision,
-                llm=llm,
-                classifier=providers.classifier,
-            )
-            step.est_cost_eur = llm.cost_eur() + vision.cost_eur()
+            image = path.read_bytes()
+            route_stats: dict = {}
+            try:
+                chart_reader.validate_image(image)
+                # Router (CLIP): nunca lanza; sin clasificador, la imagen va a visión sin pista.
+                route = chart_reader.route_image(image, providers.classifier, stats_out=route_stats)
+                if route is not None and route.is_portfolio:
+                    # Los tickers del briefing ya están fijados cuando llegan las subidas: una
+                    # cartera leída aquí no tendría noticias ni precios. Se desvía sin gastar visión.
+                    raise ValueError(
+                        "La imagen parece una captura de cartera: súbela en «Mi cartera» para usar "
+                        "sus posiciones en el briefing."
+                    )
+                insight = chart_reader.read_chart(
+                    image, source_name=path.name, vision=vision, llm=llm, route=route, stats_out=route_stats
+                )
+            finally:
+                step.detail = chart_reader.format_route_stats(route_stats)
+                step.est_cost_eur = llm.cost_eur() + vision.cost_eur()
         return insight
     if ext in AUDIO_EXTS:
         with track_step("ingest.voice", providers.stt.provider_name, providers.stt.model, metrics):
             return voice.voice_to_insight(path, providers.stt, language)
     with track_step("ingest.upload", "local", "-", metrics):
         raise ValueError(f"Tipo de fichero no soportado: {path.name}")
+
+
+# ── Cartera desde una captura ─────────────────────────────────────────────────────
+
+
+def portfolio_from_screenshot(
+    image: bytes,
+    *,
+    name: str = "Mi cartera",
+    use_mock: bool = False,
+    mode: RunMode | None = None,
+    settings: Settings | None = None,
+    stats_out: dict | None = None,
+) -> tuple[Portfolio, StepMetric]:
+    """Lee la captura de posiciones de un broker -> ``Portfolio`` (visión -> LLM barato).
+
+    Paso ``ingest.portfolio_image`` con latencia y coste (visión + LLM). Solo resuelve esos dos
+    proveedores. Privacidad (ADR-005): imagen y cartera solo en memoria; el ``StepMetric.detail``
+    no lleva nombres ni cifras. ``stats_out`` recibe las filas descartadas.
+
+    Raises:
+        ValueError: imagen no válida o sin posiciones reconocibles (mensaje apto para la UI).
+    """
+    s = settings or get_settings()
+    force_mock = resolve_mode(mode, use_mock) != "real"
+    llm = _MeteredLLM(registry.get_llm(s, cheap=True, force_mock=force_mock))
+    vision = _MeteredVision(registry.get_vision(s, force_mock=force_mock))
+    stats: dict = stats_out if stats_out is not None else {}
+    with track_step("ingest.portfolio_image", vision.provider_name, vision.model) as step:
+        try:
+            portfolio = portfolio_mod.portfolio_from_image(image, vision=vision, llm=llm, name=name, stats_out=stats)
+        finally:
+            step.detail = portfolio_mod.format_screenshot_stats(stats)
+            step.est_cost_eur = round(llm.cost_eur() + vision.cost_eur(), 6)
+    assert step.metric is not None
+    return portfolio, step.metric
 
 
 # ── Briefing ──────────────────────────────────────────────────────────────────────
@@ -1063,10 +1111,17 @@ def _run_briefing(
         images = ([cover_path] if cover_path else []) + [c.path for c in chart_assets]
         video_asset = _optional_step(
             "media.video",
-            "moviepy",
-            "-",
+            "ffmpeg",
+            "libx264",
             metrics,
-            lambda _step: video_mod.make_video(audio, images, out_dir / "briefing.mp4", transcript),
+            lambda _step: video_mod.make_video(
+                audio,
+                images,
+                out_dir / "briefing.mp4",
+                transcript,
+                size=(720, 1280),
+                title=analysis.headline,
+            ),
         )
 
     if verify_future is not None:
@@ -1342,6 +1397,7 @@ __all__ = [
     "get_providers",
     "podcast_tts_fallback",
     "podcast_tts_retries",
+    "portfolio_from_screenshot",
     "process_upload",
     "qa_tts",
     "resolve_mode",

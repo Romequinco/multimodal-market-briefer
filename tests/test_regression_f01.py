@@ -314,7 +314,7 @@ def test_m5_only_simulated_saved_falls_back_to_pregenerated(sample_briefing: Bri
     assert origin == "pregenerado" and briefing.id == real.id
 
 
-# ── M6: funciones en desarrollo desactivadas ──────────────────────────────────────
+# ── M6: funciones en desarrollo desactivadas (hoy solo el email) ──────────────────────────────────────
 
 
 def test_m6_pending_features_disabled_in_ui() -> None:
@@ -325,8 +325,9 @@ def test_m6_pending_features_disabled_in_ui() -> None:
     at = AppTest.from_file(str(APP_DIR / "pages" / "1_Briefing.py"), default_timeout=60).run()
     assert not at.exception
     labels = {c.label: c for c in at.checkbox}
-    assert labels["Generar vídeo corto"].disabled and labels["Generar portada con IA"].disabled
-    assert at.multiselect[1].disabled  # «Enviar también por»
+    assert not labels["Generar vídeo corto"].disabled
+    # El email sigue en desarrollo: no se ofrece como canal.
+    assert "email" not in at.multiselect[1].options  # «Enviar también por»
     at.button[0].click().run()  # generar: sin avisos de pasos fallidos ni entregas fallidas
     assert not at.exception
     warnings = "\n".join(w.value for w in at.warning)

@@ -106,22 +106,26 @@ uploads = st.file_uploader(
     "se transcriben (voz a texto) y se añaden como contexto del análisis. Se borran al terminar.",
 )
 
-#: Funciones que el pipeline aún no implementa (``media.video``, ``media.cover``, ``delivery.*``):
-#: se enseñan desactivadas y «en desarrollo» para que la demo nunca muestre avisos de fallo.
-#: Cuando se implementen, basta con pasar a ``False`` su entrada.
-IN_DEVELOPMENT = {"video": True, "cover": True, "delivery": True}
-with st.expander("Opciones avanzadas (en desarrollo)"):
+#: Funciones que el pipeline aún no implementa: se enseñan desactivadas y «en desarrollo» para
+#: que la demo nunca muestre avisos de fallo. Cuando se implementen, basta con pasar a ``False``.
+IN_DEVELOPMENT = {"email": True}
+#: Requisitos de configuración: sin ellos el control se desactiva con la explicación.
+COVER_READY = mode != "real" or settings.briefer_image_gen_provider != "none"
+TELEGRAM_READY = bool(settings.telegram_bot_token and settings.telegram_chat_id)
+with st.expander("Opciones avanzadas: vídeo, portada y envíos"):
     col1, col2, col3 = st.columns(3)
-    make_video = col1.checkbox("Generar vídeo corto", value=False, disabled=IN_DEVELOPMENT["video"],
-                               help="En desarrollo: todavía no disponible.")
-    make_cover = col2.checkbox("Generar portada con IA", value=False, disabled=IN_DEVELOPMENT["cover"],
-                               help="En desarrollo: todavía no disponible.")
-    deliver = col3.multiselect("Enviar también por", ["email", "telegram"], disabled=IN_DEVELOPMENT["delivery"],
-                               help="En desarrollo: de momento el briefing se entrega en la web.")
-    st.caption("Vídeo corto, portada generada con IA y envío por email o Telegram: en desarrollo.")
-make_video = bool(make_video) and not IN_DEVELOPMENT["video"]
-make_cover = bool(make_cover) and not IN_DEVELOPMENT["cover"]
-deliver = [] if IN_DEVELOPMENT["delivery"] else deliver
+    make_video = col1.checkbox("Generar vídeo corto", value=False,
+                               help="Vídeo vertical 9:16 con el podcast, los gráficos y subtítulos (unos segundos más).")
+    make_cover = col2.checkbox("Generar portada con IA", value=False, disabled=not COVER_READY,
+                               help="Ilustración generada por IA a partir del tono del día (no representa datos)."
+                               if COVER_READY else "Configura BRIEFER_IMAGE_GEN_PROVIDER (p. ej. gemini) en .env.")
+    channels = [c for c in ("email", "telegram") if not IN_DEVELOPMENT.get(c) and (c != "telegram" or TELEGRAM_READY)]
+    deliver = col3.multiselect("Enviar también por", channels, disabled=not channels,
+                               help="Telegram: configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID "
+                               "(scripts/telegram_setup.py). Email: en desarrollo.")
+    st.caption("El email está en desarrollo; el briefing siempre queda disponible en la web.")
+make_cover = bool(make_cover) and COVER_READY
+deliver = [c for c in deliver if c in channels]
 
 no_input = not tickers and portfolio is None
 if no_input:

@@ -111,7 +111,7 @@ with st.expander("¿Cómo funciona? (cadena de modelos)"):
         "3. **Agentes IA**: Analista (interpreta, con control de cifras) → Guionista (diálogo); "
         "Q&A (responde preguntas).\n"
         "4. **Salidas**: gráficos · podcast a 2 voces sintéticas · transcripción y subtítulos.\n"
-        "5. **Entrega**: app web (email y Telegram en desarrollo).\n\n"
+        "5. **Entrega**: app web y Telegram (email en desarrollo).\n\n"
         "Cada briefing incluye la pestaña **«Cómo se hizo»** con el grafo real de modelos, latencia y coste."
     )
     diagram = ROOT_DIR / "docs" / "assets" / "arquitectura_mvp_podcast_financiero.png"
