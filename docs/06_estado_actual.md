@@ -4,14 +4,22 @@
 > como hecho lo que alguien del equipo ha ejecutado y visto funcionar; lo no comprobado se marca **NO
 > VERIFICADO**. Las cifras de coste y latencia que no salgan de un `StepMetric` real se marcan **NO MEDIDO**.
 
-**Fecha:** mar 6-oct-2026, cierre de la **fase 2** (rama `fase1`): evidencia y mediciones (caminos 1, 2 y 6),
-`docs/04` reforzado y mejoras de calidad del guion y del análisis · **Fase:** F0, D1, la parte multimodal de D2 y
-los caminos de evidencia cerrados · **Siguiente:** fase 3 (subir `fase1` cuando el equipo decida, *build* de Docker,
-`run.sh`; *stubs* ya retirados, v0.3.9) y fase 4 (entregables del jueves) ·
+**Fecha:** mar 6-oct-2026 (tarde), cierre de la **fase 3** (rama `fase1`): arranque y robustez (Docker verificado,
+clon limpio en Windows, *stubs* retirados, CI simulada en local) · **Fase:** F0, D1, D2 y los caminos de evidencia
+cerrados · **Siguiente:** fase 4 (entregables del jueves) y subir `fase1` cuando el equipo decida (CI en GitHub) ·
 **Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.9 ([03](03_contratos_modulos.md)) ·
 **Plan:** [05](05_roadmap_TODO.md)
 
 ## Resumen
+
+**Fase 3 (mar 6-oct, tarde, arranque y robustez):** **Docker verificado** por primera vez: *build* completa con
+`LOCAL_MODELS=true` (3,37 GB sin comprimir / 769 MB), contenedor *healthy* a los 10 s y HTTP 200; briefing real
+dentro del contenedor (SAN.MC + AAPL, gráfico, vídeo, portada SDXS local y Telegram): **114 s**, **0,061 €**, 0
+pasos con error. Arreglado el permiso de la caché de Hugging Face (volumen `hf-cache` de root → CLIP con
+`PermissionError`). **Clon limpio en Windows** con `run.ps1` sin `.env`: app en 220 s con el pregenerado, sin
+errores. `run.sh` **NO VERIFICADO** del todo (prueba cortada por red lenta). *Stubs* retirados y «Briefly» en los
+scripts. CI simulada en local: ruff + mypy limpios y **1223 passed**, 13 deselected (Python 3.13, con torch,
+transformers y diffusers bloqueados como en GitHub); la CI en GitHub, pendiente de subir la rama.
 
 **Fase 2 (mar 6-oct, evidencia y mediciones):** evaluación de **N = 6 briefings reales** (3 carteras: banca ES,
 tech EE. UU. y mixta defensiva; 3 listas de tickers, una con PDF + gráfico) con
@@ -46,8 +54,8 @@ Gemini imagen queda como alternativa de pago) y **envío por Telegram** (con `sc
 los ofrece en «Opciones avanzadas: vídeo, portada y envíos» y el vídeo tiene pestaña propia. Briefing real de
 verificación (SAN.MC y AAPL, vídeo, gráfico + captura de cartera + paisaje): **0,0569 €**, **82,1 s**, 0
 sustitutos. **1148 tests** sin red + 13 `live`; ruff y mypy limpios; gasto real de la fase ≈ 0,07 €. **Sin prueba
-real:** ninguna (Telegram verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s)). Faltan además: la *build* de **Docker** (intentada el 06-oct con la
-red degradada) y `run.sh`, limpieza de *stubs*, caminos 1, 2 y 6, y capturas, demo y pitch.
+real:** ninguna (Telegram verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s)). Faltaban además (al cierre de la fase 1): la *build* de **Docker** y
+`run.sh`, limpieza de *stubs*, caminos 1, 2 y 6, y capturas, demo y pitch.
 
 La **tanda de refuerzo** (tarde del 05-oct, sin funcionalidades nuevas) endurece lo que ya había: tests aislados
 de la red (adiós al test intermitente), extracto en frío 65 % → 90 %, relevancia explicada en la traza, Q&A con el
@@ -92,7 +100,9 @@ ruff + mypy limpios.
 | Portada y UI | Hecho | Propuesta de valor, reproductor arriba, «Preguntar sobre este briefing», «Generar el tuyo», franja «Cómo se hizo»; doble clic protegido; desde el 06-oct, «Opciones avanzadas: vídeo, portada y envíos» con «Vídeo corto», «Portada con IA» (desactivada en real sin proveedor de imagen) y «Enviar por» (Telegram solo si está configurado; desde el 06-oct, casilla «Enviar por Telegram» en «Opciones avanzadas: vídeo, portada y Telegram»; el email se retiró); la portada nunca destaca un briefing simulado por encima del pregenerado real; `.streamlit/config.toml` (tema, 50 MB, sin telemetría). **Accesibilidad:** pares de color del tema ≥ 4,5:1 en texto y ≥ 3:1 en controles (`theme.CONTRAST_PAIRS`, con test), foco visible y sentimiento también con texto/icono. **Estados de error:** CSV de cartera mal formado (vacío, sin columnas, pesos raros, codificación) con mensaje claro y sin *traceback*; Histórico con briefings dañados o sin audio marcados «no disponible» |
 | Briefing pregenerado | Hecho | `data/samples/demo_briefing/` (`20261005-213416-87a2a9`, regenerado con `storage.export_briefing`): SAN.MC, ITX.MC, IBE.MC, AAPL, NVDA + PDF + gráfico, **voz premium Gemini** y **FinBERT** activado; 0 sustitutos; **≈ 0,1836 €** estimado (Analista 0,0637 € con 1 reintento de *grounding* · podcast Gemini 0,0471 € est. · PDF 0,0204 € · verificación `whisper-1` 0,0187 € · gráfico 0,0165 € · Guionista 0,0089 € · FinBERT + Haiku 0,0082 €); **109,8 s** de pared (noticias y precios de la caché del día); **3:38** de audio (217,8 s), WER 1,4 %; `news_impact.json` con 19 etiquetas; 2,5 MB; `portfolio: null` |
 | CLI | Hecho | `scripts/demo.py` (`--mock`, `--demo-voices`, `--refresh`, `--question`, `--briefing`, `--warmup`, `--strict`, `--video`, `--cover`, `--deliver telegram`; salida 0/1/2/3/130), `scripts/smoke_real.py` (con `warmup` y STT con WER), `scripts/telegram_setup.py` |
-| Arranque | Hecho en Windows | `scripts/run.ps1` / `run.sh`: Python ≥ 3.11 (también `py`), abortan si `pip` falla, reinstalan solo si cambian los requirements, `localhost` por defecto (`-Expose` / `--expose`). `run.ps1` probado; `run.sh` NO VERIFICADO |
+| Arranque | Hecho en Windows | `scripts/run.ps1` / `run.sh`: Python ≥ 3.11 (también `py`), abortan si `pip` falla, reinstalan solo si cambian los requirements, `localhost` por defecto (`-Expose` / `--expose`). `run.ps1` probado; `run.sh` NO VERIFICADO del todo (ver «Qué no funciona») |
+| Clon limpio en Windows (06-oct, fase 3) | Hecho, verificado | `git clone` del repo + `scripts/run.ps1 -Port 8520` sin `.env`: crea `.venv`, instala, copia `.env.example` a `.env` y la app responde a los **220 s**; la portada muestra el pregenerado con reproductor y sin errores (modo demo sin claves) |
+| Docker (06-oct, fase 3) | Hecho, verificado en real | *Build* completa con `LOCAL_MODELS=true` (torch CPU, transformers, diffusers): imagen **3,37 GB** sin comprimir / 769 MB. `docker compose up` → *healthy* a los **10 s**, HTTP 200 en `127.0.0.1:8501`. Briefing real en el contenedor (`docker compose exec briefer python scripts/demo.py --tickers SAN.MC AAPL --video --cover --upload data/samples/grafico_ejemplo.png --deliver telegram`): **114 s**, **0,061 €**, 0 pasos con error; portada SDXS 20 s (pesos en `data/cache/models`), vídeo 13 s, Telegram OK (mensaje, audio, imagen, vídeo). Arreglado: el `Dockerfile` crea `/home/app/.cache/huggingface` con dueño `app` (el volumen `hf-cache` era de root y CLIP fallaba con `PermissionError`); verificado escribible, la descarga de CLIP (~600 MB) se completa en el primer uso. Rutas de modelos relativas en `.env` (p. ej. `BRIEFER_SDXL_MODEL=data/cache/models/sdxs-512-dreamshaper`). Python 3.11 cubierto por la imagen |
 | Dependencias | Hecho | Sin `moviepy` ni `plotly`; `Pillow>=12.3`, `anthropic>=1.11`, `pypdfium2`, `google-genai>=2.25` (06-oct: trae `types.SpeechMetadata` para Gemini TTS multi-locutor); `pip-audit` sin vulnerabilidades; `requirements-dev.txt` (pytest-cov, ruff, mypy) |
 | Métricas | Hecho | `scripts/metrics_report.py`: p50/p95 de pared, coste y pasos desde los `briefing.json` guardados (`--markdown`, `--json`); `scripts/measure_qa_voice.py`: cadena de voz completa en procesos nuevos |
 | Vídeo corto (06-oct) | Hecho, verificado en real | `media/video.make_video` (paso opcional `media.video`, `ffmpeg`/`libx264`, **sin moviepy**): MP4 vertical 720×1280 a 12 fps del episodio completo; Pillow compone una diapositiva por imagen (logo, titular, gráfico encajado sin deformar) y ffmpeg (de `imageio-ffmpeg`) las une con el *concat demuxer*; subtítulos ASS quemados con el locutor (TORO/OSA) en su color; rótulo fijo «Voces sintéticas generadas con IA» + «Información, no asesoramiento financiero» y metadatos de IA en el MP4. Los gráficos entran cuando el audio menciona su empresa (`plan_slides`). Pregenerado (217,8 s de audio): **8,5 s**, 4,5 MB; briefing real: **6,3 s**; 0 €. Casilla «Vídeo corto» en la UI; `demo.py --video` |
@@ -105,7 +115,7 @@ ruff + mypy limpios.
 | Comparativa de modelos (camino 2, 06-oct) | Hecho, decidido | `notebooks/02_comparativa_modelos.ipynb`, `notebooks/eval/comparativa/resumen.md`, [ADR-007](decisiones/ADR-007-modelos-por-agente.md) aceptado: Sonnet 5.5 / Haiku 4.5 / Gemini 2.5 Flash en Analista, Guionista y Q&A con juez ciego; se confirman los modelos actuales (ADR-006); Gemini plan B (cadena 0,021 € frente a 0,037 €; más reintentos en el Analista y guiones > 5 min); 0,55 € |
 | Cuaderno de recorrido (camino 6, 06-oct) | Hecho | `notebooks/00_recorrido_pipeline.ipynb`: 15 pasos con entrada, salida tipada y `StepMetric`, en mock, sin red ni claves, 13 s |
 | Calidad del guion y del análisis (06-oct, tras la evaluación) | Hecho, verificado en real | `agents/timeframe.py` (hora de Madrid, sesión EU/EE. UU., `greeting_for`, `time_frame`); `scriptwriter.episode_frame` / `closing_line(frame)` y puerta `premature_close_claims` (no habla de «cierre» antes del cierre); `guardrails.unhedged_causal_claims` ampliado, nueva puerta `guardrails.evaluative_tone` con reintento y `agreement_issues` / `fix_agreement`; Analista con `focus_tickers` / `focus_problems` / `_ensure_focus`. Real: `20261006-142229-4926f2` (TEF, REP, AENA, 14:22), 0,043 €; `tests/test_quality_eval_fixes.py` |
-| Tests y CI | Hecho | **1202 tests sin red** + 13 `live` (`-m live`) tras la fase 2 (1116 + 12 en la fase 1); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
+| Tests y CI | Hecho | **1223 passed**, 13 deselected en la CI simulada en local (fase 3: ruff + mypy limpios, Python 3.13, torch/transformers/diffusers bloqueados como en GitHub); 1202 tests sin red + 13 `live` (`-m live`) tras la fase 2 (1116 + 12 en la fase 1); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
 
 ## Mediciones (05-oct-2026 y fases 1 y 2 del 06-oct-2026)
 
@@ -149,8 +159,8 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Elemento | Fichero / función | Fase |
 | --- | --- | --- |
 | Portada con Gemini en real | Opcional: la portada ya funciona en local y gratis; Gemini necesitaría una clave **con facturación activa** (429 con cuota 0) | Won't salvo que sobre tiempo |
-| Docker | `Dockerfile` con modelos locales por defecto (`ARG LOCAL_MODELS=true`: torch CPU + transformers + diffusers + accelerate; `false` para imagen mínima), volumen `hf-cache`, pip con `PIP_DEFAULT_TIMEOUT=120` / `PIP_RETRIES=10`; `docker compose config` válido, pero la *build* **NO VERIFICADA** (06-oct: intentada con Docker Desktop, red degradada, se paró) | D2 Sync 4 / D3 |
-| `run.sh` y clon limpio en Linux/macOS | `scripts/run.sh` | D3 |
+| `run.sh` y clon limpio en Linux/macOS | `scripts/run.sh`: en `python:3.11-slim` con copia limpia crea `.venv` y empieza a instalar, pero la prueba agotó los 10 min mientras pip descargaba (red lenta, compitiendo con la *build* de Docker). **NO VERIFICADO** del todo (sin errores del script hasta ese punto) | D3 |
+| CI en GitHub Actions con la rama `fase1` | Simulada en local (1223 passed, ruff + mypy limpios); falta la ejecución real en GitHub al subir la rama (decisión del equipo) | Al subir `fase1` |
 | Clave de grupo con límite de gasto | Pendiente de decisión del equipo (requiere la consola de Anthropic). El contraste con la factura se cerró el 06-oct: revisado a ojo, cuadra aproximadamente | D3 |
 | Proveedores sin implementar | Ninguno en el registry (v0.3.9, D3): `OpenAILLM`, Qwen-VL, Whisper local y ElevenLabs borrados; un `.env` antiguo que los nombre cae a `mock` con aviso | Hoja de ruta (docs/05, *Won't*) |
 | Capturas, demo grabada, pitch | — | D3 |
@@ -159,7 +169,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 
 | Riesgo | Impacto | Mitigación |
 | --- | --- | --- |
-| **Docker sin probar** | `docker compose up` puede fallar el día de la entrega | Probarlo en una máquina con daemon antes del mié 18:00; si falla a las 15:45 del jueves, `run.ps1` / `run.sh` son el camino principal |
+| **Docker** (mitigado el 06-oct, fase 3) | La *build* depende de la red: hoy PyPI/Debian iban muy lentos (6-60 min por *build*) | Verificado de punta a punta (healthy en 10 s, briefing real 114 s / 0,061 €). **Construir la imagen con antelación** (antes del jueves) y no en directo; rutas de modelos relativas en `.env`; si falla a las 15:45 del jueves, `run.ps1` (verificado en clon limpio) es el camino principal |
 | Duración del podcast | Resuelto en el pregenerado | `WORDS_PER_MINUTE` calibrado (143 y, con la voz «B», 158) y pregenerado regenerado: 3:38 con Gemini (antes 5:27). Regenerarlo otra vez en D3 si cambia el código del guion |
 | Regionalismos que no estén en la lista | Calidad percibida del podcast | `REGIONALISM_FIXES` + prompt en español de España; escucha crítica del pregenerado final |
 | Errores de STT en nombres fuera de `TICKER_UNIVERSE` (p. ej. «Redeia» → «Red ya») | El Q&A puede no reconocer el valor | Pista de vocabulario con los nombres del briefing; ampliar el universo de tickers si hace falta |
@@ -178,14 +188,16 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | **Calidad editorial del guion** (juez fase 2: fidelidad 3,33 y utilidad 3,33 sobre 5) | Percepción del podcast; nota de 4.2 | Mitigado con las puertas nuevas (causas sin atribuir, tono valorativo, concordancia, marco horario, foco en los valores del usuario) y reintento; **re-evaluar** con `scripts/evaluar_briefings.py --real` antes del pregenerado final |
 
 
-## Próximos pasos (fases 3 y 4)
+## Próximos pasos (fase 4)
 
-1. **Fase 3 (mié 7)** · subir `fase1` a `main` cuando el equipo lo decida; *build* de **Docker** con buena red;
-   `run.sh` en Linux/macOS; ~~limpieza de *stubs*~~ (hecho, v0.3.9); re-evaluar la calidad (`scripts/evaluar_briefings.py --real`)
-   con las puertas nuevas. **Usuario:** contraste de costes con las consolas y clave de grupo con límite.
-2. **mié 22:00** · *feature freeze*.
-3. **Fase 4 (jue 8)** · pregenerado final (con vídeo si se enseña en la portada), clon limpio, capturas, demo
-   grabada, pitch PDF y README final; entrega 16:30.
+1. ~~**Fase 3**~~ (hecha el 06-oct por la tarde: Docker verificado, clon limpio en Windows, *stubs* retirados, CI
+   simulada). Restos: `run.sh` completo en Linux/macOS con buena red y re-evaluar la calidad
+   (`scripts/evaluar_briefings.py --real`) con las puertas nuevas.
+2. **Subir `fase1`** a `main` cuando el equipo lo decida y comprobar la CI de GitHub (3.11 y 3.13).
+   **Usuario:** clave de grupo con límite.
+3. **mié 22:00** · *feature freeze*. Construir la imagen de Docker con antelación en la máquina de la demo.
+4. **Fase 4 (jue 8)** · pregenerado final (con vídeo si se enseña en la portada), clon limpio con el código final,
+   capturas, demo grabada, pitch PDF y README final; entrega 16:30.
 
 ## Registro de jornadas
 
@@ -203,3 +215,4 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | 06-oct-2026 (fase 1, tarde) | **Portada local y gratuita** (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS `IDKiro/sdxs-512-dreamshaper` en CPU, OpenRAIL++; 4-7 s, 0 €; verificada en real) que sustituye a Gemini como opción recomendada. **Docker** con modelos locales por defecto (`LOCAL_MODELS`), volumen `hf-cache` y pip con reintentos (*build* sin verificar: red degradada). **Privacidad y costes:** captura de cartera desviada también sin CLIP (marca `TIPO: cartera` en visión), errores de salida estructurada sin datos de la cartera, pesos incompletos → sin pesos y aviso en la UI, coste de la portada anotado aunque falle el titular (`_MeteredImageGen`), tarifa más alta conocida para modelos de imagen de pago desconocidos, vídeo sin gráfico de cartera y con metadatos de IA completos. **Prueba real** de la captura en un briefing: 5/5 posiciones, vídeo de 4:11, ≈ 0,039 €, `portfolio: null`. **UI:** pestaña «Vídeo» propia en el briefing y en la portada; aviso de cartera de ejemplo en modo demo. 1148 tests sin red + 13 `live`; ruff y mypy limpios |
 | 06-oct-2026 (email retirado) | Email retirado (decisión de producto): entrega por web y Telegram. Borrado `delivery/email_sender.py`, `DELIVERY_CHANNELS = ("telegram",)`, sin `SMTP_*`; `Channel` conserva `"email"` como reservado. Contratos v0.3.7. 1148 tests sin red + 13 `live`; ruff y mypy limpios |
 | 06-oct-2026 (fase 2) | **Evidencia y mediciones:** camino 1 (N = 6 briefings reales, 0 fallos, pared p50 52,7 / p95 68,2 s, coste p50 0,0337 / p95 0,0620 €, 232/232 cifras trazables, 0 recomendaciones, juez 3,33 / 4,0 / 4,17 / 3,33; 0,41 €), camino 2 ([ADR-007](decisiones/ADR-007-modelos-por-agente.md): se confirman Sonnet en el Analista y Haiku en Guionista y Q&A, Gemini plan B; 0,55 €), camino 6 (cuaderno de 15 pasos en mock, 13 s), revisión de prompts con 3 carteras, `docs/04` reforzado (costes fijos ≈ 1.070 / 3.700 €/mes, punto de equilibrio, transferencias RGPD). **Calidad:** `agents/timeframe.py`, marco horario del guion, puertas de causas y tono valorativo con reintento, concordancia de artículos, foco en los valores del usuario; verificado en real (`20261006-142229-4926f2`, 0,043 €). Contratos v0.3.8 (aditivo; `schemas.py` sin cambios). 1202 tests sin red + 13 `live`; ruff y mypy limpios |
+| 06-oct-2026 (fase 3, tarde) | **Arranque y robustez.** Docker verificado por primera vez (*build* completa con `LOCAL_MODELS=true`, 3,37 GB / 769 MB; *healthy* en 10 s; briefing real en el contenedor con gráfico, vídeo, portada SDXS y Telegram: 114 s, 0,061 €, 0 errores); arreglada la caché de Hugging Face de root (CLIP con `PermissionError`) en el `Dockerfile`. Clon limpio en Windows con `run.ps1` sin `.env` (app en 220 s, modo demo). `run.sh` en `python:3.11-slim` sin terminar por red lenta (NO VERIFICADO del todo). *Stubs* retirados (v0.3.9); «Briefly» en `run.ps1`, `run.sh` y `demo.py`. CI simulada en local: ruff + mypy limpios, 1223 passed / 13 deselected (Python 3.13); CI de GitHub pendiente de subir la rama. Red de PyPI/Debian muy lenta (*builds* de 6-60 min): construir la imagen con antelación |

@@ -101,7 +101,7 @@ Carriles de trabajo paralelos (sin asignar personas): **A** entradas/procesado Â
 ```bash
 scripts/run.sh [--expose]             # Linux/macOS: venv + deps + streamlit en localhost:8501
 scripts/run.ps1 [-Expose]             # Windows (-Expose / --expose: visible en la red local)
-docker compose up --build             # contenedor con modelos locales (LOCAL_MODELS=true), http://localhost:8501 (build sin verificar)
+docker compose up --build             # contenedor con modelos locales (LOCAL_MODELS=true), http://localhost:8501 (verificado 06-oct)
 python -m pytest -q                   # tests sin red (mock/fixtures); los "live" (red + claves + coste) con -m live
 python scripts/demo.py --mock         # briefing de punta a punta por CLI, todo mock (sin red)
 python scripts/demo.py --demo-voices  # sin claves: datos de ejemplo + LLM mock + edge-tts real (necesita red)

@@ -36,7 +36,11 @@ responde también por voz.
 > portada) y **envío por Telegram**. Briefing real de verificación con vídeo y tres subidas: **0,057 € y 82 s**.
 > 1148 tests sin red (+ 13 «live») y ruff + mypy en la CI. Telegram **verificado en real** (bot @BrieflyMiaxBot:
 > mensaje, audio, imagen y vídeo en 8,5 s). El email se retiró: la entrega es por web y Telegram.
-> Pendiente: la *build* de Docker y `run.sh`, capturas, demo grabada y pitch. Plan en
+> **Fase 3 (mar 6-oct, tarde, arranque y robustez):** **Docker verificado** (build completa, contenedor *healthy*
+> en 10 s y briefing real dentro del contenedor con portada local, vídeo y Telegram: 114 s, 0,061 €, 0 errores),
+> **clon limpio en Windows** con `run.ps1` sin `.env` (app arriba en 220 s, modo demo sin claves), *stubs*
+> retirados y CI simulada en local (ruff + mypy + **1223 tests**). Pendiente: `run.sh` verificado del todo en
+> Linux, la CI en GitHub (al subir la rama), capturas, demo grabada y pitch. Plan en
 > [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md) (*feature freeze* mié 7 a las 22:00 · **jue 8** capturas,
 > demo grabada y pitch, entrega 16:30). Estado vivo en [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
@@ -329,7 +333,10 @@ si `pip` falla**, copian `.env.example` a `.env` si no existe, fijan `PYTHONPATH
 `streamlit run app/main.py`. Por defecto la app escucha **solo en `localhost`**, para no exponer tus claves de API
 en la red de clase; `-Expose` / `--expose` la abre a la red local (con aviso). Otras opciones: `-Port N` /
 `--port N` (8501 por defecto) y `-Reinstall` / `--reinstall` (fuerza `pip install`). `run.ps1` está probado en
-Windows; `run.sh`, pendiente de probar en Linux/macOS.
+Windows también desde un **clon limpio** sin `.env` (06-oct: crea `.venv`, instala, copia `.env.example` y la app
+responde a los 220 s con el briefing pregenerado, sin errores). `run.sh` crea `.venv` y empieza a instalar en un
+contenedor `python:3.11-slim` con una copia limpia, pero esa prueba no llegó al final por la red lenta: **NO
+VERIFICADO del todo**.
 
 Manualmente: `pip install -r requirements.txt` (o `pip install -e .`, y `pip install -e .[local]` para los
 modelos locales) y `streamlit run app/main.py` (`app/components` añade `src/` al path).
@@ -347,8 +354,24 @@ accelerate, de modo que CLIP, FinBERT y la portada local funcionan en el contene
 LOCAL_MODELS=false` para una imagen mínima). Los modelos de Hugging Face se guardan en el volumen con nombre
 `hf-cache`; pip usa `PIP_DEFAULT_TIMEOUT=120` y `PIP_RETRIES=10`. `data/outputs/` y `data/cache/` se montan como
 volúmenes (en Linux, si tu UID no es 1000, da permisos de escritura a esas carpetas). Compose publica el puerto
-**solo en este equipo** (`127.0.0.1:8501`). **Pendiente de probar:** `docker compose config` es válido, pero la
-*build* no se ha completado (el 06-oct se intentó con Docker Desktop y la red estaba degradada).
+**solo en este equipo** (`127.0.0.1:8501`).
+
+**Verificado el 06-oct-2026** (Docker Desktop, Windows): *build* completa con `LOCAL_MODELS=true` (imagen de
+**3,37 GB** sin comprimir, 769 MB comprimida); `docker compose up` deja el contenedor *healthy* a los **10 s** y
+la app responde HTTP 200 en `http://127.0.0.1:8501`. Briefing real dentro del contenedor:
+
+```bash
+docker compose exec briefer python scripts/demo.py --tickers SAN.MC AAPL --video --cover \
+  --upload data/samples/grafico_ejemplo.png --deliver telegram
+```
+
+**114 s** de pared, **0,061 €**, 0 pasos con error; portada local SDXS en 20 s (pesos montados en
+`data/cache/models`), vídeo en 13 s y Telegram con mensaje, audio, imagen y vídeo. CLIP descarga su modelo
+(~600 MB) la primera vez que se usa y queda guardado en el volumen `hf-cache`.
+
+- **Rutas de modelos relativas en `.env`** (p. ej. `BRIEFER_SDXL_MODEL=data/cache/models/sdxs-512-dreamshaper`),
+  para que el mismo `.env` valga en Windows y en el contenedor.
+- **Construye la imagen con antelación:** con la red lenta, la *build* tardó entre 6 y 60 min (PyPI y Debian).
 
 ### Lo primero que se ve: el briefing pregenerado
 
