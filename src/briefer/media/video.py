@@ -353,7 +353,9 @@ def _compose_frame(image: Path | None, out: Path, size: tuple[int, int], title: 
     y += round(14 * s)
     if title:
         title_font = _font(round((34 if big else 26) * s), True)
-        for row in textwrap.wrap(" ".join(title.split()), width=26 if big else 38)[:3 if big else 2]:
+        # Tres filas como mucho; si no cabe, «…» al final (nunca una frase cortada sin aviso).
+        wrapper = textwrap.TextWrapper(width=26 if big else 38, max_lines=3, placeholder=" …")
+        for row in wrapper.wrap(" ".join(title.split())):
             y = _draw_centered(draw, row, y, title_font, ACCENT_SOFT, width) + round(8 * s)
     else:
         y = _draw_centered(draw, brand.TAGLINE, y, _font(round(24 * s)), TEXT_MUTED, width)

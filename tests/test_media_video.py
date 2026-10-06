@@ -210,3 +210,14 @@ def test_make_video_cleans_temp_dir_on_failure(tmp_path: Path, monkeypatch: pyte
         video.make_video(AudioAsset(path=wav, duration_s=0.5), [], tmp_path / "v.mp4")
     assert created and not created[0].exists()
     assert not (tmp_path / "v.mp4").exists()
+
+
+def test_long_title_is_wrapped_with_ellipsis_not_cut(tmp_path) -> None:
+    """Un titular largo ocupa como mucho 3 filas y termina en «…»: nunca se corta sin aviso."""
+    import textwrap
+
+    title = "Santander lidera las subidas de tu cartera y arrastra al Ibex 35 en plena sesión " * 2
+    rows = textwrap.TextWrapper(width=38, max_lines=3, placeholder=" …").wrap(" ".join(title.split()))
+    assert len(rows) == 3 and rows[-1].endswith("…")
+    frame = video._compose_frame(None, tmp_path / "f.png", (720, 1280), title)
+    assert frame.exists()
