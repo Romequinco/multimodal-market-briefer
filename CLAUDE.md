@@ -13,7 +13,7 @@ Práctica MIAX **Taller B5-T4**: MVP de una startup FinTech con IA multimodal. G
 recoge noticias de mercado filtradas por los tickers/cartera del usuario, las interpreta (Agente Analista),
 escribe un diálogo (Agente Guionista) y genera un **podcast a 2 voces** (locutores **Toro** y **Osa**, voces
 sintéticas) con transcripción, gráficos del día y, si da tiempo, **vídeo corto**. Además lee capturas de gráficos
-y PDFs de resultados, y responde preguntas por voz (Agente Q&A). Entrega por web, email y Telegram.
+y PDFs de resultados, y responde preguntas por voz (Agente Q&A). Entrega por web y Telegram.
 Diagrama de la idea: `docs/assets/arquitectura_mvp_podcast_financiero.png`. Marca: `docs/08_identidad_marca.md`;
 los textos visibles salen de `src/briefer/brand.py`. **Los nombres internos no cambian**: paquete `briefer`,
 repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
@@ -40,7 +40,7 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 | Noticias/precios | `yfinance` + RSS (`feedparser`) | `data/samples/` |
 | Gráficos / vídeo | matplotlib / vídeo 9:16 con Pillow (diapositivas) + ffmpeg de `imageio-ffmpeg` (concat + subtítulos ASS), sin moviepy | — |
 | Portada (opcional) | Local y gratis: SDXS `IDKiro/sdxs-512-dreamshaper` en CPU (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; diffusers, 1 paso, OpenRAIL++) | Gemini imagen (`gemini`, de pago, exige facturación), none, mock |
-| Entrega | web · Telegram Bot API (`requests`; verificado en real) | email (*stub*) |
+| Entrega | web · Telegram Bot API (verificado en real) | — |
 | Config | `.env` → `src/briefer/config.py` | — |
 
 ## Mapa del repo
@@ -54,7 +54,7 @@ src/briefer/providers/    capa IA: base.py (interfaces), registry.py, mock.py, l
 src/briefer/ingest/       entradas y procesado (noticias, tickers, precios, PDF, gráfico, cartera, voz, FinBERT)
 src/briefer/agents/       analista, guionista, Q&A (+ prompts/*.md)
 src/briefer/media/        gráficos, podcast, transcripción, vídeo, portada
-src/briefer/delivery/     email, Telegram
+src/briefer/delivery/     Telegram
 tests/                    sin red, con providers mock y fixtures (+ tests "live" marcados, excluidos por defecto)
 scripts/                  run.ps1 · run.sh · demo.py · smoke_real.py
 data/samples/             ejemplos versionados + demo_briefing/ (pregenerado) · data/cache, data/outputs ignorados

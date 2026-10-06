@@ -69,8 +69,6 @@ def _settings_secrets() -> list[str]:
             continue
         if len(value) >= _MIN_SECRET_LEN:
             values.append(value)
-    if s.smtp_user and len(s.smtp_user) >= _MIN_SECRET_LEN:  # smtplib puede citar el usuario
-        values.append(s.smtp_user)
     return sorted(set(values), key=len, reverse=True)
 
 

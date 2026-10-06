@@ -98,14 +98,13 @@ def test_redact_known_patterns(raw: str, leak: str) -> None:
 
 
 def test_redact_extra_values_and_settings_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SMTP_USER", "usuario.correo@example.com")
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "valor-literal-del-token")
     from briefer.config import reset_settings_cache
 
     reset_settings_cache()
-    text = "fallo de usuario.correo@example.com con valor-literal-del-token y extra-1234"
+    text = "fallo con valor-literal-del-token y extra-1234"
     out = logging_utils.redact_secrets(text, extra=["extra-1234", "abc"])  # "abc": demasiado corto
-    assert "usuario.correo" not in out and "valor-literal" not in out and "extra-1234" not in out
+    assert "valor-literal" not in out and "extra-1234" not in out
 
 
 def _fake_get_settings(value: object | None):
@@ -142,7 +141,6 @@ def test_settings_secrets_skips_failing_getters(monkeypatch: pytest.MonkeyPatch)
         model_config = {"arbitrary_types_allowed": True}
         a: typing.Any = None
         b: SecretStr = SecretStr("secreto-largo-1")
-        smtp_user: str = ""
 
     fake = FakeSettings(a=Boom())
     monkeypatch.setattr(config, "get_settings", _fake_get_settings(fake))

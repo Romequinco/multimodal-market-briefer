@@ -31,7 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 CONTRACTS_VERSION = "0.3"
 
 # Disclaimer MiFID II: el producto informa, no asesora. Se muestra en la UI, en el
-# análisis, en el email/Telegram y se lee al final del podcast.
+# análisis, en Telegram y se lee al final del podcast.
 DISCLAIMER_ES = (
     "Contenido generado automáticamente con IA con fines exclusivamente informativos y "
     "educativos. No constituye asesoramiento financiero ni una recomendación personalizada "
@@ -41,7 +41,7 @@ DISCLAIMER_ES = (
 Sentiment = Literal["positivo", "negativo", "neutral"]
 Speaker = Literal["A", "B"]
 SourceType = Literal["pdf", "chart", "voice", "text"]
-Channel = Literal["web", "email", "telegram"]
+Channel = Literal["web", "email", "telegram"]  # "email": reservado (canal retirado el 06-oct)
 
 
 class _Model(BaseModel):

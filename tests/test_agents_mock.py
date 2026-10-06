@@ -323,7 +323,7 @@ def stub_lanes(monkeypatch: pytest.MonkeyPatch, sample_context: MarketContext) -
     """Sustituye ingest/media/storage/delivery por dobles mínimos y registra las llamadas."""
     from briefer import pipeline
 
-    calls: dict[str, list] = {"save": [], "email": []}
+    calls: dict[str, list] = {"save": [], "telegram": []}
     news = sample_context.news + [
         NewsItem(
             id="ejemplo-002",
@@ -377,11 +377,11 @@ def stub_lanes(monkeypatch: pytest.MonkeyPatch, sample_context: MarketContext) -
 
     monkeypatch.setattr(pipeline.storage, "save_briefing", fake_save)
 
-    def fake_email(briefing, to=None, settings=None):
-        calls["email"].append(briefing.id)
-        return DeliveryResult(channel="email", ok=True, detail="enviado")
+    def fake_telegram(briefing, chat_id=None, settings=None):
+        calls["telegram"].append(briefing.id)
+        return DeliveryResult(channel="telegram", ok=True, detail="enviado")
 
-    monkeypatch.setattr(pipeline.email_sender, "send_briefing_email", fake_email)
+    monkeypatch.setattr(pipeline.telegram_sender, "send_briefing_telegram", fake_telegram)
     return calls
 
 
@@ -391,7 +391,7 @@ def test_run_briefing_mock_flow_with_stubbed_lanes(settings: Settings, stub_lane
     messages: list[str] = []
     briefing = pipeline.run_briefing(
         ["san.mc", "AAPL", "SAN.MC"], use_mock=True, settings=settings,
-        deliver=["email", "web"], progress=messages.append,
+        deliver=["telegram", "web"], progress=messages.append,
     )
     assert briefing.context.tickers == ["SAN.MC", "AAPL"]
     assert briefing.analysis.key_points
@@ -399,7 +399,7 @@ def test_run_briefing_mock_flow_with_stubbed_lanes(settings: Settings, stub_lane
     steps = [m.step for m in briefing.metrics]
     for expected in ["ingest.news", "ingest.tickers", "ingest.prices", "agents.analyst",
                      "agents.scriptwriter", "media.podcast", "media.transcript", "media.charts",
-                     "delivery.email", "storage.save"]:
+                     "delivery.telegram", "storage.save"]:
         assert expected in steps
     assert not any(step_failed(m) for m in briefing.metrics)
     # bug corregido: la métrica del guardado llega a Briefing.metrics y al JSON en disco
@@ -407,7 +407,7 @@ def test_run_briefing_mock_flow_with_stubbed_lanes(settings: Settings, stub_lane
         (settings.output_path / briefing.id / "briefing.json").read_text(encoding="utf-8")
     )
     assert "storage.save" in [m.step for m in saved.metrics]
-    assert [d.channel for d in briefing.deliveries] == ["web", "email"]
+    assert [d.channel for d in briefing.deliveries] == ["web", "telegram"]
     assert messages[0].startswith("(1/7)") and messages[-1] == "(7/7) Briefing listo."
 
 
@@ -428,7 +428,7 @@ def test_run_briefing_optional_steps_do_not_break(
 
     briefing = pipeline.run_briefing(
         ["SAN.MC"], uploads=[upload], make_video=True, make_cover=True,
-        deliver=["telegram", "email"], use_mock=True, settings=settings,
+        deliver=["telegram"], use_mock=True, settings=settings,
     )
     assert briefing.cover_path is None and briefing.video is None
     assert briefing.context.insights == []
@@ -436,7 +436,8 @@ def test_run_briefing_optional_steps_do_not_break(
     assert failed == {"media.cover", "media.video", "delivery.telegram"}
     by_channel = {d.channel: d for d in briefing.deliveries}
     assert by_channel["telegram"].ok is False and "servicio caído" in by_channel["telegram"].detail
-    assert by_channel["email"].ok is True
+    with pytest.raises(ValueError, match="Canal de entrega desconocido"):  # el email se retiró
+        pipeline.run_briefing(["SAN.MC"], deliver=["email"], use_mock=True, settings=settings)
 
 
 def test_run_briefing_core_failure_raises_clear_error(

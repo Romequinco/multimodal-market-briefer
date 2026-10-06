@@ -314,7 +314,7 @@ def test_m5_only_simulated_saved_falls_back_to_pregenerated(sample_briefing: Bri
     assert origin == "pregenerado" and briefing.id == real.id
 
 
-# ── M6: funciones en desarrollo desactivadas (hoy solo el email) ──────────────────────────────────────
+# ── M6: opciones avanzadas sin avisos de fallo en la demo ──────────────────────────────────────
 
 
 def test_m6_pending_features_disabled_in_ui() -> None:
@@ -326,8 +326,8 @@ def test_m6_pending_features_disabled_in_ui() -> None:
     assert not at.exception
     labels = {c.label: c for c in at.checkbox}
     assert not labels["Vídeo corto"].disabled
-    # El email sigue en desarrollo: no se ofrece como canal.
-    assert "email" not in at.multiselect[1].options  # «Enviar por»
+    # Telegram sin configurar en los tests: la casilla está desactivada.
+    assert labels["Enviar por Telegram"].disabled
     at.button[0].click().run()  # generar: sin avisos de pasos fallidos ni entregas fallidas
     assert not at.exception
     warnings = "\n".join(w.value for w in at.warning)

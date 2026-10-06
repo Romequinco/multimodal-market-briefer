@@ -14,7 +14,6 @@ from pathlib import Path
 
 import pytest
 
-from briefer.delivery.email_sender import build_email_html
 from briefer.delivery.telegram_sender import build_caption
 from briefer.media import charts, podcast, transcript
 from briefer.providers.mock import MockTTS, sample_script, write_silence_wav
@@ -239,15 +238,6 @@ def test_number_formatting_es() -> None:
 
 
 # ── Entrega (funciones puras) ─────────────────────────────────────────────────────
-
-
-def test_build_email_html(sample_briefing: Briefing) -> None:
-    html = build_email_html(sample_briefing)
-    assert sample_briefing.analysis.headline in html
-    assert "cid:chart0" in html
-    assert "https://example.com/1" in html  # la fuente se enlaza a la noticia
-    assert "sintéticas" in html
-    assert DISCLAIMER_ES.split(".")[0] in html
 
 
 def test_build_caption_respects_limit(sample_briefing: Briefing) -> None:

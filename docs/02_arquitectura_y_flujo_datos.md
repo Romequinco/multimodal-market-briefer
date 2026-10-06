@@ -55,7 +55,6 @@ flowchart TB
     end
 
     subgraph DEL["delivery/"]
-        EMA["email_sender.py"]
         TEL["telegram_sender.py"]
     end
 
@@ -112,14 +111,13 @@ Fuente: `docs/assets/arquitectura_mvp_podcast_financiero.png`.
 | | Vídeo corto *(opcional)* | `media/video.py` | `make_video(audio, images, out_path, transcript, size=(720, 1280), title=…)` | Pillow (diapositivas) + ffmpeg de `imageio-ffmpeg` (libx264, subtítulos ASS); sin moviepy |
 | | Portada *(opcional)* | `media/cover.py` | `make_cover(analysis, image_gen, out_dir)` | `ImageGenProvider` (`GeminiImage`) + Pillow (titular y placa «Imagen generada por IA») |
 | 5 · Entrega | App web | `app/` | — | Streamlit |
-| | Email *(pendiente)* | `delivery/email_sender.py` | `send_briefing_email(briefing, to, settings)` | SMTP |
 | | Telegram | `delivery/telegram_sender.py` | `send_briefing_telegram(briefing, chat_id, settings)`; chat con `scripts/telegram_setup.py` | Telegram Bot API (`requests`) |
 
 Firmas exactas en [03_contratos_modulos.md](03_contratos_modulos.md) (v0.3.5). Al cierre de la fase 1 (06-oct)
 todas las funciones de esta tabla están implementadas y probadas sin red, y en real salvo dos: `make_cover` con
 `GeminiImage` (la clave del equipo no tiene facturación y los modelos de imagen no tienen nivel gratuito) y
-`send_briefing_telegram` (falta crear el bot). `send_briefing_email` sigue siendo un *stub* y no se ofrece en la
-UI. Ver [06](06_estado_actual.md).
+`send_briefing_telegram` (falta crear el bot). El canal email se retiró el 06-oct (decisión de producto: la
+entrega es por web y Telegram). Ver [06](06_estado_actual.md).
 
 ## Secuencia · generación del briefing
 
@@ -180,7 +178,7 @@ sequenceDiagram
         PL->>MD: make_video(audio, portada + gráficos) → plan_slides + subtítulos ASS → ffmpeg
     end
     MD-->>PL: Transcript, ChartAsset[], cover_path?, VideoAsset?
-    opt deliver no vacío (Telegram; email pendiente)
+    opt deliver no vacío (Telegram)
         PL->>DL: send_briefing_telegram: mensaje → audio → portada o gráfico → vídeo
         DL-->>PL: DeliveryResult[]
     end

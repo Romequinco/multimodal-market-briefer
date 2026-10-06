@@ -50,7 +50,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--upload", type=Path, nargs="*", default=[], help="PDF, imagen o audio")
     parser.add_argument("--video", action="store_true", help="Generar también el vídeo")
     parser.add_argument("--cover", action="store_true", help="Generar portada (texto a imagen)")
-    parser.add_argument("--deliver", nargs="*", default=[], choices=["email", "telegram"])
+    parser.add_argument("--deliver", nargs="*", default=[], choices=["telegram"])
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--mock", action="store_true", help="Forzar proveedores mock (sin red ni claves)")
     modes.add_argument(

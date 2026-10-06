@@ -70,7 +70,7 @@ from pydantic import BaseModel, ValidationError
 from briefer import costs, storage
 from briefer.agents import analyst, qa, scriptwriter
 from briefer.config import Settings, get_settings
-from briefer.delivery import email_sender, telegram_sender
+from briefer.delivery import telegram_sender
 from briefer.ingest import chart_reader, pdf_reader, voice
 from briefer.ingest import news as news_mod
 from briefer.ingest import portfolio as portfolio_mod
@@ -114,7 +114,7 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".ogg", ".webm", ".flac"}
 
 #: Canales de entrega extra admitidos en ``run_briefing(deliver=...)`` ("web" siempre va incluido).
-DELIVERY_CHANNELS: tuple[str, ...] = ("email", "telegram")
+DELIVERY_CHANNELS: tuple[str, ...] = ("telegram",)
 
 ProgressFn = Callable[[str], None]
 T = TypeVar("T")
@@ -781,7 +781,7 @@ def run_briefing(
         portfolio: cartera opcional (sus tickers se añaden al filtro).
         uploads: rutas a PDFs, imágenes o audios aportados por el usuario.
         make_video: generar también el vídeo corto (lento).
-        deliver: canales extra de entrega: ``"email"``, ``"telegram"`` (``"web"`` se ignora:
+        deliver: canales extra de entrega: ``"telegram"`` (``"web"`` se ignora:
             siempre está incluido).
         make_cover: generar portada con texto a imagen (si hay proveedor configurado).
         use_mock: forzar proveedores mock y datos de ejemplo (sin red ni claves). Equivale a
@@ -1176,7 +1176,6 @@ def _run_briefing(
 
     # 8. Entrega (opcional por canal): un canal caído queda como ok=False y se sigue.
     senders: dict[str, Callable[[Briefing], DeliveryResult]] = {
-        "email": lambda b: email_sender.send_briefing_email(b, settings=s),
         "telegram": lambda b: telegram_sender.send_briefing_telegram(b, settings=s),
     }
     deliveries = list(briefing.deliveries)

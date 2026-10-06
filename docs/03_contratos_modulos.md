@@ -46,13 +46,13 @@ Tipos auxiliares (alias `Literal`):
 | `Sentiment` | `"positivo"`, `"negativo"`, `"neutral"` |
 | `Speaker` | `"A"`, `"B"` |
 | `SourceType` | `"pdf"`, `"chart"`, `"voice"`, `"text"` |
-| `Channel` | `"web"`, `"email"`, `"telegram"` |
+| `Channel` | `"web"`, `"email"` (reservado, sin uso desde el 06-oct), `"telegram"` |
 
 Otros símbolos públicos del módulo:
 
 - `DISCLAIMER_ES: str`: aviso MiFID II («Contenido generado automáticamente con IA… No constituye
   asesoramiento financiero…»). Es el valor por defecto de `Analysis.disclaimer`, lo muestra la UI, lo imprime
-  `scripts/demo.py` y debe aparecer en email, Telegram y al final del podcast.
+  `scripts/demo.py` y debe aparecer en Telegram y al final del podcast.
 - `new_briefing_id(now: datetime | None = None) -> str`: id legible y ordenable `YYYYMMDD-HHMMSS-xxxxxx`
   (6 caracteres hex de un `uuid4`). Es el `default_factory` de `Briefing.id` y el nombre de la carpeta del
   briefing en `data/outputs/`.
@@ -256,7 +256,7 @@ parámetro**; solo `pipeline` llama a `registry`.
 ```python
 # pipeline.py  [impl]
 ProgressFn = Callable[[str], None]
-DELIVERY_CHANNELS: tuple[str, ...] = ("email", "telegram")   # "web" va siempre incluido
+DELIVERY_CHANNELS: tuple[str, ...] = ("telegram",)   # "web" va siempre incluido; otro canal → ValueError
 PDF_EXTS = {".pdf"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 AUDIO_EXTS = {".wav", ".mp3", ".m4a", ".ogg", ".webm", ".flac"}
@@ -1041,7 +1041,7 @@ def verify_podcast(audio_path: Path, script: PodcastScript, stt: STTProvider, *,
     # StepMetric.detail y coste por last_duration_s del STT.
 
 # (v0.3.5) cover.py, video.py y send_briefing_telegram implementados; la UI los activa en «Opciones
-# avanzadas: vídeo, portada y envíos». send_briefing_email sigue siendo stub (no se ofrece en la UI).
+# avanzadas: vídeo, portada y envíos». (v0.3.7) email_sender retirado el 06-oct.
 
 # cover.py  [impl, v0.3.5; opcional] — portada: texto a imagen + textos superpuestos con Pillow
 AI_LABEL = "Imagen generada por IA"      # marca obligatoria (AI Act art. 50), esquina superior derecha
@@ -1084,12 +1084,7 @@ def make_video(audio: AudioAsset, images: list[Path], out_path: Path,
     # El pipeline le pasa la portada (si hay) y los gráficos, nunca el de cartera (ADR-005: el MP4 se guarda
     # en data/outputs y se puede enviar por Telegram)
 
-# email_sender.py
-SYNTHETIC_VOICE_NOTE: str
-def build_email_html(briefing: Briefing, chart_cids: list[str] | None = None) -> str: ...   # [impl] pura
-    # chart_cids: Content-ID de los PNG adjuntos (por defecto chart0, chart1… uno por briefing.charts)
-def send_briefing_email(briefing: Briefing, to: list[str] | None = None,
-                        settings: Settings | None = None) -> DeliveryResult: ...             # [stub] SMTP → D2
+# email_sender.py — RETIRADO el 06-oct (v0.3.7): la entrega es por web y Telegram
 
 # telegram_sender.py  [impl, v0.3.5] — Bot API con requests (sin librerías extra)
 API_URL = "https://api.telegram.org/bot{token}/{method}"
@@ -1180,7 +1175,7 @@ flowchart LR
 | --- | --- | --- | --- | --- |
 | **A** · Entradas, visión y Telegram | `ingest/*`, `providers/vision/*`, `providers/stt/*`, `providers/image/clip_classifier.py`, `delivery/telegram_sender.py` (desde v0.2) | Tickers, ficheros subidos (PDF, imagen, audio), CSV de cartera | `NewsItem[]`, `PriceSnapshot[]`, `DocumentInsight[]`, `Portfolio`, texto de la pregunta, `news_impact.json` opcional (v0.3.4, FinBERT) | `data/samples/*`, `MockVision`, `MockSTT` |
 | **B** · Agentes, orquestación y calidad | `agents/*` (incl. `guardrails.py`), `agents/prompts/*`, `pipeline.py`, `costs.py`, `providers/llm/*`, `scripts/demo.py`; dueño del merge de `schemas.py` | `MarketContext` (de A), `Briefing` para el Q&A | `Analysis`, `PodcastScript`, `QAAnswer`, `Briefing` completo con `metrics` y `deliveries` | `MarketContext` construido desde `data/samples/`, `MockLLM`, funciones de A y C en versión mock |
-| **C** · Media, UI y demo | `media/*`, `delivery/email_sender.py`, `providers/tts/*`, `providers/image/*` (texto→imagen), `app/*`, `data/samples/demo_briefing/` | `PodcastScript`, `Analysis`, `PriceSnapshot[]`, `Briefing` | `AudioAsset`, `Transcript`, `ChartAsset[]`, `VideoAsset`, `cover.png`, `DeliveryResult`, UI | `PodcastScript` y `Briefing` de ejemplo generados por `MockLLM`, `MockTTS` |
+| **C** · Media, UI y demo | `media/*`, `delivery/telegram_sender.py`, `providers/tts/*`, `providers/image/*` (texto→imagen), `app/*`, `data/samples/demo_briefing/` | `PodcastScript`, `Analysis`, `PriceSnapshot[]`, `Briefing` | `AudioAsset`, `Transcript`, `ChartAsset[]`, `VideoAsset`, `cover.png`, `DeliveryResult`, UI | `PodcastScript` y `Briefing` de ejemplo generados por `MockLLM`, `MockTTS` |
 | Transversal | `schemas.py`, `providers/base.py`, `providers/registry.py`, `providers/mock.py`, `config.py`, `logging_utils.py`, `storage.py`, `tests/`, docs, Docker | — | Contratos, configuración, métricas, persistencia y modo mock | — |
 
 ### Puntos de integración (por orden)
@@ -1205,7 +1200,7 @@ flowchart LR
 7. **Salidas extra** *(hecho en la fase 1, v0.3.5)*: `media.video` (Pillow + ffmpeg), `media.cover`
    (local y gratis con SDXS, verificada en real; `GeminiImage`, de pago, sin prueba real por falta de facturación) y `delivery.telegram` (sin prueba real: falta
    crear el bot), activos en «Opciones avanzadas» de la UI. Router CLIP en `process_upload` y cartera desde
-   captura (`portfolio_from_screenshot`, página «Mi cartera»). **Pendiente:** `delivery.email` (Could).
+   captura (`portfolio_from_screenshot`, página «Mi cartera»). `delivery.email` retirado el 06-oct (v0.3.7).
 
 ---
 
@@ -1226,3 +1221,4 @@ flowchart LR
 | v0.3.4 · FinBERT en la UI | 05-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (el resultado va en un fichero aparte, fuera del contrato `Briefing`). Nuevo módulo `ingest/sentiment.py` (PR #1 de Daniel): `NewsImpact`, `FINBERT_MODEL` (`ProsusAI/finbert`), `translate_to_english` (Haiku, una llamada), `finbert_available`, `classify`, `news_impact` (nunca lanza), `impact_detail`. Ajuste `BRIEFER_FINBERT` (por defecto `false`; requiere `requirements-local.txt`). Pipeline: paso **opcional** `ingest.impact` («3b», en paralelo con el Analista, solo con noticias reales) que escribe `news_impact.json` en la carpeta del briefing. Storage: `NEWS_IMPACT_FILE`, `news_impact_path`, `load_news_impact`; `export_briefing` copia el fichero. UI (sin contrato entre carriles): `components/theme.keypoint_card(..., *, impacts=())` / `keypoint_card_html` pintan junto a cada fuente de «Puntos clave» la etiqueta «impacto de la noticia: ▲ positiva · FinBERT» (▼ negativa / ● neutral) con la aclaración de que es el tono de la noticia y no una recomendación; `players.news_impacts`, `source_impact`; `IMPACT_TEXT`, `IMPACT_TOOLTIP`. **Compliance (MAR):** se etiqueta la noticia, nunca el valor ni un agregado por ticker. El cuaderno `notebooks/A_01_ingesta_noticias_finbert.ipynb` (Daniel) pasa a ser solo de lectura: ya no reescribe ficheros del código | Carril A (Daniel) + C (UI) |
 | v0.3.5 · fase 1 | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (`CONTRACTS_VERSION` sigue en `"0.3"`). **Implementado (deja de ser *stub*):** `media.video.make_video` (Pillow + ffmpeg de `imageio-ffmpeg`, sin moviepy; nuevos `plan_slides`, `image_keywords`, `first_mention`, `build_ass`, `ass_*`; valores por defecto `size=(720, 1280)` y `fps=12` en vez de `(1080, 1920)` y 24; parámetros *keyword-only* `title` y `speaker_names`); `media.cover` (`make_cover`, `overlay_title`, `build_cover_prompt` + `AI_LABEL`, `dominant_sentiment`, `cover_texts`, `format_date_es`, `wrap_text`); `delivery.telegram_sender.send_briefing_telegram` (+ `call_api`, `TelegramError`, límites) y `scripts/telegram_setup.py`; `CLIPClassifier.classify`. **Nuevo proveedor** `GeminiImage` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, `BRIEFER_GEMINI_IMAGE_MODEL`). **Nuevas funciones:** `chart_reader.ImageRoute`, `decide_route`, `route_image`, `format_route_stats` y etiquetas/umbrales; `read_chart(..., *, route=None, stats_out=None)`; `portfolio.portfolio_from_image`, `parse_screenshot_table`, `format_screenshot_stats`; `pipeline.portfolio_from_screenshot` (paso `ingest.portfolio_image`); `costs.image_price_usd` y `estimate_image_cost_eur(..., model="")`. **Rompe (solo interno, sin lectores fuera de `chart_reader` y los tests):** `chart_reader.classify_image` devuelve `ImageRoute` en vez de `tuple[str, float]`. **Cambios de semántica:** (1) una imagen no financiera hace que `read_chart` lance `ValueError` **sin llamar a visión** (antes devolvía un `DocumentInsight` vacío con el aviso en `summary`), así que la subida se omite como cualquier otra que falla; (2) `NOT_CHART_THRESHOLD` (0,6) se aplica a la **suma** de las tres etiquetas no financieras; (3) en `process_upload`, una captura de cartera se rechaza con `ValueError` («súbela en Mi cartera») sin llamar a visión; (4) el paso `media.video` se registra como `ffmpeg`/`libx264` (antes `moviepy`). Dependencia: `google-genai>=2.25` (trae `types.SpeechMetadata` para Gemini TTS multi-locutor) | Equipo (fase 1) |
 | v0.3.6 · fase 1 (tarde) | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios.** **Implementado (deja de ser *stub*):** `SDXLTurbo` como portada local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; modelo por defecto `IDKiro/sdxs-512-dreamshaper`, `BRIEFER_SDXL_STEPS`); `media.cover.build_cover_prompt_local`. **Privacidad y costes:** `read_chart` desvía una captura de cartera también sin CLIP (`PORTFOLIO_MARKER` en la respuesta de visión → `ValueError(PORTFOLIO_REDIRECT_MSG)`, sin estructura ni persistencia); errores de salida estructurada con mensaje genérico; `portfolio_from_image`: si los pesos no cubren todas las posiciones con una misma base, ninguna lleva peso y `stats_out["weight_note"]` lo explica; `pipeline._MeteredImageGen` anota el coste de la portada aunque falle el titular; un modelo de imagen de pago desconocido usa la tarifa más alta conocida de su proveedor (con aviso de log); el vídeo nunca incluye el gráfico de cartera | Equipo (fase 1) |
+| v0.3.7 · canal email retirado | 06-oct-2026 | **Rompe (solo interno); `schemas.py` y `providers/base.py` sin cambios.** Decisión de producto: la entrega es por web y Telegram (verificado en real). Se borra `delivery/email_sender.py` (`build_email_html`, `send_briefing_email`, `SYNTHETIC_VOICE_NOTE`); `pipeline.DELIVERY_CHANNELS = ("telegram",)` y pedir `"email"` lanza `ValueError` («Canal de entrega desconocido»); fuera las variables `SMTP_*` de `config.py` y `.env.example`; `scripts/demo.py --deliver` solo admite `telegram`. `schemas.Channel` conserva `"email"` como valor reservado sin uso, para no cambiar el contrato | Equipo |

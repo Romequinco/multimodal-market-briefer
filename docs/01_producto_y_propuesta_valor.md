@@ -100,7 +100,7 @@ La multimodalidad no es decorativa: cada modalidad resuelve una fricción concre
 | CU2 | Briefing enriquecido con un PDF de resultados | documento → texto | Sube el PDF de la empresa → cifras clave entran en el análisis |
 | CU3 | «Explícame este gráfico» | imagen → texto | Sube captura de velas → descripción entra en el análisis |
 | CU4 | Pregunta por voz sobre el briefing | audio → texto → texto → audio | «¿Por qué ha caído Inditex hoy?» → respuesta hablada con fuentes |
-| CU5 | Recibirlo sin abrir la app | entrega | Email con transcripción + enlace; Telegram con el audio |
+| CU5 | Recibirlo sin abrir la app | entrega | Telegram con el audio, el resumen y el vídeo (además de la web) |
 | CU6 | Compartir un resumen visual | imagen + audio → vídeo | Vídeo corto con gráficos, subtítulos y audio |
 | CU7 | Consultar días anteriores | — | Histórico de briefings guardados |
 
@@ -122,7 +122,7 @@ compliance desde el diseño.
 | Modelo | Precio orientativo | Incluye |
 | --- | --- | --- |
 | Freemium | 0 € | Briefing diario de hasta 3 tickers, voces gratuitas, sin Q&A por voz o con cupo bajo |
-| Suscripción Pro | 4,99-7,99 €/mes *(a validar)* | Cartera completa, Q&A por voz, PDFs y gráficos propios, vídeo, email/Telegram, voces premium |
+| Suscripción Pro | 4,99-7,99 €/mes *(a validar)* | Cartera completa, Q&A por voz, PDFs y gráficos propios, vídeo, entrega por Telegram, voces premium |
 | Marca blanca B2B2C | Licencia + por usuario activo *(a negociar)* | Briefing con la marca del broker/neobanco (logo, nombre y locutores propios), integración vía API |
 
 Números y supuestos detallados en [04](04_viabilidad_costes_latencia_compliance.md#monetización).

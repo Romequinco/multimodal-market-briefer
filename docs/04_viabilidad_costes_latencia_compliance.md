@@ -313,7 +313,7 @@ ni recomendación de compra o venta. Puede contener errores. Las voces son sint�
 | Audio del usuario | La pregunta grabada se transcribe y **se borra** al terminar; no se guarda. Las respuestas habladas (voz sintética) sí quedan en `data/outputs/<id>/qa/` |
 | Secretos y trazas | Claves y tokens se **redactan** en `StepMetric.error`, errores, log y UI (`logging_utils.redact_secrets`, `error_text`); el *traceback* solo se ve con `BRIEFER_LOG_LEVEL=DEBUG` |
 | Exposición de la app | `run.ps1` / `run.sh` escuchan solo en `localhost` (`-Expose` / `--expose` para la red); Docker publica en `127.0.0.1:8501`; telemetría de Streamlit desactivada; subida máxima 50 MB |
-| Base jurídica y consentimiento | Sin persistencia de la cartera no hace falta consentimiento para guardarla. El envío por Telegram (06-oct) lo configura el propio usuario con su bot y su chat (`scripts/telegram_setup.py`) y se elige en cada briefing; en un producto con usuarios haría falta consentimiento expreso para enviar a un canal externo. El envío nunca incluye el gráfico de cartera. Email: pendiente |
+| Base jurídica y consentimiento | Sin persistencia de la cartera no hace falta consentimiento para guardarla. El envío por Telegram (06-oct) lo configura el propio usuario con su bot y su chat (`scripts/telegram_setup.py`) y se elige en cada briefing; en un producto con usuarios haría falta consentimiento expreso para enviar a un canal externo. El envío nunca incluye el gráfico de cartera. Email: retirado el 06-oct |
 | Derechos | Sin cuentas de usuario en el MVP; el histórico se borra con la carpeta `data/outputs/` |
 | Encargados de tratamiento | Proveedores de IA con DPA y opción de no entrenar con los datos enviados (a verificar por proveedor); transferencias internacionales (EE. UU.) a documentar. Telegram (si se usa) también recibe el resumen, el audio y el vídeo del briefing |
 
@@ -364,7 +364,7 @@ Números **orientativos** para dimensionar, no previsiones. Los costes variables
 | Plan | Precio | Incluye | Coste variable estimado por usuario y mes |
 | --- | --- | --- | --- |
 | Free | 0 € | 3 tickers, briefing compartido por ticker, sin Q&A por voz (o 3/mes), edge-tts | ~0,05-0,10 € |
-| Pro | 5,99 €/mes *(a validar)* | Cartera completa, Q&A por voz (~20/mes), PDFs y gráficos, vídeo, email/Telegram | ~0,9-1,5 € (22 briefings × ~0,035 € + 20 Q&A × ~0,006 € + ~5 subidas × ~0,015 €; sin compartición por ticker) |
+| Pro | 5,99 €/mes *(a validar)* | Cartera completa, Q&A por voz (~20/mes), PDFs y gráficos, vídeo, Telegram | ~0,9-1,5 € (22 briefings × ~0,035 € + 20 Q&A × ~0,006 € + ~5 subidas × ~0,015 €; sin compartición por ticker) |
 | White-label B2B2C | Fijo de integración + ~0,20-0,50 € por usuario activo/mes *(a negociar)* | Marca del cliente, API, contenido compartido por ticker | ~0,05-0,10 € gracias a la compartición |
 
 Escenario ilustrativo (supuestos, no datos): 10.000 usuarios registrados, 4 % de conversión a Pro.

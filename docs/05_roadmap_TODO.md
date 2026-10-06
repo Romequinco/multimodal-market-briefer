@@ -16,8 +16,8 @@ cada uno marca la que coge escribiendo su nombre al lado. Contratos y firmas rea
 > Telegram verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s). Arreglos de privacidad:
 > la captura de cartera se desvía también sin CLIP, errores sin datos de la cartera, pesos incompletos sin sesgo.
 > Se confirma que el Analista ya reintentaba ante una recomendación. Briefing real de verificación con vídeo
-> y tres subidas: 0,0569 €, 82,1 s. **1149 tests sin red** (+ 13 `live`), ruff + mypy limpios; gasto real de la
-> fase ≈ 0,07 €. Quedan: Telegram en real, email (Could), *build* de Docker y `run.sh` probados, limpieza de
+> y tres subidas: 0,0569 €, 82,1 s. **1148 tests sin red** (+ 13 `live`), ruff + mypy limpios; gasto real de la
+> fase ≈ 0,07 €. Quedan: Telegram en real, *build* de Docker y `run.sh` probados, limpieza de
 > *stubs*, p50/p95, prompts con 3 carteras (caminos 1, 2 y 6), contraste de costes y los entregables del jueves.
 
 > **Actualización lun 5-oct-2026 (cierre de la Fase 1).** El núcleo real previsto para D1 se integró por
@@ -68,7 +68,7 @@ crea una función o fichero que aún no existe: su nombre es una propuesta y se 
 | --- | --- | --- | --- | --- |
 | F0 | lun 5-oct | Esqueleto + camino mock fin a fin | `pytest` sin `skip` en verde; la UI genera un briefing mock completo | **Superado** |
 | D1 / F1 | lun 5-oct (adelantado; previsto mar 6) | Núcleo real + demo que no puede fallar | Briefing real (noticias → análisis → guion → podcast 2 voces → SRT → gráficos) en la UI y por CLI con `StepMetric` reales; pregenerado v1 versionado; modo «Sin claves» suena | **Superado** (3 briefings reales medidos; pendientes heredados a D2) |
-| D2 | mar 6 - mié 7-oct | Latencia Q&A, STT, multimodalidad visible, vídeo, envíos + caminos de revisión | Todas las Must funcionando; Should según go/no-go; Docker y `run.ps1` probados una vez | Latencia Q&A, STT y `run.ps1` adelantados el lunes (revisión F0-F1). Mar 6 (fase 1): vídeo, CLIP y captura de cartera hechos; portada y Telegram implementados sin prueba real. Quedan: email, Docker probado |
+| D2 | mar 6 - mié 7-oct | Latencia Q&A, STT, multimodalidad visible, vídeo, envíos + caminos de revisión | Todas las Must funcionando; Should según go/no-go; Docker y `run.ps1` probados una vez | Latencia Q&A, STT y `run.ps1` adelantados el lunes (revisión F0-F1). Mar 6 (fase 1): vídeo, CLIP y captura de cartera hechos; portada y Telegram implementados sin prueba real. Quedan: Docker probado (email retirado el 06-oct) |
 | D3 | jue 8-oct | Entregable | README con capturas, demo grabada, pitch PDF, clon limpio probado; entrega 16:30 | 15:45: si Docker falla en clon limpio, `run.ps1`/`run.sh` pasan a camino principal |
 
 ## Reglas de trabajo
@@ -92,7 +92,7 @@ crea una función o fichero que aún no existe: su nombre es una propuesta y se 
 | --- | --- |
 | **A** · Entradas, visión y Telegram | `ingest/*`, `providers/vision/*`, `providers/stt/*`, router CLIP (`providers/image/clip_classifier.py`, `chart_reader.classify_image`), captura de cartera, `delivery/telegram_sender.py`; D3: limpieza de *stubs* y clon limpio |
 | **B** · Agentes, orquestación, calidad y viabilidad | `agents/*`, `pipeline.py`, `costs.py`, `providers/llm/*`, fallbacks, puertas de calidad, métricas, CI, `docs/04` medido, dueño de `schemas.py`; D3: mediciones y pitch |
-| **C** · Media, UI y demo | `media/*`, `providers/tts/*`, texto→imagen, `delivery/email_sender.py`, `app/*`, modos e insignias, briefing pregenerado; D3: capturas y demo grabada |
+| **C** · Media, UI y demo | `media/*`, `providers/tts/*`, texto→imagen, ~~`delivery/email_sender.py`~~ (retirado el 06-oct), `app/*`, modos e insignias, briefing pregenerado; D3: capturas y demo grabada |
 
 ---
 
@@ -130,7 +130,7 @@ crea una función o fichero que aún no existe: su nombre es una propuesta y se 
 
 - [x] Podcast, transcripción y gráficos — `media/podcast.py` (`synthesize_podcast` en paralelo con reintentos, `concat_audio`, `audio_duration_s`), `media/transcript.py` (`build_transcript`, `segments_to_srt`, `format_srt_timestamp`), `media/charts.py` (`make_charts`, `make_portfolio_chart`) — **Hecho cuando:** con `MockTTS` y precios sintéticos generan audio, SRT y PNG (`tests/test_media_mock.py`)
 - [x] Persistencia — `storage.py` — **Hecho cuando:** round-trip JSON idéntico y la carpeta movida se sigue cargando (rutas relativas; `tests/test_storage.py`)
-- [x] Textos de entrega — `delivery/email_sender.build_email_html`, `delivery/telegram_sender.build_caption` — **Hecho cuando:** funciones puras con titular, puntos, disclaimer y aviso de voz sintética
+- [x] Textos de entrega — ~~`delivery/email_sender.build_email_html`~~ (retirado el 06-oct), `delivery/telegram_sender.build_caption` — **Hecho cuando:** funciones puras con titular, puntos, disclaimer y aviso de voz sintética
 - [x] UI en modo demo — `app/pages/1_Briefing.py`, `3_Mi_cartera.py`, `4_Historico.py`, `app/components/players.py` — **Hecho cuando:** con «Modo demo», «Generar briefing» pinta titular, audio, transcripción, gráficos y métricas; Mi cartera carga el CSV; Histórico reabre briefings
 
 ### Pendiente de F0 (resuelto en la Fase 1)
@@ -190,7 +190,7 @@ mode="real")` el 05-oct entre las 10:56 y las 11:15 (una sin caché y dos con ca
 | **mar 13:00 Sync 1** | Q&A por voz real medido · go/no-go de las Should | | |
 | mar 13:00-mié 13:00 | Router CLIP + captura de cartera; Telegram | Revisión de prompts con 3 carteras; anti-recomendación con reintento; caminos 1-2 | Vídeo con ffmpeg; portada texto→imagen (Gemini image) |
 | **mié 13:00 Sync 3** | PDF + gráfico + Q&A por voz reales · recortes si hace falta | | |
-| mié 13:00-18:00 | Telegram / RGPD | `docs/04` reforzado; p50/p95 | Preguntar y UI pulidas; email |
+| mié 13:00-18:00 | Telegram / RGPD | `docs/04` reforzado; p50/p95 | Preguntar y UI pulidas; ~~email~~ (retirado) |
 | **mié 18:00 Sync 4** | Todo integrado en `main`; Docker probado en una máquina | | |
 | **mié 22:00** | **Feature freeze** | | |
 
@@ -233,7 +233,7 @@ mode="real")` el 05-oct entre las 10:56 y las 11:15 (una sin caché y dos con ca
 - [x] **[M]** Página Preguntar pulida — `app/pages/2_Preguntar.py` — **Hecho cuando:** grabar pregunta → texto en cuanto llega + audio + fuentes + latencia medida *(revisión: `warmup` al cargar, texto antes que audio, botón «Preguntar sobre este briefing» desde la portada y el Histórico, audio de la pregunta borrado)*
 - [x] **[M]** Pulido UI — `app/*` — **Hecho cuando:** estados de carga con aviso «no cambies de página», errores amables con el paso que falló, disclaimer visible, tabla de métricas, `st.cache_resource` para modelos locales *(revisión: portada con propuesta de valor y reproductor arriba, «Generar el tuyo», franja «Cómo se hizo», doble clic protegido, errores redactados y traceback solo con `BRIEFER_LOG_LEVEL=DEBUG`, `.streamlit/config.toml` con tema; no hay modelos locales que cachear)*
 - [x] **[M]** Desactivar los controles de funciones pendientes (nueva, de la auditoría) — `app/pages/1_Briefing.py` — **Hecho cuando:** vídeo, portada IA y envíos no se pueden pedir desde la UI ni producen avisos de fallo en la demo *(desactivados con «en desarrollo»; siguen por CLI: `--video`, `--cover`, `--deliver`. 06-oct: reactivados en «Opciones avanzadas: vídeo, portada y envíos»: «Vídeo corto» siempre; «Portada con IA» desactivada en modo real si `BRIEFER_IMAGE_GEN_PROVIDER=none`; «Enviar por» solo ofrece Telegram si hay token y chat; el email sigue oculto)*
-- [ ] **[C]** Email — `delivery/email_sender.send_briefing_email` — **Hecho cuando:** llega un email con transcripción, gráficos inline (CID) y disclaimer
+- [x] ~~**[C]** Email — `delivery/email_sender.send_briefing_email` — **Hecho cuando:** llega un email con transcripción, gráficos inline (CID) y disclaimer~~ — retirada por decisión del equipo (06-oct): Telegram cubre la entrega
 - [ ] **[S]** Esqueleto del pitch — `pitch/` — **Hecho cuando:** 10-12 diapositivas con títulos y huecos para capturas y cifras medidas
 
 ### Transversal D2
@@ -397,7 +397,7 @@ Reglas comunes:
 - [ ] **[M]** Demo grabada (3-4 min) — enlace en `README.md#demo` — **Hecho cuando:** muestra portada, generar, subir gráfico/PDF, Q&A por voz, traza y métricas, con audio
 - [ ] **[M]** Pitch deck técnico — `pitch/*.pdf` — **Hecho cuando:** problema, usuario, demo, cadena de modelos, resultados medidos, unit economics, compliance como controles, monetización, roadmap, equipo
 - [ ] **[M]** README final — `README.md` — **Hecho cuando:** captura/GIF y enlace a la demo arriba, «arranca en 2 comandos», tabla de modalidades con columna «Activo en la demo» actualizada, diagrama de orquestación, configuración en anexo, sin TODO, equipo con nombres
-- [ ] **[M]** Revisión de compliance — UI, prompts, email, Telegram, podcast — **Hecho cuando:** `DISCLAIMER_ES` en todos los canales, voz sintética avisada (hablado + metadatos MP3 *(hecho)* / MP4) e imagen IA marcada
+- [ ] **[M]** Revisión de compliance — UI, prompts, Telegram, podcast — **Hecho cuando:** `DISCLAIMER_ES` en todos los canales, voz sintética avisada (hablado + metadatos MP3 *(hecho)* / MP4) e imagen IA marcada
 - [ ] **[M]** Estado final — `docs/06_estado_actual.md`, checklist de `docs/00_enunciado.md` — **Hecho cuando:** reflejan lo entregado
 - [ ] **[M]** Higiene del repo — **Hecho cuando:** comprobado en el último commit que no se versiona `.env`, `data/outputs/` ni `docs/raw/`; etiqueta `v1.0`
 
@@ -421,8 +421,8 @@ Horas estimadas en [07](07_revision_critica.md#3-mejoras-priorizadas-moscow).
 | **Must** | README con capturas + demo grabada + pitch PDF + clon limpio | D3 |
 | **Must** | `docs/04` con costes y latencias medidos *(primera medición hecha)* y costes fijos/licencias | D2 / D3 |
 | **Should** | Router CLIP/SigLIP *(CLIP hecho el 06-oct)* · puertas de calidad (grounding *(hecho en Analista y Guionista)* + anti-recomendación con reintento *(hecho en Analista y Guionista)*) · WER del podcast · pestaña «Cómo se hizo» *(hecho)* · portada texto→imagen *(hecho el 06-oct: local y gratis con SDXS; Gemini de pago sin prueba real)* · captura de cartera → `Portfolio` *(hecho el 06-oct)* · Telegram *(implementado; sin prueba real, falta el bot)* · paralelismo *(hecho)* · portada de la app y métricas visuales *(hecho)* | D1 / D2 |
-| **Could** | Embeddings (histórico y dedupe semántico) · FinBERT como segunda opinión (camino 3) *(hecho, PR #1 de Daniel; opcional)* · TTS premium Gemini *(hecho)* · Q&A con herramientas · email · Gemini como LLM alternativo *(implementado; briefing completo sin probar)* · despliegue en la nube | D2 si sobra tiempo |
-| **Won't** | Stable Video Diffusion, Qwen-VL local, ElevenLabs, Bark, Whisper local, *fine-tuning*, autenticación, base de datos, LLM OpenAI (*stub* documentado) | — |
+| **Could** | Embeddings (histórico y dedupe semántico) · FinBERT como segunda opinión (camino 3) *(hecho, PR #1 de Daniel; opcional)* · TTS premium Gemini *(hecho)* · Q&A con herramientas · Gemini como LLM alternativo *(implementado; briefing completo sin probar)* · despliegue en la nube | D2 si sobra tiempo |
+| **Won't** | Email (retirado el 06-oct: Telegram cubre la entrega) · Stable Video Diffusion, Qwen-VL local, ElevenLabs, Bark, Whisper local, *fine-tuning*, autenticación, base de datos, LLM OpenAI (*stub* documentado) | — |
 
 ---
 
@@ -434,7 +434,7 @@ Orden en que se cae algo (lo primero de la lista es lo primero que se recorta). 
 | Orden | Funcionalidad | Qué queda en su lugar |
 | --- | --- | --- |
 | 1 | Could: embeddings, Q&A con herramientas, despliegue en la nube (FinBERT ya está, apagado por defecto) | — |
-| 2 | Email | Telegram + web |
+| 2 | ~~Email~~ (ya retirado el 06-oct) | Telegram + web |
 | 3 | Caminos de revisión 2, 3 y 6 | Camino 1 (evaluación) como evidencia mínima |
 | 4 | Captura de cartera → `Portfolio` | Cartera por CSV o formulario |
 | 5 | Portada texto→imagen API | Sin portada (`BRIEFER_IMAGE_GEN_PROVIDER=none`); el vídeo arranca con el gráfico general |

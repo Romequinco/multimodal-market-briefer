@@ -1,7 +1,7 @@
 """Gráficos del día en PNG (matplotlib) a partir de los precios.
 
 Carril C. Entrada: ``list[PriceSnapshot]`` (+ ``Portfolio`` opcional). Salida:
-``list[ChartAsset]`` guardados en ``out_dir``. Se usan en la UI, el email y el vídeo.
+``list[ChartAsset]`` guardados en ``out_dir``. Se usan en la UI, Telegram y el vídeo.
 
 Estilo común: lienzo 16:9 de 1920×1080 px (apto para vídeo sin reescalar), tipografía grande,
 rejilla discreta y color de tendencia siempre acompañado de signo y flecha (▲/▼) para que el
@@ -14,7 +14,7 @@ Temas (``BRIEFER_CHART_THEME`` o parámetro ``theme=``):
 - ``dark`` (por defecto, «Noticiero nocturno», a juego con la UI): fondo #12151B, títulos en serif,
   cifras y etiquetas en mono, línea de precio coral con relleno muy sutil, subidas en verde y
   bajadas en rosa, índices y fuente en gris.
-- ``light``: el estilo claro original (azul = sube, rojo = baja), útil para email o impresión.
+- ``light``: el estilo claro original (azul = sube, rojo = baja), útil para impresión.
 
 Las fuentes son las DejaVu que trae matplotlib (Sans, Serif, Sans Mono): no dependen del sistema,
 así que se ven igual en Docker.

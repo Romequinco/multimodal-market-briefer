@@ -57,8 +57,8 @@ STAGES: tuple[tuple[str, str], ...] = (
 )
 
 # Proveedores que no son modelos de IA (no cuentan como «modelo» en el resumen).
-NON_AI_PROVIDERS = {"local", "matplotlib", "ffmpeg", "moviepy", "email", "samples", "synthetic", "yfinance", "yfinance+rss",
-                    "rss", "disk", "storage", "smtp", "telegram", "web", "-", ""}
+NON_AI_PROVIDERS = {"local", "matplotlib", "ffmpeg", "moviepy", "samples", "synthetic", "yfinance", "yfinance+rss",
+                    "rss", "disk", "storage", "telegram", "web", "-", ""}
 
 STEP_LABELS: dict[str, str] = {
     "ingest.news": "Noticias",

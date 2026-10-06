@@ -34,9 +34,9 @@ responde también por voz.
 > **cartera desde una captura del broker** (visión + Haiku, ≈ 0,005 €; briefing real con la cartera leída: 5/5
 > posiciones, vídeo de 4:11, ≈ 0,039 € en total), **portada local y gratuita** con SDXS en CPU (0 €, 4-7 s por
 > portada) y **envío por Telegram**. Briefing real de verificación con vídeo y tres subidas: **0,057 € y 82 s**.
-> 1149 tests sin red (+ 13 «live») y ruff + mypy en la CI. Telegram está implementado y probado sin red, pero
-> **sin prueba real** (falta crear el bot).
-> Pendiente: Telegram en real, email, la *build* de Docker y `run.sh`, limpieza de *stubs*, capturas, demo grabada y pitch. Plan en
+> 1148 tests sin red (+ 13 «live») y ruff + mypy en la CI. Telegram **verificado en real** (bot @BrieflyMiaxBot:
+> mensaje, audio, imagen y vídeo en 8,5 s). El email se retiró: la entrega es por web y Telegram.
+> Pendiente: la *build* de Docker y `run.sh`, limpieza de *stubs*, capturas, demo grabada y pitch. Plan en
 > [docs/05_roadmap_TODO.md](docs/05_roadmap_TODO.md) (*feature freeze* mié 7 a las 22:00 · **jue 8** capturas,
 > demo grabada y pitch, entrega 16:30). Estado vivo en [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
@@ -143,7 +143,6 @@ flowchart LR
 
     subgraph D["5 · Entrega"]
         W["App web<br/>(Streamlit)"]
-        EM["Email"]
         TG["Telegram"]
     end
 
@@ -175,7 +174,6 @@ flowchart LR
     AU --> VI
     AU --> W
     VI --> W
-    TR -. pendiente .-> EM
     IM -. tono por noticia .-> W
     AU --> TG
     VI --> TG
@@ -187,7 +185,7 @@ flowchart LR
 > CSV; en ambos casos sus tickers alimentan el filtro de noticias. Si la captura de cartera se sube junto a las de
 > gráficos en «Generar briefing», el router CLIP la desvía (sin gastar en visión) con el aviso de subirla en «Mi
 > cartera»; sin CLIP, el propio prompt de visión la reconoce y se desvía igual, sin estructurarla ni guardar
-> nada (una llamada de visión, ≈ 0,016 €). El agente Q&A usa como contexto el briefing ya generado. El email sigue pendiente.
+> nada (una llamada de visión, ≈ 0,016 €). El agente Q&A usa como contexto el briefing ya generado.
 
 Arquitectura completa, diagramas de secuencia y mapeo caja → módulo en
 [docs/02_arquitectura_y_flujo_datos.md](docs/02_arquitectura_y_flujo_datos.md).
@@ -240,7 +238,7 @@ flowchart TB
         ING["ingest/<br/>noticias, precios, PDF,<br/>gráfico, cartera, voz"]
         AGT["agents/<br/>analista, guionista, Q&A<br/>+ prompts/*.md"]
         MED["media/<br/>gráficos, podcast,<br/>transcripción, vídeo, portada"]
-        DLV["delivery/<br/>email, Telegram"]
+        DLV["delivery/<br/>Telegram"]
     end
     PRV["<b>Conexión con modelos IA</b> · src/briefer/providers/<br/>LLM · visión · STT · TTS · imagen · mock (registry por config)"]
     X["APIs externas / modelos locales<br/>Anthropic · OpenAI · Gemini (LLM, TTS e imagen) · edge-tts · ElevenLabs · Whisper · HF (FinBERT, CLIP) · ffmpeg · Telegram Bot API"]
@@ -283,8 +281,8 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 │   ├── ingest/                  # news, article_meta, cache, tickers, prices, pdf_reader, chart_reader, portfolio, voice, sentiment (FinBERT)
 │   ├── agents/                  # analyst, scriptwriter, qa, guardrails + prompts/{analyst,scriptwriter,qa}.md
 │   ├── media/                   # charts, podcast, speech (normalización para TTS), transcript, video, cover
-│   └── delivery/                # email_sender, telegram_sender
-├── tests/                       # 1149 tests sin red (mock y fixtures; red bloqueada) + 13 «live» (-m live)
+│   └── delivery/                # telegram_sender
+├── tests/                       # 1148 tests sin red (mock y fixtures; red bloqueada) + 13 «live» (-m live)
 ├── scripts/                     # run.ps1 · run.sh · demo.py · smoke_real.py · telegram_setup.py
 ├── .github/workflows/tests.yml  # CI: pytest en modo mock (Python 3.11 y 3.13) en cada push a main y PR
 ├── .streamlit/config.toml       # tema, subida máxima 50 MB, sin telemetría
@@ -385,7 +383,7 @@ python scripts/demo.py --mock --strict                            # sale con 3 s
 python scripts/smoke_real.py                                      # prueba de humo de cada proveedor con clave (< 0,01 €)
 python scripts/demo.py --mock --video --cover                     # + vídeo 9:16 y portada (mock), sin red
 python scripts/telegram_setup.py --write --test                   # configura el chat de Telegram (ver «Telegram»)
-python -m pytest -q                                               # 1149 tests sin red (los «live» con -m live)
+python -m pytest -q                                               # 1148 tests sin red (los «live» con -m live)
 python scripts/metrics_report.py --include-demo                   # p50/p95 de latencia y coste de los briefings guardados
 python scripts/measure_qa_voice.py                                # cadena de voz del Q&A (audio → STT → Q&A → voz), en frío y caliente
 ruff check src app scripts tests && mypy                          # estilo y tipos, como la CI (pip install -r requirements-dev.txt)
@@ -394,8 +392,7 @@ ruff check src app scripts tests && mypy                          # estilo y tip
 Flags de `scripts/demo.py`: `--tickers T [T ...]` (por defecto `BRIEFER_DEFAULT_TICKERS`; admite nombres como
 «santander»), `--portfolio CSV`, `--upload [FICHERO ...]` (PDF, imagen o audio), `--video` (vídeo 9:16),
 `--cover` (portada; necesita `BRIEFER_IMAGE_GEN_PROVIDER` distinto de `none` en modo real),
-`--deliver [email|telegram ...]` (Telegram necesita bot y chat configurados; email aún es *stub*: el paso
-opcional se omite), `--mock` o
+`--deliver telegram` (necesita bot y chat configurados), `--mock` o
 `--demo-voices` (excluyentes; sin ninguno, modo real), `--refresh` (ignora la caché de noticias y precios),
 `--question TEXTO` (en vez del briefing, pregunta al Agente Q&A), `--briefing auto|pregenerado|ninguno|<id o
 ruta>` (contexto de la pregunta; `auto` = último guardado real o pregenerado), `--warmup` (precalienta los
@@ -495,10 +492,6 @@ Los modelos locales requieren `requirements-local.txt`.
 | `GEMINI_API_KEY` | vacío | LLM Gemini, TTS Gemini multi-locutor y portada con Gemini imagen (opcional; la portada exige facturación activa) |
 | `ELEVENLABS_API_KEY` | vacío | Voces ElevenLabs (opcional) |
 | `TELEGRAM_BOT_TOKEN` · `TELEGRAM_CHAT_ID` | vacío | Entrega por Telegram (opcional; ver [Telegram](#telegram)) |
-| `SMTP_HOST` · `SMTP_USER` · `SMTP_PASSWORD` · `SMTP_FROM` | vacío | Entrega por email (opcional; **pendiente**, el envío aún es un *stub*) |
-| `SMTP_PORT` | `587` | Puerto SMTP |
-| `SMTP_TO` | vacío | Destinatarios, separados por comas |
-| `SMTP_USE_TLS` | `true` | Usar TLS en la conexión SMTP |
 
 ### Rutas y logging
 
@@ -565,7 +558,7 @@ Guion previsto de la demo:
 4. Generar el briefing: mostrar análisis, podcast a dos voces, transcripción, gráficos y pestaña «Vídeo» (9:16 con subtítulos).
 5. Preguntar por voz sobre el briefing y escuchar la respuesta.
 6. Enseñar «Cómo se hizo» (modelos, latencia y coste estimado por paso) y el modo sin claves.
-7. Envío por Telegram (verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s)). El email sigue pendiente.
+7. Envío por Telegram (verificado en real el 06-oct (bot @BrieflyMiaxBot: mensaje, audio, imagen y vídeo en 8,5 s)).
 
 ---
 

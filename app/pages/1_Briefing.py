@@ -107,27 +107,23 @@ uploads = st.file_uploader(
     "Las capturas de tu cartera del broker se suben en «Mi cartera», no aquí.",
 )
 
-#: Funciones que el pipeline aún no implementa: se enseñan desactivadas y «en desarrollo» para
-#: que la demo nunca muestre avisos de fallo. Cuando se implementen, basta con pasar a ``False``.
-IN_DEVELOPMENT = {"email": True}
 #: Requisitos de configuración: sin ellos el control se desactiva con la explicación.
 COVER_READY = mode != "real" or settings.briefer_image_gen_provider != "none"
 TELEGRAM_READY = bool(settings.telegram_bot_token and settings.telegram_chat_id)
-with st.expander("Opciones avanzadas: vídeo, portada y envíos"):
+with st.expander("Opciones avanzadas: vídeo, portada y Telegram"):
     col1, col2, col3 = st.columns(3)
     make_video = col1.checkbox("Vídeo corto", value=False,
                                help="Vídeo vertical 9:16 con el podcast, los gráficos y subtítulos (unos segundos más).")
     make_cover = col2.checkbox("Portada con IA", value=False, disabled=not COVER_READY,
                                help="Ilustración generada por IA a partir del tono del día (no representa datos)."
-                               if COVER_READY else "Configura BRIEFER_IMAGE_GEN_PROVIDER (p. ej. gemini) en .env.")
-    channels = [c for c in ("email", "telegram") if not IN_DEVELOPMENT.get(c) and (c != "telegram" or TELEGRAM_READY)]
-    deliver = col3.multiselect("Enviar por", channels, disabled=not channels,
-                               placeholder="Telegram" if channels else "Telegram sin configurar",
-                               help="Telegram: configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID "
-                               "(scripts/telegram_setup.py). Email: en desarrollo.")
-    st.caption("El email está en desarrollo; el briefing siempre queda disponible en la web.")
+                               if COVER_READY else "Configura BRIEFER_IMAGE_GEN_PROVIDER (p. ej. local) en .env.")
+    send_telegram = col3.checkbox("Enviar por Telegram", value=False, disabled=not TELEGRAM_READY,
+                                  help="Resumen, audio, imagen y vídeo (si lo hay) a tu chat de Telegram."
+                                  if TELEGRAM_READY else "Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID "
+                                  "(scripts/telegram_setup.py).")
+    st.caption("El briefing siempre queda disponible en la web.")
 make_cover = bool(make_cover) and COVER_READY
-deliver = [c for c in deliver if c in channels]
+deliver = ["telegram"] if send_telegram and TELEGRAM_READY else []
 
 no_input = not tickers and portfolio is None
 if no_input:

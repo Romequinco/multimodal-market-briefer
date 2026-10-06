@@ -58,13 +58,6 @@ class Settings(BaseSettings):
     # ── Entrega ─────────────────────────────────────────────────────────────────
     telegram_bot_token: SecretStr | None = None
     telegram_chat_id: str | None = None
-    smtp_host: str | None = None
-    smtp_port: int = 587
-    smtp_user: str | None = None
-    smtp_password: SecretStr | None = None
-    smtp_from: str | None = None
-    smtp_to: str = ""  # lista separada por comas
-    smtp_use_tls: bool = True
 
     # ── Selección de proveedores ────────────────────────────────────────────────
     briefer_llm_provider: LLMProviderName = "mock"
@@ -131,7 +124,7 @@ class Settings(BaseSettings):
     # Verificar el podcast final con el STT (WER frente al guion) en modo real
     # (≈0,015 € por episodio de 5 min con gpt-4o-mini-transcribe; 0,03 € con whisper-1).
     briefer_verify_podcast: bool = True
-    # Tema de los gráficos PNG: "dark" (a juego con la UI) | "light" (email, impresión).
+    # Tema de los gráficos PNG: "dark" (a juego con la UI) | "light" (impresión).
     briefer_chart_theme: Literal["dark", "light"] = "dark"
 
     # ── Rutas (relativas a la raíz del repo si no son absolutas) ────────────────
@@ -169,9 +162,6 @@ class Settings(BaseSettings):
     def rss_feeds(self) -> list[str]:
         return _split_csv(self.briefer_news_rss_feeds)
 
-    @property
-    def smtp_recipients(self) -> list[str]:
-        return _split_csv(self.smtp_to)
 
     @property
     def data_path(self) -> Path:

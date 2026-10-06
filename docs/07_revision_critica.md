@@ -13,7 +13,7 @@
 1. La idea, la arquitectura por capas y los contratos son **sólidos y por encima de la media**; el riesgo no es de diseño, es de **ejecución en ~90 horas-persona** con 65 *stubs* abiertos.
 2. Tal como está, el plan **no maximiza la nota**: el pipeline es **lineal** (A→B→C sin ramas, bucles ni decisiones) y los dos modelos que más "suman" en la rúbrica (CLIP y texto-a-imagen) están **apagados por defecto**, así que la demo enseñaría menos modalidades de las que promete el README.
 3. Hay un agujero de **experiencia del evaluador**: si arranca sin claves ve el modo mock con noticias `[EJEMPLO FICTICIO]` y un **podcast de silencio** (MockTTS = WAV mudo). Falta un briefing real pregenerado y un modo "sin claves" que use edge-tts (que no necesita clave).
-4. Sobra alcance en proveedores alternativos (3 LLMs, Qwen local, SDXL local, ElevenLabs, Whisper local, email **y** Telegram): es amplitud que no puntúa si no se ve en la demo; conviene cambiarla por **orquestación visible** (enrutado CLIP, puertas de calidad con Whisper/grounding, paralelismo, traza del pipeline en la UI).
+4. Sobra alcance en proveedores alternativos (3 LLMs, Qwen local, SDXL local, ElevenLabs, Whisper local, email **y** Telegram *(06-oct: canal email retirado)*): es amplitud que no puntúa si no se ve en la demo; conviene cambiarla por **orquestación visible** (enrutado CLIP, puertas de calidad con Whisper/grounding, paralelismo, traza del pipeline en la UI).
 5. Con los 8 cambios del resumen final y congelando funcionalidades el miércoles a las 22:00, el plan es **viable y de nota alta**; sin ellos, el riesgo realista es entregar un pipeline correcto pero "plano" y una demo frágil.
 
 ---
@@ -151,7 +151,7 @@ Formato: **Problema → Evidencia → Mejora → Coste (h) → Fase.**
 | Gemini **y** OpenAI como LLM alternativo | Uno basta para demostrar intercambiabilidad (ADR-002); dos no suman nota | Implementar solo uno (el que tenga clave el grupo; Gemini tiene capa gratuita, útil para el evaluador) o ninguno |
 | Qwen2.5-VL local, SDXL-Turbo local, ElevenLabs, Whisper local | Requieren GPU/clave de pago; no saldrán en la demo | Retirados del registry o documentados como roadmap; mencionados en el pitch como "camino a coste 0" |
 | Stable Video Diffusion | Ya está fuera; no reabrir | — |
-| Email **y** Telegram | Telegram es 30 min, vistoso en vídeo (el audio llega al móvil) y sin fricción de SMTP/contraseñas de aplicación | Telegram (Should); email (Could). **Invertir** el orden de recorte de `docs/05` |
+| Email **y** Telegram | Telegram es 30 min, vistoso en vídeo (el audio llega al móvil) y sin fricción de SMTP/contraseñas de aplicación | Telegram (Should); email (Could). **Invertir** el orden de recorte de `docs/05` *(06-oct: canal email retirado)* |
 | Mantener `docs/03` y `docs/06` al día tras cada cambio | Coste de coordinación alto en 3 días | `docs/06` solo al cierre de cada jornada; `docs/03` congelado salvo registro de cambios |
 | Vídeo vertical 1080×1920 a 24 fps con moviepy | Lento y frágil | ffmpeg directo, 720×1280, fps bajo |
 | Histórico con filtros | Poco valor | Lista + abrir (ya esbozado) |
@@ -186,7 +186,7 @@ Presupuesto realista: ~90 horas-persona hasta el jueves a las 17:00; el núcleo 
 | **Could** | Embeddings: búsqueda semántica en el histórico y contexto del Q&A con briefings anteriores ("¿qué dijimos de Inditex el lunes?"); dedupe semántico de noticias | H3 | 3 |
 | **Could** | Clasificador de sentimiento financiero especializado (tipo FinBERT; en inglés sobre titulares de yfinance) como **segunda opinión** del Analista, con aviso si discrepan | H1 | 2,5 (+ torch) |
 | **Could** | Q&A con herramientas de solo lectura (precio de un ticker, buscar en noticias del día) | H1 | 2 |
-| **Could** | Email | H10 | 1 |
+| **Could** | Email *(06-oct: canal email retirado)* | H10 | 1 |
 | **Could** | Un LLM alternativo (Gemini) funcionando por `.env` | H10 | 1,5 |
 | **Could** | Despliegue en la nube (HF Spaces / Streamlit Community Cloud con `packages.txt` para ffmpeg) | entregable 2 | 2 |
 | **Won't** | SVD, SDXL local, Qwen-VL local, ElevenLabs, Bark, *fine-tuning*, autenticación/multiusuario, base de datos, segundo LLM alternativo | H10 | — |

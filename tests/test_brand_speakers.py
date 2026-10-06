@@ -7,7 +7,6 @@ from datetime import date
 from briefer import brand
 from briefer.agents import load_prompt, scriptwriter
 from briefer.config import Settings
-from briefer.delivery.email_sender import build_email_html
 from briefer.delivery.telegram_sender import build_caption
 from briefer.media import charts, podcast
 from briefer.providers import mock
@@ -93,7 +92,6 @@ def test_outputs_carry_brand(sample_briefing: Briefing) -> None:
     assert podcast.AI_AUDIO_METADATA["album"] == "Briefly"
     assert podcast.AI_AUDIO_METADATA["artist"] == "Briefly (voces sintéticas IA)"
     assert charts.FOOTER_NOTE.startswith("Briefly · ")
-    assert "Briefly · edición de noche · " in build_email_html(sample_briefing)
     assert "Briefly · " in build_caption(sample_briefing)
 
 
