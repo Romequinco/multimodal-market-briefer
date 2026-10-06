@@ -4,8 +4,10 @@
   («EJEMPLO IND.», ticker ficticio ``EJMP``), para probar la lectura de gráficos (visión).
 - ``resultados_ejemplo.pdf``: 3 páginas de resultados trimestrales inventados (texto, tabla de
   cifras y una página con gráfico embebido como imagen), para probar ``ingest.pdf_reader``.
+- ``cartera_ejemplo.png``: captura ficticia de la pantalla de posiciones de una app de broker
+  genérica (sin marcas reales), para probar ``ingest.portfolio.portfolio_from_image``.
 
-Solo usa dependencias del proyecto (matplotlib, numpy). Es determinista (semilla fija, sin fechas
+Solo usa dependencias del proyecto (matplotlib, numpy, Pillow). Es determinista (semilla fija, sin fechas
 de creación en los metadatos), así que regenerar no cambia los ficheros salvo que cambie el código.
 
 Uso:  python data/samples/generar_muestras.py
@@ -183,10 +185,83 @@ def make_results_pdf(out: Path) -> Path:
     return out
 
 
+#: Posiciones de la captura de cartera de ejemplo (FICTICIAS): nombre, ticker, títulos, precio.
+#: El valor y el peso se calculan; deben coincidir con ``portfolio.MOCK_SCREENSHOT_TRANSCRIPTION``.
+PORTFOLIO_ROWS: list[tuple[str, str, int, float]] = [
+    ("Banco Santander", "SAN", 1500, 4.52),
+    ("Inditex", "ITX", 120, 48.10),
+    ("Iberdrola", "IBE", 400, 13.25),
+    ("Apple Inc.", "AAPL", 25, 205.40),
+    ("NVIDIA Corp.", "NVDA", 60, 117.20),
+]
+
+
+def _es_num(value: float, decimals: int = 2) -> str:
+    """``1234.5`` -> ``"1.234,50"`` (formato español)."""
+    text = f"{value:,.{decimals}f}"
+    return text.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def make_portfolio_png(out: Path) -> Path:
+    """Captura ficticia de la pantalla «Mis posiciones» de una app de broker genérica (Pillow)."""
+    from matplotlib import font_manager
+    from PIL import Image, ImageDraw, ImageFont
+
+    regular = font_manager.findfont("DejaVu Sans")
+    bold = font_manager.findfont(font_manager.FontProperties(family="DejaVu Sans", weight="bold"))
+
+    def font(size: int, strong: bool = False) -> ImageFont.FreeTypeFont:
+        return ImageFont.truetype(bold if strong else regular, size)
+
+    width, height = 1000, 620
+    bg, card, ink, muted, line = "#F4F6FA", "#FFFFFF", "#1B2333", "#6B7385", "#E3E7EF"
+    accent, up, down = "#2F5BEA", "#14804A", "#C0392B"
+    img = Image.new("RGB", (width, height), bg)
+    draw = ImageDraw.Draw(img)
+
+    # Barra superior de una app genérica (sin marcas reales).
+    draw.rectangle((0, 0, width, 64), fill=accent)
+    draw.text((28, 18), "Tu broker (app ficticia)", font=font(22, True), fill="white")
+    draw.text((width - 300, 22), "Cuenta de valores ·· 0000", font=font(16), fill="#DCE4FF")
+    draw.text((28, 82), "Mis posiciones", font=font(26, True), fill=ink)
+    draw.text((28, 118), "Ejemplo ficticio · datos inventados, no reales", font=font(15, True), fill=down)
+
+    total = sum(q * p for _, _, q, p in PORTFOLIO_ROWS)
+    draw.rounded_rectangle((28, 152, width - 28, 228), radius=12, fill=card, outline=line)
+    draw.text((48, 164), "Valor total de la cartera", font=font(15), fill=muted)
+    draw.text((48, 186), f"{_es_num(total)} €", font=font(26, True), fill=ink)
+    draw.text((width - 290, 174), "Hoy  +0,84 %", font=font(20, True), fill=up)
+
+    columns = [("Valor", 48), ("Títulos", 370), ("Precio", 490), ("Importe", 640), ("Peso", 820)]
+    top = 248
+    draw.rounded_rectangle((28, top, width - 28, height - 28), radius=12, fill=card, outline=line)
+    for label, x in columns:
+        draw.text((x, top + 16), label, font=font(15, True), fill=muted)
+    draw.line((44, top + 46, width - 44, top + 46), fill=line, width=2)
+    changes = ["+1,2 %", "-0,4 %", "+0,3 %", "+0,9 %", "+2,1 %"]
+    for i, (name, ticker, qty, price) in enumerate(PORTFOLIO_ROWS):
+        y = top + 60 + i * 56
+        value = qty * price
+        draw.text((48, y), name, font=font(18, True), fill=ink)
+        draw.text((48, y + 24), f"{ticker} · {changes[i]}", font=font(14), fill=down if changes[i][0] == "-" else up)
+        draw.text((370, y + 8), _es_num(qty, 0), font=font(18), fill=ink)
+        draw.text((490, y + 8), f"{_es_num(price)} €", font=font(18), fill=ink)
+        draw.text((640, y + 8), f"{_es_num(value)} €", font=font(18), fill=ink)
+        pct = 100 * value / total
+        draw.text((820, y + 8), f"{_es_num(pct, 1)} %", font=font(18), fill=ink)
+        draw.rectangle((820, y + 34, 820 + int(120 * pct / 100 * 3), y + 38), fill=accent)
+        if i < len(PORTFOLIO_ROWS) - 1:
+            draw.line((44, y + 48, width - 44, y + 48), fill=line, width=1)
+
+    img.save(out, format="PNG", optimize=True)
+    return out
+
+
 def main() -> None:
     png = make_chart_png(SAMPLES_DIR / "grafico_ejemplo.png")
     pdf = make_results_pdf(SAMPLES_DIR / "resultados_ejemplo.pdf")
-    for path in (png, pdf):
+    cartera = make_portfolio_png(SAMPLES_DIR / "cartera_ejemplo.png")
+    for path in (png, pdf, cartera):
         print(f"{path.name}: {path.stat().st_size / 1024:.0f} KB")
 
 
