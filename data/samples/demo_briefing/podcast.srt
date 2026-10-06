@@ -1,236 +1,207 @@
 1
-00:00:00,000 --> 00:00:04,656
-Toro: Buenas noches, soy Toro. Esto es
-Briefly, la edición de noche con el cierre
+00:00:00,000 --> 00:00:04,699
+Toro: Buenas tardes, soy Toro, y esto es
+Briefly. Hoy, martes 6 de octubre, la
 
 2
-00:00:04,656 --> 00:00:09,485
-del día. Estamos a 5 de octubre de 2026, y
-el titular de hoy es que Santander lidera
+00:00:04,699 --> 00:00:09,218
+banca tira del Ibex 35 con Banco Santander
+en cabeza, subiendo casi un 6 %.
 
 3
-00:00:09,485 --> 00:00:13,969
-las subidas del IBEX tras las elecciones
-en Brasil, con Wall Street también en
+00:00:09,218 --> 00:00:14,965
+Osa: Buenas tardes, soy Osa.
+Efectivamente, a esta hora de la sesión el
 
 4
-00:00:13,969 --> 00:00:14,486
-positivo.
+00:00:14,965 --> 00:00:21,278
+Ibex 35 avanza un 1,08 % y el S&P 500 suma
+un 0,66 %. Vamos a repasar qué está
 
 5
-00:00:14,486 --> 00:00:18,788
-Osa: Buenas noches, soy Osa. Vamos a
-desglosar qué ha pasado en los mercados
+00:00:21,278 --> 00:00:23,383
+moviendo los mercados hoy.
 
 6
-00:00:18,788 --> 00:00:20,429
-esta tarde y por qué importa.
+00:00:23,383 --> 00:00:29,875
+Toro: Empecemos con Banco Santander: sube
+un 5,89 % hasta los 12,50 EUR. ¿Qué
 
 7
-00:00:20,429 --> 00:00:25,479
-Toro: Empecemos por lo más destacado:
-Banco Santander ha subido casi un 3%, ¿no
+00:00:29,875 --> 00:00:32,826
+explica este avance tan importante?
 
 8
-00:00:25,479 --> 00:00:25,926
-es así?
+00:00:32,826 --> 00:00:38,058
+Osa: Según El blog del Euríbor, el avance
+se relaciona con la victoria de Bolsonaro
 
 9
-00:00:25,926 --> 00:00:31,487
-Osa: Exacto. Santander avanza un 2,96%
-hasta 12,16 euros. Aunque hay que notar
+00:00:38,058 --> 00:00:43,101
+en Brasil. Lo relevante es que el banco
+obtuvo un 16 % de su beneficio en Brasil
 
 10
-00:00:31,487 --> 00:00:36,835
-que sigue un 5,65% por debajo de donde
-estaba el 7 de septiembre. Según los
+00:00:43,101 --> 00:00:48,082
+el año pasado y que la segunda vuelta
+electoral es el 25 de octubre, así que el
 
 11
-00:00:36,835 --> 00:00:42,539
-titulares, el IBEX se dio la vuelta al
-alza de la mano de Santander y Telefónica
+00:00:48,082 --> 00:00:50,288
+país pesa bastante en su evolución.
 
 12
-00:00:42,539 --> 00:00:48,528
-tras las elecciones en Brasil, y la prensa
-lo relaciona con lo que algunos llaman el
+00:00:50,288 --> 00:00:54,548
+Toro: Vale, un punto geopolítico que
+influye directamente en sus números.
 
 13
-00:00:48,528 --> 00:00:52,521
-'efecto Brasil' en las empresas con más
-exposición allí.
+00:00:54,548 --> 00:00:57,408
+Cambiando de tercio, Iberdrola también
+suma, ¿no?
 
 14
-00:00:52,521 --> 00:00:56,938
-Toro: Interesante ese efecto Brasil. Y
-mientras tanto, ¿cómo ha cerrado el IBEX
+00:00:57,408 --> 00:01:04,051
+Osa: Sí, Iberdrola avanza un 1,83 % hasta
+21,20 EUR y lleva un 6,91 % ganado en el
 
 15
-00:00:56,938 --> 00:00:57,721
-35 en general?
+00:01:04,051 --> 00:01:10,126
+último mes. Según Cinco Días, Goldman
+Sachs y Deutsche Bank han mejorado su
 
 16
-00:00:57,721 --> 00:01:02,862
-Osa: El IBEX ha ganado un 0,90% en la
-sesión. Aunque conviene recordar que el
+00:01:10,126 --> 00:01:14,420
+recomendación por el impulso de los
+centros de datos.
 
 17
-00:01:02,862 --> 00:01:08,337
-índice sigue condicionado por el euro en
-mínimos de 17 meses y por las dudas sobre
+00:01:14,420 --> 00:01:18,961
+Toro: Así que hay apoyo de analistas
+importantes detrás de ese movimiento. ¿Hay
 
 18
-00:01:08,337 --> 00:01:08,938
-la deuda.
+00:01:18,961 --> 00:01:20,341
+algo más en la compañía?
 
 19
-00:01:08,938 --> 00:01:12,132
-Toro: Y cambiando de tercio, ¿qué tal está
-yendo Wall Street?
+00:01:20,341 --> 00:01:25,125
+Osa: También, Iberdrola, el PNV y el PP
+reabrieron el debate sobre separar la red
 
 20
-00:01:12,132 --> 00:01:20,326
-Osa: Wall Street también cierra en
-positivo: el S&P 500 sube un 0,73%. Y aquí
+00:01:25,125 --> 00:01:29,259
+de transporte eléctrico de Redeia, aunque
+sin más detalles de momento.
 
 21
-00:01:20,326 --> 00:01:27,881
-destaca especialmente NVIDIA, que avanza
-un 1,34% hasta 233,95 dólares.
+00:01:29,259 --> 00:01:37,176
+Toro: Y vamos ahora con Inditex, que sube
+de forma más modesta, un 0,53 % hasta
 
 22
-00:01:27,881 --> 00:01:29,441
-Toro: ¿Qué ha movido a NVIDIA hoy?
+00:01:37,176 --> 00:01:38,178
+53,52 EUR.
 
 23
-00:01:29,441 --> 00:01:34,556
-Osa: Ha autorizado una capacidad de
-recompra de acciones de 235 mil millones
+00:01:38,178 --> 00:01:43,906
+Osa: Correcto, aunque acumula un 7,02 % de
+caída en el último mes. Según Jefferies,
 
 24
-00:01:34,556 --> 00:01:40,142
-de dólares, que es unas 2,4 veces su flujo
-de caja libre del ejercicio fiscal 2026,
+00:01:43,906 --> 00:01:49,426
+citado en Yahoo Finance, el éxito del
+lanzamiento de la colaboración de Zara con
 
 25
-00:01:40,142 --> 00:01:45,189
-que fue de 96,68 mil millones. Además,
-corre el rumor de que Amazon estudia
+00:01:49,426 --> 00:01:54,671
+Galliano es destacable, y el analista ve
+un potencial del 26 %. Finanzas.com
 
 26
-00:01:45,189 --> 00:01:50,573
-vender chips de NVIDIA y alquilarlos de
-vuelta, aunque no hay más detalles sobre
+00:01:54,671 --> 00:01:59,087
+también señala ese efecto Galliano como
+palanca para el mercado.
 
 27
-00:01:50,573 --> 00:01:50,910
-esto.
+00:01:59,387 --> 00:02:03,983
+Toro: Un movimiento positivo, entonces,
+con una colaboración estratégica detrás.
 
 28
-00:01:50,910 --> 00:01:54,847
-Toro: Vemos también que Apple sube. ¿Hay
-alguna noticia que lo explique?
+00:02:03,983 --> 00:02:06,625
+Fuera de España, NVIDIA también tira,
+¿verdad?
 
 29
-00:01:54,997 --> 00:02:00,558
-Osa: Apple sube un 1,02% hasta 333,69
-dólares, pero aquí las noticias no
+00:02:06,625 --> 00:02:12,847
+Osa: Sí, NVIDIA sube un 2,12 % hasta
+238,90 USD y gana un 5,83 % en el último
 
 30
-00:02:00,558 --> 00:02:06,892
-explican el movimiento de hoy. Se habla de
-productos como el watchOS 27 y el Apple
+00:02:12,847 --> 00:02:18,908
+mes. BNP Paribas ha elevado su precio
+objetivo, y TradingView apunta que la
 
 31
-00:02:06,892 --> 00:02:11,990
-Watch Serie 12, pero nada que justifique
-directamente esta subida.
+00:02:18,908 --> 00:02:25,050
+compañía publicará resultados del tercer
+trimestre hacia el 18 de noviembre.
 
 32
-00:02:11,990 --> 00:02:14,673
-Toro: Y en el IBEX, ¿hay algo más además
-de Santander?
+00:02:25,050 --> 00:02:30,084
+Toro: Hay expectativas de resultados,
+claro. Aunque según Benzinga, su peso en
 
 33
-00:02:14,673 --> 00:02:20,933
-Osa: Sí. Inditex sube un 0,34% hasta 53,42
-euros, aunque cede un 7,19% desde el 7 de
+00:02:30,084 --> 00:02:33,311
+el S&P 500 marca un nivel récord de
+concentración.
 
 34
-00:02:20,933 --> 00:02:26,299
-septiembre. Según los analistas de
-Jefferies, anticipan un impresionante
+00:02:33,311 --> 00:02:39,790
+Osa: Exacto, algo a tener en cuenta. En
+cambio, Apple apenas se mueve: cede un
 
 35
-00:02:26,299 --> 00:02:31,963
-crecimiento en el tercer trimestre y
-destacan el éxito de la colaboración de
+00:02:39,790 --> 00:02:45,854
+0,24 % hasta 332,89 USD, aunque sube un
+5,27 % en el último mes. Según El
 
 36
-00:02:31,963 --> 00:02:38,000
-Zara con Galliano. Conviene saber que esa
-es la opinión de Jefferies, no nuestra.
+00:02:45,854 --> 00:02:52,167
+Nacional, prepara un octubre con muchos
+lanzamientos, con novedades el 13 de
 
 37
-00:02:38,000 --> 00:02:43,515
-Además, la prensa señala que Inditex es
-seis veces más rentable que Shein.
+00:02:52,167 --> 00:02:52,832
+octubre.
 
 38
-00:02:43,515 --> 00:02:45,750
-Toro: ¿Hay algo más que debamos saber de
-hoy?
+00:02:52,832 --> 00:02:57,462
+Toro: Así que hablamos de una sesión
+alcista donde la banca y la tecnología
 
 39
-00:02:45,750 --> 00:02:52,068
-Osa: Iberdrola sube un 0,48% y acumula un
-5,50% en el último mes. La compañía, junto
+00:02:57,462 --> 00:03:02,216
+tiran, con el Ibex 35 y el S&P 500 ambos
+en verde. Toro y Osa os deseamos que
 
 40
-00:02:52,068 --> 00:02:57,257
-con PNV y PP, reabre el debate sobre
-quitar a Redeia el monopolio del
+00:03:02,216 --> 00:03:03,945
+disfrutéis de vuestra tarde.
 
 41
-00:02:57,257 --> 00:03:02,221
-transporte eléctrico. Es una discusión
-política sin resultado aún.
+00:03:03,945 --> 00:03:08,599
+Osa: Hasta mañana. Recordad que este
+episodio está generado con inteligencia
 
 42
-00:03:02,221 --> 00:03:08,971
-Toro: Resumiendo, una sesión de subidas
-generalizadas en los valores que seguimos,
+00:03:08,599 --> 00:03:13,621
+artificial y las voces son sintéticas; es
+información, no asesoramiento financiero
 
 43
-00:03:08,971 --> 00:03:13,251
-con el IBEX ganando un 0,90% y Wall Street
-un 0,73%.
-
-44
-00:03:13,251 --> 00:03:17,812
-Osa: Así es. Un cierre positivo, aunque
-con las salvedades que ya os hemos
-
-45
-00:03:17,812 --> 00:03:22,497
-comentado sobre el euro y la deuda.
-Recordad que este episodio está generado
-
-46
-00:03:22,497 --> 00:03:27,490
-con inteligencia artificial y las voces
-que os hablan son sintéticas. Todo lo que
-
-47
-00:03:27,490 --> 00:03:31,496
-escucháis aquí es información, no
-asesoramiento financiero ni una
-
-48
-00:03:31,496 --> 00:03:36,304
-recomendación de inversión. Os aconsejamos
-que contrastéis siempre con fuentes
-
-49
-00:03:36,304 --> 00:03:37,845
-oficiales. Buenas noches.
+00:03:13,621 --> 00:03:18,275
+ni una recomendación de inversión.
+Contrastad siempre con fuentes oficiales.
