@@ -73,4 +73,4 @@ def test_chart_goes_to_vision_with_route_in_trace(settings: Settings, chart_png:
     metrics: list[StepMetric] = []
     insight = pipeline.process_upload(chart_png, providers, metrics)
     assert insight.source_type == "chart" and vision.calls >= 1
-    assert "velas" in (metrics[-1].detail or "")
+    assert (metrics[-1].detail or "").startswith("Clasificador fake: gráfico de velas")

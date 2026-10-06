@@ -263,7 +263,9 @@ def read_chart(
 
     if route is None:
         route = route_image(image, classifier, stats_out) if classifier is not None else None
-    elif stats_out is not None:
+    elif stats_out is not None and stats_out.get("label") != route.label:
+        # Si ``stats_out`` ya viene de ``route_image`` con esta decisión, se conserva tal cual
+        # (proveedor y tiempo de clasificación incluidos).
         stats_out.clear()
         _record_route(stats_out, route)
 
