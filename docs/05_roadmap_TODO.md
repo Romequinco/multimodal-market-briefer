@@ -3,7 +3,21 @@
 **Entrega: jueves 8-oct-2026, 18:00** (aula virtual; objetivo interno 16:30). Plan revisado tras la
 [revisión crítica](07_revision_critica.md) del 05-oct. Tareas por fase y por carril, **sin asignar personas**:
 cada uno marca la que coge escribiendo su nombre al lado. Contratos y firmas reales en
-[03](03_contratos_modulos.md) (**v0.3.5**).
+[03](03_contratos_modulos.md) (**v0.3.8**).
+
+> **Actualización mar 6-oct-2026 (fase 2 · evidencia y mediciones).** Cerrados los caminos **1, 2 y 6**:
+> evaluación de **N = 6 briefings reales** (3 carteras y 3 listas, una con PDF + gráfico; `notebooks/01_evaluacion_briefings.ipynb`
+> + `scripts/evaluar_briefings.py`, resultados en `notebooks/eval/`): 0 fallos y 0 sustitutos, pared p50 52,7 s /
+> p95 68,2 s, coste p50 0,0337 € / p95 0,0620 € (0,0691 € con PDF + gráfico), 232/232 cifras trazables, 0
+> recomendaciones, 35/35 puntos clave con fuente, podcasts de 3,2-3,7 min (6/6 en 3-5), juez Sonnet 1-5: fidelidad
+> 3,33 · claridad 4,0 · sin consejo 4,17 · utilidad 3,33 (0,41 €). Comparativa Sonnet / Haiku / Gemini por agente con
+> juez ciego ([ADR-007](decisiones/ADR-007-modelos-por-agente.md), aceptado): **se confirman** Sonnet en el Analista
+> y Haiku en Guionista y Q&A; Gemini queda como plan B de proveedor (0,55 €). Cuaderno de recorrido de 15 pasos en mock
+> (13 s, sin red). `docs/04` reforzado (costes fijos, punto de equilibrio, transferencias RGPD). Tras la evaluación,
+> mejoras de calidad: saludo y marco según la hora real (`agents/timeframe.py`), puertas de causas sin atribuir y de
+> tono valorativo con reintento, concordancia de artículos y prioridad de los valores del usuario en el Analista
+> (verificado en real: briefing `20261006-142229-4926f2`, 0,043 €). **1202 tests sin red** (+ 13 `live`), ruff +
+> mypy limpios. Quedan: contraste con la consola y clave de grupo (usuario), Docker, `run.sh`, *stubs* y entregables.
 
 > **Actualización mar 6-oct-2026 (fase 1).** Cerradas las piezas multimodales que quedaban de D2 (rama `fase1`):
 > **vídeo corto** 9:16 con Pillow + ffmpeg y subtítulos por locutor (8,5 s para el pregenerado, 0 €), **router
@@ -201,9 +215,9 @@ mode="real")` el 05-oct entre las 10:56 y las 11:15 (una sin caché y dos con ca
 - [x] **[M]** `answer_question` por voz fin a fin — `pipeline.answer_question(Path)` → `QAAnswer.metrics` — **Hecho cuando:** audio → texto → respuesta → audio en < 10 s medido y mostrado en Preguntar *(pasos medidos por separado: STT 1,3 s + Q&A con `warmup` 5,2 s ≈ 6,5 s; la página muestra la latencia por paso; el audio de la pregunta se borra al terminar. Cadena completa medida el 05-oct con `scripts/measure_qa_voice.py` en 3 procesos nuevos: frío p50 6,4 s, caliente p50 6,0 s; `warmup` precalienta ya también el STT)*
 - [x] **[M]** Rótulo de los índices en el gráfico de variación — `media/charts.make_overview_chart` — **Hecho cuando:** `^IBEX` / `^GSPC` aparecen como «IBEX 35» / «S&P 500» y diferenciados de los valores del usuario (color o sección «Índices»), con test *(bloque «Índices de referencia» en gris, fecha de la sesión y fuente en los títulos, «precios sintéticos (demo)» en mock o sustituto)*
 - [x] **[M]** Calidad del Guionista (Haiku) — `prompts/scriptwriter.md`, `scriptwriter.write_script` / `script_problems` — **Hecho cuando:** en 5 briefings reales seguidos, 0 caídas a `fallback_script` y ≤ 1 reintento por guion, duración 3-5 min; si no se logra, decidir con el camino 2 si el Guionista pasa a Sonnet *(revisión F0-F1: puertas deterministas de cifras, cobertura de puntos clave, duración, gramática y palabras raras; comparativa Haiku/Sonnet y decisión en [ADR-006](decisiones/ADR-006-guionista-haiku-puertas-deterministas.md); `BRIEFER_SCRIPTWRITER_MODEL` para cambiar. No se hicieron 5 briefings seguidos y el pregenerado dura **5:27** (> objetivo de 4 min): riesgo abierto en [06](06_estado_actual.md))*
-- [ ] **[M]** Revisión de prompts con 3 carteras distintas — `agents/prompts/*.md` — **Hecho cuando:** sin recomendaciones de compra/venta ni cifras inventadas en las 3 (y `contains_advice` no salta) *(heredada de D1)*
-- [ ] **[M]** Coste por paso contrastado con la consola del proveedor — `costs.py`, `pipeline.py` — **Hecho cuando:** el coste estimado de los briefings medidos cuadra (± 20 %) con el gasto que muestra la consola de Anthropic del día *(heredada de D1: hoy es estimación por tokens reales)*
-- [ ] **[M]** Clave de grupo con límite de gasto (20-30 $) — **Hecho cuando:** los tres pueden ejecutar `smoke_real.py` *(heredada de F0; NO VERIFICADO)*
+- [x] **[M]** Revisión de prompts con 3 carteras distintas — `agents/prompts/*.md` — **Hecho cuando:** sin recomendaciones de compra/venta ni cifras inventadas en las 3 (y `contains_advice` no salta) *(heredada de D1. **Hecho 06-oct (fase 2, camino 1):** carteras banca ES, tech EE. UU. y mixta defensiva en real: 0 recomendaciones (`contains_advice`), 0 cifras inventadas (`untraceable_figures` sobre análisis y guion) y las 3 carteras mencionan sus 3 posiciones; ver `notebooks/eval/resumen.md`)*
+- [ ] **[M]** Coste por paso contrastado con la consola del proveedor — `costs.py`, `pipeline.py` — **Hecho cuando:** el coste estimado de los briefings medidos cuadra (± 20 %) con el gasto que muestra la consola de Anthropic del día *(heredada de D1: hoy es estimación por tokens reales. **Abierta (usuario):** requiere acceso a las consolas. Coste estimado registrado para comparar: 05-oct 0,37 € en briefings guardados (Anthropic 0,26 · OpenAI 0,06 · Gemini 0,05); 06-oct 0,38 € en briefings + ≈ 1,0 € en evaluación, comparativa y pruebas fuera de briefings (estimación))*
+- [ ] **[M]** Clave de grupo con límite de gasto (20-30 $) — **Hecho cuando:** los tres pueden ejecutar `smoke_real.py` *(heredada de F0; NO VERIFICADO. **Abierta (usuario):** requiere acceso a la cuenta de Anthropic para crear la clave y fijar el límite)*
 - [x] **[M]** CI en verde en GitHub — **Hecho cuando:** la primera ejecución de `tests.yml` en `main` sale verde y la insignia del README lo refleja *(verde en `6137d83` según la auditoría; desde la revisión, matriz Python 3.11 y 3.13)*
 - [x] **[S]** Grounding también en el Guionista — `scriptwriter.write_script` con `guardrails.untraceable_figures` contra el `Analysis` — **Hecho cuando:** una cifra del guion que no esté en el análisis provoca un reintento y queda en `StepMetric.detail` *(`script_problems(reference=…)`, `write_script(check_figures=True)`; pregenerado: «guion: cifras trazables al análisis»)*
 - [x] **[S]** Resumen de noticias acotado en origen — `ingest/news.SUMMARY_MAX_CHARS` (antes 600) o recorte al exportar/mostrar — **Hecho cuando:** ningún extracto mostrado o versionado supera ~200 caracteres (compliance de derechos de autor, ver [04 §5](04_viabilidad_costes_latencia_compliance.md#derechos-de-autor-de-las-noticias)) *(`SUMMARY_MAX_CHARS = 200` en origen; pregenerado: máximo 198)*
@@ -222,8 +236,8 @@ mode="real")` el 05-oct entre las 10:56 y las 11:15 (una sin caché y dos con ca
 - [x] **[S]** Anti-recomendación con reintento — `agents/guardrails.contains_advice` en el bucle del Analista/Guionista — **Hecho cuando:** una salida con recomendación provoca un reintento antes de recortar la frase *(Guionista: `script_problems` pide reescribir. Analista: comprobado el 06-oct que ya reintentaba desde la revisión F0-F1 («compliance: recomendación detectada -> 1 reintento» en la traza) y solo recorta si persiste; tests `test_injected_news_is_flagged_and_advice_triggers_retry` y `test_advice_that_persists_is_cut` en `tests/test_agents_redteam.py`)*
 - [x] **[S]** Whisper sobre el podcast generado — `media/transcript.verify_podcast` (nueva; STT + WER contra el guion) — **Hecho cuando:** el briefing muestra el WER y las líneas con WER alto se re-sintetizan una vez *(05-oct, tanda de refuerzo: paso opcional `media.verify` con el WER y las peores líneas en la traza; real: WER 1,2 % en el pregenerado y 1,1 % en un briefing nuevo. La re-síntesis de líneas no se hace: con WER ≈ 1 % no compensa)*
 - [x] **[M]** Contenido de documentos como datos — `pdf_reader.read_pdf`, `chart_reader.read_chart` (delimitadores en el prompt) — **Hecho cuando:** un PDF con «ignora las instrucciones» no altera el análisis *(`<documento>` / `<descripcion>` declarados dato; `analyst.suspicious_sources` + `INJECTION_NOTE`; red-team sin red y en real. El contexto del Q&A va ya en un mensaje `user` delimitado `<contexto_briefing>` y marcado como dato)*
-- [ ] **[M]** `docs/04` reforzado — costes fijos (datos, noticias licenciadas, TTS oficial Azure, hosting), punto de equilibrio B2C vs B2B2C, MAR (sentimiento = «impacto de la noticia»), AI Act art. 50, transferencias RGPD, tabla riesgo → control en código — **Hecho cuando:** cada control apunta a un fichero del repo *(revisión: tabla riesgo → control con ficheros, AI Act art. 50, RGPD de cartera, subidas, audio y secretos, derechos de autor con `robots.txt`. 05-oct: fila MAR del «impacto de la noticia» (FinBERT) y coste de la voz premium. Faltan costes fijos, punto de equilibrio y transferencias)*
-- [ ] **[M]** Medición p50/p95 — `StepMetric` de 5 briefings y 5 Q&A (hoy 4 y 7) — **Hecho cuando:** columna «Medido» de `docs/04` con p50/p95 (cierre en D3) *(primera medición hecha: ver 04. `scripts/metrics_report.py` calcula p50/p95 desde los briefings guardados y `scripts/measure_qa_voice.py` la cadena de voz; falta llegar a N ≥ 5)*
+- [x] **[M]** `docs/04` reforzado — costes fijos (datos, noticias licenciadas, TTS oficial Azure, hosting), punto de equilibrio B2C vs B2B2C, MAR (sentimiento = «impacto de la noticia»), AI Act art. 50, transferencias RGPD, tabla riesgo → control en código — **Hecho cuando:** cada control apunta a un fichero del repo *(revisión: tabla riesgo → control con ficheros, AI Act art. 50, RGPD de cartera, subidas, audio y secretos, derechos de autor con `robots.txt`. 05-oct: fila MAR del «impacto de la noticia» (FinBERT) y coste de la voz premium. **Hecho 06-oct (fase 2):** costes fijos ≈ 1.070 €/mes (lanzamiento B2C) / ≈ 3.700 €/mes (listo para B2B2C), coste variable medido, punto de equilibrio y transferencias RGPD)*
+- [x] **[M]** Medición p50/p95 — `StepMetric` de 5 briefings y 5 Q&A (hoy 4 y 7) — **Hecho cuando:** columna «Medido» de `docs/04` con p50/p95 (cierre en D3) *(primera medición hecha: ver 04. `scripts/metrics_report.py` calcula p50/p95 desde los briefings guardados y `scripts/measure_qa_voice.py` la cadena de voz; **Hecho 06-oct (fase 2, camino 1):** N = 6 briefings reales, pared p50 52,7 s / p95 68,2 s, coste p50 0,0337 € / p95 0,0620 €, p50/p95 por paso en `notebooks/eval/resumen.md` y en 04; Q&A de voz con 7 medidas del 05-oct)*
 - [x] **[C]** Un LLM alternativo — `providers/llm/gemini_llm.py` (`GeminiLLM.complete`, implementado) — **Hecho cuando:** `BRIEFER_LLM_PROVIDER=gemini` genera un briefing completo sin tocar código *(05-oct: briefing completo con `gemini-2.5-flash` sin tocar código, 0,021 €, 67,7 s, JSON válido a la primera, sin sustitutos)*
 
 ### Carril C
@@ -270,7 +284,11 @@ Reglas comunes:
 
 ### 1 · Evaluación de briefings reales — `notebooks/01_evaluacion_briefings.ipynb` (**recomendado**, ~1 €)
 
-- [ ] **Qué:** generar N = 5-10 briefings reales (tickers y carteras variados; reutilizar la caché del día) y medir:
+> **Hecho 06-oct (fase 2).** N = 6 (3 carteras + 3 listas, una con PDF + gráfico), 0 fallos, p50/p95 de pared y
+> coste, 232/232 cifras trazables, 0 recomendaciones, 35/35 puntos clave con fuente, juez 3,33 / 4,0 / 4,17 / 3,33
+> (fidelidad / claridad / sin consejo / utilidad); 0,41 €. CLI: `python scripts/evaluar_briefings.py [--real]`.
+
+- [x] **Qué:** generar N = 5-10 briefings reales (tickers y carteras variados; reutilizar la caché del día) y medir:
   *grounding* (`guardrails.untraceable_figures` sobre análisis **y** guion), recomendaciones (`contains_advice`),
   fuentes válidas por punto clave, duración del podcast frente a 3-5 min, coste y latencia por paso (p50/p95 desde
   `Briefing.metrics`), caídas a sustituto (`step_fell_back`), y un **LLM-juez** (Sonnet, rúbrica fija de 1-5:
@@ -284,7 +302,12 @@ Reglas comunes:
 
 ### 2 · Comparativa de modelos — `notebooks/02_comparativa_modelos.ipynb` (~1 €)
 
-- [ ] **Qué:** mismo `MarketContext` congelado (cargado de un `briefing.json`), Analista y Guionista con
+> **Hecho 06-oct (fase 2).** Sonnet 5.5 / Haiku 4.5 / Gemini 2.5 Flash en Analista, Guionista y Q&A con juez
+> ciego; [ADR-007](decisiones/ADR-007-modelos-por-agente.md) aceptado: se confirman los modelos actuales (ADR-006);
+> Gemini viable como plan B (cadena 0,021 € frente a 0,037 €) pero no por defecto (más reintentos en el Analista
+> y guiones > 5 min). 0,55 €.
+
+- [x] **Qué:** mismo `MarketContext` congelado (cargado de un `briefing.json`), Analista y Guionista con
   Sonnet 5.5, Haiku 4.5 y Gemini (`BRIEFER_GEMINI_MODEL`); medir coste, latencia, validez estructurada a la
   primera, *grounding*, problemas de `script_problems` y juicio ciego (LLM-juez o equipo).
 - **Ficheros:** `notebooks/02_comparativa_modelos.ipynb` (nuevo); decisión en
@@ -366,7 +389,9 @@ Reglas comunes:
 
 ### 6 · Recorrido del pipeline para la entrega — `notebooks/00_recorrido_pipeline.ipynb` (0 € en mock / ~0,07 € en real)
 
-- [ ] **Qué:** cuaderno didáctico que ejecuta la cadena **paso a paso** (noticias → filtro → PDF/gráfico por
+> **Hecho 06-oct (fase 2).** 15 pasos en mock, sin red ni claves, 13 s.
+
+- [x] **Qué:** cuaderno didáctico que ejecuta la cadena **paso a paso** (noticias → filtro → PDF/gráfico por
   visión → Analista → *grounding* → Guionista → normalización → TTS → SRT → gráficos → Q&A) mostrando la
   entrada y la salida tipada de cada paso y su `StepMetric`; por defecto en modo `mock`/`demo_voices`, con una
   celda opcional en real que reutiliza la caché.

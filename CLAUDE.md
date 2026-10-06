@@ -108,6 +108,7 @@ python scripts/demo.py --demo-voices  # sin claves: datos de ejemplo + LLM mock 
 python scripts/demo.py [--refresh]    # modo real con claves de .env (--refresh ignora la caché diaria)
 python scripts/demo.py --question "…" --briefing pregenerado --warmup   # Q&A por CLI (salida 0/1/2/3/130)
 python scripts/smoke_real.py          # humo real y barato de cada proveedor con clave (< 0,01 €)
+python scripts/evaluar_briefings.py   # evaluación de briefings (notebooks/eval/); --real genera y juzga (gasta)
 python scripts/telegram_setup.py [--write] [--test]   # bot de Telegram: lista chats, escribe TELEGRAM_CHAT_ID, prueba
 ```
 

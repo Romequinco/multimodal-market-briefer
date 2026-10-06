@@ -4,8 +4,8 @@ Este documento permite que los tres carriles trabajen **en paralelo** desde el d
 contra estos contratos y usa `providers/mock.py` y los datos de `data/samples/` mientras lo de los demás no
 existe.
 
-**Versión de contratos: v0.3.6 (06-oct-2026, cierre de la fase 1: vídeo, portada local, Telegram, router CLIP y cartera
-desde captura).** Fuente de verdad en
+**Versión de contratos: v0.3.8 (06-oct-2026, fase 2: calidad del guion y del análisis tras la evaluación; antes
+v0.3.6, cierre de la fase 1: vídeo, portada local, Telegram, router CLIP y cartera desde captura).** Fuente de verdad en
 código: `src/briefer/schemas.py` (`CONTRACTS_VERSION = "0.3"`) y `src/briefer/providers/base.py`. La v0.3.1 **no
 toca** `schemas.py` ni `providers/base.py` (por eso `CONTRACTS_VERSION` sigue en `"0.3"`): añade funciones,
 constantes y parámetros opcionales en los módulos y cambia la **semántica** de dos cosas (persistencia sin cartera
@@ -923,8 +923,41 @@ GRAMMAR_FIXES: dict[str, str]                     # (v0.3.1) «para que veis» -
 def odd_words(text: str) -> list[str]: ...        # (v0.3.1) palabras con otros alfabetos o invisibles
 def grammar_issues(text: str) -> list[str]: ...   # (v0.3.1) GRAMMAR_FIXES y tildes mal puestas
 def fix_spoken_text(text: str) -> str: ...        # (v0.3.1) corrige lo anterior y quita invisibles
-def unhedged_causal_claims(text: str) -> list[str]: ...  # (v0.3.1) «sube principalmente por…» sin
-                                                         #   atribuirlo a la fuente («según…»)
+def unhedged_causal_claims(text: str, reference: str | None = None) -> list[str]: ...  # (v0.3.1) «sube
+    # principalmente por…» sin atribuirlo a la fuente («según…»). (v0.3.8) más verbos causales («lastrado
+    # por», «impulsado por»…) y «los analistas» genérico no cuenta como atribución
+def evaluative_tone(text: str) -> list[str]: ...  # (v0.3.8) frases de tono valorativo («os debería
+    # preocupar», «suena a buen negocio», «impresionante»); las atribuidas («según Barclays…») no cuentan
+def agreement_issues(text: str) -> list[str]: ...  # (v0.3.8) concordancia artículo-sustantivo
+    # («la lanzamiento», «los cifras»)
+def fix_agreement(text: str) -> str: ...           # (v0.3.8) corrige lo anterior; lo usan grammar_issues
+                                                   #   y fix_spoken_text
+
+# timeframe.py  [impl] (v0.3.8) — marco temporal del episodio según la hora real de Madrid
+MADRID_TZ = "Europe/Madrid"
+@dataclass(frozen=True)
+class TimeFrame:  # when, greeting («Buenos días» / «Buenas tardes» / «Buenas noches»),
+    # session ("pre" | "open" | "closed"), can_say_close (algún mercado del episodio ya cerró hoy o es
+    # fin de semana), note (frase para el prompt); propiedad is_night
+def madrid_now() -> datetime: ...
+def market_of(ticker: str) -> Literal["eu", "us"]: ...  # índices de EE. UU. y tickers sin sufijo -> "us"
+def greeting_for(clock: time) -> str: ...
+def time_frame(now: datetime | None = None, tickers: list[str] | tuple[str, ...] = ()) -> TimeFrame: ...
+
+# Añadidos v0.3.8 en analyst.py y scriptwriter.py (aditivos; parámetros nuevos keyword-only con None)
+# analyst.focus_tickers(context) -> set[str]          # valores del usuario (cartera o lista pedida)
+# analyst.focus_problems(analysis, context) -> list[str]  # titular / 1.er punto clave no tratan de ellos
+# analyst.leads_with(text, tickers, words=FOCUS_LEAD_WORDS) -> bool
+# analyst._ensure_focus(...)  (privada): reordena puntos clave si tras el reintento sigue fuera de foco
+# analyst.analyze(..., *, now=None)                    # el reintento incluye focus_problems
+# scriptwriter.episode_frame(analysis, now=None) -> TimeFrame
+# scriptwriter.closing_line(frame=None) -> str         # CLOSING_LINE_ES = closing_line() (noche)
+# scriptwriter.premature_close_claims(text, frame) -> list[str]  # habla de «cierre» con la sesión abierta
+# scriptwriter.fix_time_frame(text, frame) -> str      # reparación determinista de lo anterior
+# scriptwriter.script_problems(..., *, frame=None)     # + premature_close_claims (con frame),
+#                                                      #   evaluative_tone y unhedged_causal_claims
+# scriptwriter.fallback_script(..., *, frame=None) · write_script(..., *, now=None)
+# qa.answer aplica también scriptwriter.fix_regionalisms («mantención» -> «mantenimiento»)
 ```
 
 Prompts de producción en `agents/prompts/{analyst,scriptwriter,qa}.md`, cargados en tiempo de ejecución con
@@ -1222,3 +1255,4 @@ flowchart LR
 | v0.3.5 · fase 1 | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (`CONTRACTS_VERSION` sigue en `"0.3"`). **Implementado (deja de ser *stub*):** `media.video.make_video` (Pillow + ffmpeg de `imageio-ffmpeg`, sin moviepy; nuevos `plan_slides`, `image_keywords`, `first_mention`, `build_ass`, `ass_*`; valores por defecto `size=(720, 1280)` y `fps=12` en vez de `(1080, 1920)` y 24; parámetros *keyword-only* `title` y `speaker_names`); `media.cover` (`make_cover`, `overlay_title`, `build_cover_prompt` + `AI_LABEL`, `dominant_sentiment`, `cover_texts`, `format_date_es`, `wrap_text`); `delivery.telegram_sender.send_briefing_telegram` (+ `call_api`, `TelegramError`, límites) y `scripts/telegram_setup.py`; `CLIPClassifier.classify`. **Nuevo proveedor** `GeminiImage` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, `BRIEFER_GEMINI_IMAGE_MODEL`). **Nuevas funciones:** `chart_reader.ImageRoute`, `decide_route`, `route_image`, `format_route_stats` y etiquetas/umbrales; `read_chart(..., *, route=None, stats_out=None)`; `portfolio.portfolio_from_image`, `parse_screenshot_table`, `format_screenshot_stats`; `pipeline.portfolio_from_screenshot` (paso `ingest.portfolio_image`); `costs.image_price_usd` y `estimate_image_cost_eur(..., model="")`. **Rompe (solo interno, sin lectores fuera de `chart_reader` y los tests):** `chart_reader.classify_image` devuelve `ImageRoute` en vez de `tuple[str, float]`. **Cambios de semántica:** (1) una imagen no financiera hace que `read_chart` lance `ValueError` **sin llamar a visión** (antes devolvía un `DocumentInsight` vacío con el aviso en `summary`), así que la subida se omite como cualquier otra que falla; (2) `NOT_CHART_THRESHOLD` (0,6) se aplica a la **suma** de las tres etiquetas no financieras; (3) en `process_upload`, una captura de cartera se rechaza con `ValueError` («súbela en Mi cartera») sin llamar a visión; (4) el paso `media.video` se registra como `ffmpeg`/`libx264` (antes `moviepy`). Dependencia: `google-genai>=2.25` (trae `types.SpeechMetadata` para Gemini TTS multi-locutor) | Equipo (fase 1) |
 | v0.3.6 · fase 1 (tarde) | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios.** **Implementado (deja de ser *stub*):** `SDXLTurbo` como portada local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; modelo por defecto `IDKiro/sdxs-512-dreamshaper`, `BRIEFER_SDXL_STEPS`); `media.cover.build_cover_prompt_local`. **Privacidad y costes:** `read_chart` desvía una captura de cartera también sin CLIP (`PORTFOLIO_MARKER` en la respuesta de visión → `ValueError(PORTFOLIO_REDIRECT_MSG)`, sin estructura ni persistencia); errores de salida estructurada con mensaje genérico; `portfolio_from_image`: si los pesos no cubren todas las posiciones con una misma base, ninguna lleva peso y `stats_out["weight_note"]` lo explica; `pipeline._MeteredImageGen` anota el coste de la portada aunque falle el titular; un modelo de imagen de pago desconocido usa la tarifa más alta conocida de su proveedor (con aviso de log); el vídeo nunca incluye el gráfico de cartera | Equipo (fase 1) |
 | v0.3.7 · canal email retirado | 06-oct-2026 | **Rompe (solo interno); `schemas.py` y `providers/base.py` sin cambios.** Decisión de producto: la entrega es por web y Telegram (verificado en real). Se borra `delivery/email_sender.py` (`build_email_html`, `send_briefing_email`, `SYNTHETIC_VOICE_NOTE`); `pipeline.DELIVERY_CHANNELS = ("telegram",)` y pedir `"email"` lanza `ValueError` («Canal de entrega desconocido»); fuera las variables `SMTP_*` de `config.py` y `.env.example`; `scripts/demo.py --deliver` solo admite `telegram`. `schemas.Channel` conserva `"email"` como valor reservado sin uso, para no cambiar el contrato | Equipo |
+| v0.3.8 · calidad tras la evaluación | 06-oct-2026 | **Aditivo; `schemas.py` y `providers/base.py` sin cambios** (`CONTRACTS_VERSION` sigue en `"0.3"`). Nuevo módulo `agents/timeframe.py` (`TimeFrame`, `Session`, `MADRID_TZ`, `madrid_now`, `market_of`, `greeting_for`, `time_frame`). Guardarraíles: `unhedged_causal_claims(text, reference=None)` ampliado (más verbos causales; «los analistas» genérico no es atribución), `evaluative_tone`, `agreement_issues`, `fix_agreement`. Guionista: `episode_frame`, `closing_line(frame)`, `premature_close_claims`, `fix_time_frame`; `script_problems(..., *, frame=None)`, `fallback_script(..., *, frame=None)`, `write_script(..., *, now=None)`. Analista: `FOCUS_LEAD_WORDS`, `focus_tickers`, `focus_problems`, `leads_with`, `analyze(..., *, now=None)`. **Cambios de semántica:** (1) el saludo y el marco del guion siguen la hora de Madrid y el estado de la sesión EU/EE. UU. («Buenas tardes… a esta hora de la sesión» antes del cierre; «Buenas noches… cierre» después; `CLOSING_LINE_ES` = cierre nocturno); (2) tono valorativo, causa sin atribuir y anuncio de «cierre» prematuro son problemas del guion que provocan el reintento (la concordancia se repara de forma determinista); (3) el Analista reintenta si el titular o el primer punto clave no tratan de los valores del usuario (si tiene noticias suyas) y, si persiste, reordena los puntos; (4) «mantención» → «mantenimiento» también en el Q&A; (5) `logging_utils.get_logger` respeta un nivel fijado antes por el usuario. Prompts `analyst.md` y `scriptwriter.md` actualizados. Tests: `tests/test_quality_eval_fixes.py` | Equipo (fase 2) |

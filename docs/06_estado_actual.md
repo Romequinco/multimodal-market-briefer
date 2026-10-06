@@ -4,13 +4,29 @@
 > como hecho lo que alguien del equipo ha ejecutado y visto funcionar; lo no comprobado se marca **NO
 > VERIFICADO**. Las cifras de coste y latencia que no salgan de un `StepMetric` real se marcan **NO MEDIDO**.
 
-**Fecha:** mar 6-oct-2026, cierre de la **fase 1** (rama `fase1`): vídeo corto, router CLIP, cartera desde
-captura, portada local (SDXS) y Telegram · **Fase:** F0, D1 y la parte multimodal de D2 cerradas ·
-**Siguiente:** Telegram en real, *build* de Docker, `run.sh`, limpieza de *stubs*, resto de D2 (mié 7) + [caminos 1, 2 y 6](05_roadmap_TODO.md#caminos-de-revisión-y-mejora-paralelos-a-d2) ·
-**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.6 ([03](03_contratos_modulos.md)) ·
+**Fecha:** mar 6-oct-2026, cierre de la **fase 2** (rama `fase1`): evidencia y mediciones (caminos 1, 2 y 6),
+`docs/04` reforzado y mejoras de calidad del guion y del análisis · **Fase:** F0, D1, la parte multimodal de D2 y
+los caminos de evidencia cerrados · **Siguiente:** fase 3 (subir `fase1` cuando el equipo decida, *build* de Docker,
+`run.sh`, limpieza de *stubs*) y fase 4 (entregables del jueves) ·
+**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.8 ([03](03_contratos_modulos.md)) ·
 **Plan:** [05](05_roadmap_TODO.md)
 
 ## Resumen
+
+**Fase 2 (mar 6-oct, evidencia y mediciones):** evaluación de **N = 6 briefings reales** (3 carteras: banca ES,
+tech EE. UU. y mixta defensiva; 3 listas de tickers, una con PDF + gráfico) con
+`notebooks/01_evaluacion_briefings.ipynb` y `scripts/evaluar_briefings.py`: **0 fallos, 0 sustitutos**, pared
+p50 **52,7 s** / p95 **68,2 s**, coste p50 **0,0337 €** / p95 **0,0620 €**, **232/232** cifras trazables, **0**
+recomendaciones, 35/35 puntos clave con fuente, podcasts de 3,2-3,7 min y juez Sonnet (1-5) con fidelidad 3,33 ·
+claridad 4,0 · sin consejo 4,17 · utilidad 3,33. **Comparativa de modelos** con juez ciego
+([ADR-007](decisiones/ADR-007-modelos-por-agente.md), aceptado): se confirman Sonnet 5.5 en el Analista y Haiku 4.5
+en Guionista y Q&A; Gemini 2.5 Flash es plan B de proveedor, no por defecto. **Cuaderno de recorrido** de 15 pasos
+en mock (13 s, sin red). Con lo que marcó el juez, **mejoras de calidad**: saludo y marco según la hora real de
+Madrid (`agents/timeframe.py`), puertas de causas sin atribuir y de tono valorativo con reintento, concordancia
+artículo-sustantivo y prioridad de los valores del usuario en el Analista; verificado en real (briefing
+`20261006-142229-4926f2`, TEF/REP/AENA a las 14:22: «Buenas tardes… a esta hora de la sesión», titular sobre los
+valores del usuario, una causa sin atribuir corregida en el reintento; 0,043 €). **1202 tests** sin red + 13
+`live`; ruff y mypy limpios. Gasto de la fase ≈ 1,0 € (evaluación 0,41 € + comparativa 0,55 € + pruebas).
 
 El **núcleo real funciona de punta a punta** y la revisión (4 agentes + auditoría independiente + tanda de
 arreglos) lo ha reforzado: noticias reales (Google News, **Bing News**, Yahoo, Expansión, Europa Press) con URL del
@@ -85,9 +101,13 @@ ruff + mypy limpios.
 | Portada local (06-oct, tarde) | Hecho, verificado en real | `providers/image/sdxl_turbo.SDXLTurbo` (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; diffusers en CPU; `requirements-local.txt`): SDXS `IDKiro/sdxs-512-dreamshaper` (1 paso, CreativeML OpenRAIL++ con uso comercial, ~1,8 GB la 1.ª vez; `BRIEFER_SDXL_MODEL`, `BRIEFER_SDXL_STEPS`) con el prompt corto `media.cover.build_cover_prompt_local` (< 77 tokens de CLIP). Verificada generando la portada del pregenerado (titular y placa «Imagen generada por IA»). Descartados `stabilityai/sd-turbo` (licencia de uso comercial restringido) y `SimianLuo/LCM_Dreamshaper_v7` (MIT, 4,3 GB) |
 | Portada con Gemini imagen (06-oct) | Implementado, con tests; **NO VERIFICADO en real** | `media/cover.py` + `providers/image/gemini_image.GeminiImage` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, `BRIEFER_GEMINI_IMAGE_MODEL=gemini-3.1-flash-lite-image`, 16:9 a 1K): prompt de marca según el tono del día, sin cifras ni empresas; titular y «Briefly · fecha» superpuestos con Pillow y placa **«Imagen generada por IA»**; primera diapositiva del vídeo y foto de Telegram. Coste: 0,0336 $/imagen ≈ 0,029 € (**tarifa oficial**, consultada el 06-oct; no medido). Latencia **NO MEDIDA**. En mock funciona de punta a punta. Casilla «Portada con IA» desactivada en modo real si `BRIEFER_IMAGE_GEN_PROVIDER=none` |
 | Telegram (06-oct) | Hecho, verificado en real (8,5 s; mensaje, audio, imagen y vídeo) | `delivery/telegram_sender.send_briefing_telegram`: mensaje HTML (titular, puntos, fuentes, aviso legal) + audio + portada o gráfico general + vídeo; límites 50 MB audio/vídeo y 10 MB foto; un fallo posterior al mensaje no invalida lo enviado; el token nunca sale en errores ni logs. `scripts/telegram_setup.py [--write] [--test] [--chat-id]` saca el `chat_id` con `getUpdates` y lo escribe en `.env`. En la UI, «Enviar por → Telegram» solo aparece con token y chat. Falta crear el bot |
-| Tests y CI | Hecho | **1116 tests sin red** + 12 `live` (`-m live`) desde la fase 1 (antes 1019 + 11); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
+| Evaluación de briefings (camino 1, 06-oct) | Hecho, medido en real | `notebooks/01_evaluacion_briefings.ipynb` + `scripts/evaluar_briefings.py [--real] [--budget]`; resultados en `notebooks/eval/resumen.md`. N = 6 (3 carteras + 3 listas, una con PDF + gráfico): 0 fallos, 0 sustitutos, 232/232 cifras trazables, 0 recomendaciones, 35/35 puntos clave con fuente, 6/6 podcasts en 3-5 min; juez Sonnet 1-5: 3,33 / 4,0 / 4,17 / 3,33 (fidelidad / claridad / sin consejo / utilidad); 0,41 € |
+| Comparativa de modelos (camino 2, 06-oct) | Hecho, decidido | `notebooks/02_comparativa_modelos.ipynb`, `notebooks/eval/comparativa/resumen.md`, [ADR-007](decisiones/ADR-007-modelos-por-agente.md) aceptado: Sonnet 5.5 / Haiku 4.5 / Gemini 2.5 Flash en Analista, Guionista y Q&A con juez ciego; se confirman los modelos actuales (ADR-006); Gemini plan B (cadena 0,021 € frente a 0,037 €; más reintentos en el Analista y guiones > 5 min); 0,55 € |
+| Cuaderno de recorrido (camino 6, 06-oct) | Hecho | `notebooks/00_recorrido_pipeline.ipynb`: 15 pasos con entrada, salida tipada y `StepMetric`, en mock, sin red ni claves, 13 s |
+| Calidad del guion y del análisis (06-oct, tras la evaluación) | Hecho, verificado en real | `agents/timeframe.py` (hora de Madrid, sesión EU/EE. UU., `greeting_for`, `time_frame`); `scriptwriter.episode_frame` / `closing_line(frame)` y puerta `premature_close_claims` (no habla de «cierre» antes del cierre); `guardrails.unhedged_causal_claims` ampliado, nueva puerta `guardrails.evaluative_tone` con reintento y `agreement_issues` / `fix_agreement`; Analista con `focus_tickers` / `focus_problems` / `_ensure_focus`. Real: `20261006-142229-4926f2` (TEF, REP, AENA, 14:22), 0,043 €; `tests/test_quality_eval_fixes.py` |
+| Tests y CI | Hecho | **1202 tests sin red** + 13 `live` (`-m live`) tras la fase 2 (1116 + 12 en la fase 1); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
 
-## Mediciones (05-oct-2026 y fase 1 del 06-oct-2026)
+## Mediciones (05-oct-2026 y fases 1 y 2 del 06-oct-2026)
 
 Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de-medición).
 
@@ -118,6 +138,11 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Fase 1 · portada (Gemini imagen) | **NO MEDIDO** (sin facturación: 429). Tarifa oficial 0,0336 $ ≈ 0,029 € por imagen |
 | Fase 1 · gasto real total | ≈ 0,07 € (estimado con `costs.py`) |
 | FinBERT («impacto de la noticia») | 1.ª carga del modelo ≈ 28 s con descarga (~840 MB en Windows sin enlaces simbólicos); después ≈ 13 s por proceso con importaciones; clasificar < 0,1 s. En el pregenerado: 19 noticias (19 traducidas con Haiku) ▲ 7 · ▼ 9 · ● 3, **32,1 s** en paralelo con el Analista, **0,0082 €** |
+| **Fase 2 · evaluación N = 6 briefings reales** (`notebooks/eval/resumen.md`) | Pared p50 **52,7 s** / p95 **68,2 s** · coste p50 **0,0337 €** / p95 **0,0620 €** (con PDF + gráfico 0,0691 €; sin subidas p50 0,0336 €) · Analista p50 14,2 s / 0,0246 € · Guionista p50 11,6 s / 0,0084 € · TTS p50 17,1 s · 0 fallos, 0 sustitutos |
+| Fase 2 · calidad (N = 6) | Cifras trazables 232/232 · 0 recomendaciones · 35/35 puntos clave con fuente · podcasts 3,2-3,7 min (6/6 en 3-5) · juez Sonnet 1-5: fidelidad 3,33 · claridad 4,0 · sin consejo 4,17 · utilidad 3,33 |
+| Fase 2 · comparativa de modelos (ADR-007) | Analista: Sonnet 0,026 € · juez fidelidad 4,5; Haiku 2,0; Gemini 3,0 con 2 reintentos. Cadena con Gemini 0,021 € frente a 0,037 € · gasto 0,55 € |
+| Fase 2 · briefing real tras las mejoras de calidad (`20261006-142229-4926f2`, TEF/REP/AENA, 14:22) | **0,043 €** · «Buenas tardes… a esta hora de la sesión», sin «cierre» · 1 reintento por causa sin atribuir |
+| Fase 2 · gasto estimado | 05-oct: 0,37 € en briefings guardados (Anthropic 0,26 · OpenAI 0,06 · Gemini 0,05). 06-oct: 0,38 € en briefings + ≈ 1,0 € en evaluación, comparativa y pruebas (estimación con `costs.py`; contraste con la consola pendiente) |
 
 ## Qué no funciona todavía
 
@@ -126,7 +151,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Portada con Gemini en real | Opcional: la portada ya funciona en local y gratis; Gemini necesitaría una clave **con facturación activa** (429 con cuota 0) | Won't salvo que sobre tiempo |
 | Docker | `Dockerfile` con modelos locales por defecto (`ARG LOCAL_MODELS=true`: torch CPU + transformers + diffusers + accelerate; `false` para imagen mínima), volumen `hf-cache`, pip con `PIP_DEFAULT_TIMEOUT=120` / `PIP_RETRIES=10`; `docker compose config` válido, pero la *build* **NO VERIFICADA** (06-oct: intentada con Docker Desktop, red degradada, se paró) | D2 Sync 4 / D3 |
 | `run.sh` y clon limpio en Linux/macOS | `scripts/run.sh` | D3 |
-| p50/p95 con N ≥ 5 y contraste con la factura | `scripts/metrics_report.py` ya calcula p50/p95 (hoy N = 2-3); la factura se mira en la consola de Anthropic (lo hace el equipo) | D2-D3 |
+| Contraste con la factura y clave de grupo | p50/p95 ya medidos (N = 6, fase 2). Falta comparar el coste estimado con las consolas de Anthropic, OpenAI y Google y crear la clave de grupo con límite: requieren acceso a las cuentas (**usuario**) | D3 |
 | Proveedores sin implementar | `OpenAILLM` (*stub* documentado), Qwen-VL, Whisper local, ElevenLabs (la voz premium es ya Gemini TTS); `SDXLTurbo` ya **no** es *stub* (portada local) | Won't; limpieza D3 |
 | Capturas, demo grabada, pitch | — | D3 |
 
@@ -150,16 +175,17 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | **SRT aproximado con Gemini** | Los subtítulos pueden ir algo adelantados o atrasados dentro de un tramo | Tiempos repartidos en proporción a la longitud hablada; tramos de ≤ 12 líneas; con edge-tts los tiempos son exactos |
 | Gemini TTS lento o caído en la demo | Briefing en vivo más lento | Cae a edge-tts (marcado en la traza); el pregenerado ya está generado; el Q&A no usa Gemini |
 | **FinBERT: disco y primera carga** | ~840 MB de descarga en Windows (sin enlaces simbólicos) y ≈ 28 s la primera vez; `torch` pesado en Docker | Opcional y apagado por defecto (`BRIEFER_FINBERT`); dependencias solo en `requirements-local.txt`; si falta, el paso se omite sin romper nada; el pregenerado trae `news_impact.json` |
+| **Calidad editorial del guion** (juez fase 2: fidelidad 3,33 y utilidad 3,33 sobre 5) | Percepción del podcast; nota de 4.2 | Mitigado con las puertas nuevas (causas sin atribuir, tono valorativo, concordancia, marco horario, foco en los valores del usuario) y reintento; **re-evaluar** con `scripts/evaluar_briefings.py --real` antes del pregenerado final |
 
 
-## Próximos pasos (D2, en orden)
+## Próximos pasos (fases 3 y 4)
 
-1. **Mar 6 tarde / mié mañana** · (Telegram ya probado en real) dejar descargado el modelo
-   de la portada local (SDXS); fusionar `fase1` en `main`.
-2. **Completar la *build* de Docker** con buena red y `run.sh` en Linux/macOS; caminos **1** (evaluación con p50/p95),
-   **2** (comparativa de modelos) y **6** (cuaderno de recorrido).
-3. **Hasta mié 18:00** · revisión de prompts con 3 carteras; `docs/04` con costes fijos.
-4. **mié 22:00** · *feature freeze*. Regenerar el pregenerado en D3 (con vídeo si se quiere enseñar en la portada).
+1. **Fase 3 (mié 7)** · subir `fase1` a `main` cuando el equipo lo decida; *build* de **Docker** con buena red;
+   `run.sh` en Linux/macOS; limpieza de *stubs*; re-evaluar la calidad (`scripts/evaluar_briefings.py --real`)
+   con las puertas nuevas. **Usuario:** contraste de costes con las consolas y clave de grupo con límite.
+2. **mié 22:00** · *feature freeze*.
+3. **Fase 4 (jue 8)** · pregenerado final (con vídeo si se enseña en la portada), clon limpio, capturas, demo
+   grabada, pitch PDF y README final; entrega 16:30.
 
 ## Registro de jornadas
 
@@ -176,3 +202,4 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | 06-oct-2026 (fase 1) | Rama `fase1`: **vídeo corto** 9:16 con Pillow + ffmpeg (subtítulos ASS con el locutor, gráficos alineados con las menciones, rótulo de voz sintética y metadatos de IA; 8,5 s para el pregenerado), **router CLIP** local (5/5 imágenes; lo no financiero se rechaza y la captura de cartera se desvía sin llamar a visión; decisión en la traza), **cartera desde captura del broker** (visión + Haiku + mapeo determinista; 5/5 posiciones, 8,5 s, ≈ 0,0054 €; página «Mi cartera»), **portada** con Gemini imagen (titular y «Imagen generada por IA» con Pillow; sin prueba real por falta de facturación) y **Telegram** (mensaje, audio, imagen y vídeo; `scripts/telegram_setup.py`; sin prueba real, falta el bot). UI: «Opciones avanzadas: vídeo, portada y envíos». Comprobado que el Analista ya reintentaba ante una recomendación. `google-genai>=2.25`. Contratos v0.3.5. 1116 tests sin red + 12 `live`; ruff + mypy limpios. Briefing real de verificación: 0,0569 €, 82,1 s. Gasto real de la fase ≈ 0,07 €. |
 | 06-oct-2026 (fase 1, tarde) | **Portada local y gratuita** (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS `IDKiro/sdxs-512-dreamshaper` en CPU, OpenRAIL++; 4-7 s, 0 €; verificada en real) que sustituye a Gemini como opción recomendada. **Docker** con modelos locales por defecto (`LOCAL_MODELS`), volumen `hf-cache` y pip con reintentos (*build* sin verificar: red degradada). **Privacidad y costes:** captura de cartera desviada también sin CLIP (marca `TIPO: cartera` en visión), errores de salida estructurada sin datos de la cartera, pesos incompletos → sin pesos y aviso en la UI, coste de la portada anotado aunque falle el titular (`_MeteredImageGen`), tarifa más alta conocida para modelos de imagen de pago desconocidos, vídeo sin gráfico de cartera y con metadatos de IA completos. **Prueba real** de la captura en un briefing: 5/5 posiciones, vídeo de 4:11, ≈ 0,039 €, `portfolio: null`. **UI:** pestaña «Vídeo» propia en el briefing y en la portada; aviso de cartera de ejemplo en modo demo. 1148 tests sin red + 13 `live`; ruff y mypy limpios |
 | 06-oct-2026 (email retirado) | Email retirado (decisión de producto): entrega por web y Telegram. Borrado `delivery/email_sender.py`, `DELIVERY_CHANNELS = ("telegram",)`, sin `SMTP_*`; `Channel` conserva `"email"` como reservado. Contratos v0.3.7. 1148 tests sin red + 13 `live`; ruff y mypy limpios |
+| 06-oct-2026 (fase 2) | **Evidencia y mediciones:** camino 1 (N = 6 briefings reales, 0 fallos, pared p50 52,7 / p95 68,2 s, coste p50 0,0337 / p95 0,0620 €, 232/232 cifras trazables, 0 recomendaciones, juez 3,33 / 4,0 / 4,17 / 3,33; 0,41 €), camino 2 ([ADR-007](decisiones/ADR-007-modelos-por-agente.md): se confirman Sonnet en el Analista y Haiku en Guionista y Q&A, Gemini plan B; 0,55 €), camino 6 (cuaderno de 15 pasos en mock, 13 s), revisión de prompts con 3 carteras, `docs/04` reforzado (costes fijos ≈ 1.070 / 3.700 €/mes, punto de equilibrio, transferencias RGPD). **Calidad:** `agents/timeframe.py`, marco horario del guion, puertas de causas y tono valorativo con reintento, concordancia de artículos, foco en los valores del usuario; verificado en real (`20261006-142229-4926f2`, 0,043 €). Contratos v0.3.8 (aditivo; `schemas.py` sin cambios). 1202 tests sin red + 13 `live`; ruff y mypy limpios |

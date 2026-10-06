@@ -237,6 +237,27 @@ sale en este informe**: `QAAnswer.metrics` no se guarda en disco (en `<id>/qa/` 
 respuesta; hay 2), así que sus cifras siguen siendo las de la tabla siguiente, medidas en vivo. Para p50/p95
 con valor hay que acumular ≥ 5 briefings reales y volver a ejecutar el script.
 
+### Evaluación con N = 6 briefings reales (06-oct-2026, camino 1)
+
+Cuaderno [`notebooks/01_evaluacion_briefings.ipynb`](../notebooks/01_evaluacion_briefings.ipynb) y
+`scripts/evaluar_briefings.py`; tablas completas en [`notebooks/eval/resumen.md`](../notebooks/eval/resumen.md).
+Seis `run_briefing(mode="real")` seguidos entre las 13:45 y las 13:51 (3 carteras: banca española, tecnológicas de
+EE. UU. y mixta defensiva; 3 listas de tickers, una con PDF + gráfico), edge-tts, sin verificación STT, caché del
+día. Pared medida con `perf_counter`; coste = `StepMetric.est_cost_eur`.
+
+| Métrica (N = 6) | p50 | p95 |
+| --- | --- | --- |
+| Pared del briefing | **52,7 s** | **68,2 s** |
+| Coste del briefing | **0,0337 €** | **0,0620 €** (con PDF + gráfico: 0,0691 €) |
+| Analista (Sonnet 5.5) | 14,2 s · 0,0246 € | — |
+| Guionista (Haiku 4.5) | 11,6 s · 0,0084 € | — |
+| Podcast (edge-tts) | 17,1 s · 0 € | — |
+
+Calidad en los 6: 0 fallos y 0 sustitutos; **100 % de cifras trazables** (232/232); **0 frases con recomendación**;
+35/35 puntos clave con fuente válida; podcasts de 3,2-3,7 min; LLM-juez (Sonnet, 1-5): fidelidad 3,33 · claridad
+4,0 · sin consejo 4,17 · utilidad 3,33. Los fallos de matiz que señaló el juez (causas más firmes que el análisis,
+tono valorativo, saludo de «noche» a mediodía) se corrigieron después con puertas nuevas (ver [06](06_estado_actual.md)).
+
 ### Q&A
 
 | Caso (medido el 05-oct) | Texto en pantalla | Texto + voz | Coste |

@@ -288,7 +288,7 @@ Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs
 ├── .streamlit/config.toml       # tema, subida máxima 50 MB, sin telemetría
 ├── data/samples/                # ejemplos versionados (CSV, JSON, PDF, PNG; cartera_ejemplo.png = captura de broker ficticia) + demo_briefing/
 ├── data/cache/ data/outputs/    # generados en ejecución (ignorados por git)
-├── notebooks/                   # pruebas exploratorias de modelos (README con ideas)
+├── notebooks/                   # 00 recorrido del pipeline · 01 evaluación de briefings · 02 comparativa de modelos (resultados en eval/)
 ├── pitch/                       # pitch deck técnico (README con el contenido previsto)
 ├── docs/                        # documentación del proyecto (ver índice); activos de marca en docs/assets/marca/
 ├── Dockerfile  docker-compose.yml  .dockerignore
@@ -383,8 +383,9 @@ python scripts/demo.py --mock --strict                            # sale con 3 s
 python scripts/smoke_real.py                                      # prueba de humo de cada proveedor con clave (< 0,01 €)
 python scripts/demo.py --mock --video --cover                     # + vídeo 9:16 y portada (mock), sin red
 python scripts/telegram_setup.py --write --test                   # configura el chat de Telegram (ver «Telegram»)
-python -m pytest -q                                               # 1148 tests sin red (los «live» con -m live)
+python -m pytest -q                                               # 1202 tests sin red (los «live» con -m live)
 python scripts/metrics_report.py --include-demo                   # p50/p95 de latencia y coste de los briefings guardados
+python scripts/evaluar_briefings.py                               # evaluación de briefings (tabla en notebooks/eval/); --real genera y juzga lo que falte (gasta)
 python scripts/measure_qa_voice.py                                # cadena de voz del Q&A (audio → STT → Q&A → voz), en frío y caliente
 ruff check src app scripts tests && mypy                          # estilo y tipos, como la CI (pip install -r requirements-dev.txt)
 ```
@@ -416,6 +417,20 @@ añade 6,3 s y 0 €; la captura de cartera y el paisaje se descartan sin llamar
 captura en «Mi cartera» 8,5 s y ≈ 0,005 €; con esa cartera (5/5 posiciones), briefing real con vídeo de 4:11:
 ≈ 0,033 €, 0 fallos, `portfolio: null` y sin gráfico de cartera en disco. Portada local (SDXS en CPU de 12
 hilos): 4-7 s por portada y 0 € (la primera del proceso, 23-36 s, más la carga del modelo).
+
+**Evaluación de 6 briefings reales (06-oct-2026, fase 2;
+[`notebooks/eval/resumen.md`](notebooks/eval/resumen.md)):** 3 carteras y 3 listas de tickers (una con PDF +
+gráfico), 0 fallos y 0 sustitutos; pared p50 **52,7 s** / p95 **68,2 s**; coste p50 **0,034 €** / p95 **0,062 €**;
+232/232 cifras trazables, 0 recomendaciones, 35/35 puntos clave con fuente, podcasts de 3,2-3,7 min; juez Sonnet
+(1-5): fidelidad 3,3 · claridad 4,0 · sin consejo 4,2 · utilidad 3,3. La comparativa Sonnet / Haiku / Gemini por
+agente ([ADR-007](docs/decisiones/ADR-007-modelos-por-agente.md)) confirma Sonnet en el Analista y Haiku en
+Guionista y Q&A.
+
+Cuadernos (en [`notebooks/`](notebooks/)):
+[00 · recorrido del pipeline paso a paso](notebooks/00_recorrido_pipeline.ipynb) (mock, sin red ni claves, 13 s) ·
+[01 · evaluación de briefings reales](notebooks/01_evaluacion_briefings.ipynb) (también por CLI:
+`python scripts/evaluar_briefings.py [--real]`) ·
+[02 · comparativa de modelos por agente](notebooks/02_comparativa_modelos.ipynb).
 
 ---
 
