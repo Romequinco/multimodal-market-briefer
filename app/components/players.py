@@ -796,6 +796,22 @@ def trace_strip(briefing: Briefing) -> str:
             f"{s['total_latency_s']:.0f} s de proceso · {cost} € estimados")
 
 
+def briefing_tabs(briefing: Briefing) -> tuple:
+    """Pestañas del briefing; si hay vídeo, una pestaña «Vídeo» (segunda) con el reproductor.
+
+    Devuelve las cuatro fijas: puntos clave, transcripción, gráficos y «Cómo se hizo».
+    """
+    video = briefing.video if briefing.video and _exists(briefing.video.path) else None
+    names = ["Puntos clave"] + (["Vídeo"] if video else []) + ["Transcripción", "Gráficos", "Cómo se hizo"]
+    tabs = st.tabs(names)
+    if video:
+        with tabs[1]:
+            _, col, _ = st.columns([1, 2, 1])  # vertical 9:16: centrado, sin ocupar todo el ancho
+            col.video(str(video.path))
+            col.caption("Vídeo vertical con el podcast, los gráficos y subtítulos. Voces sintéticas generadas con IA.")
+    return tabs[0], tabs[-3], tabs[-2], tabs[-1]
+
+
 def render_briefing(briefing: Briefing, key: str = "briefing", *, ask_button: bool = True) -> None:
     """Pinta un briefing completo: titular, audio, puntos clave, transcripción, gráficos y traza.
 
@@ -817,9 +833,7 @@ def render_briefing(briefing: Briefing, key: str = "briefing", *, ask_button: bo
         st.button("Preguntar sobre este briefing", key=f"{key}_ask", icon=":material/forum:",
                   on_click=ask_about, args=(briefing,), type="primary")
 
-    tab_points, tab_transcript, tab_charts, tab_trace = st.tabs(
-        ["Puntos clave", "Transcripción", "Gráficos", "Cómo se hizo"]
-    )
+    tab_points, tab_transcript, tab_charts, tab_trace = briefing_tabs(briefing)
 
     # ── Puntos clave ──
     with tab_points:
@@ -844,9 +858,6 @@ def render_briefing(briefing: Briefing, key: str = "briefing", *, ask_button: bo
             st.write("Los gráficos de este briefing ya no están en disco.")
         else:
             st.write("Este briefing no tiene gráficos.")
-        if briefing.video and _exists(briefing.video.path):
-            st.markdown("##### Vídeo")
-            st.video(str(briefing.video.path))
 
     # ── Cómo se hizo: cadena de modelos, latencia y coste ──
     with tab_trace:
@@ -889,9 +900,7 @@ def render_featured_briefing(
                    "</span> " + tech_label("(detalle en la pestaña «Cómo se hizo»)", "muted"),
                    unsafe_allow_html=True)
 
-    tab_points, tab_transcript, tab_charts, tab_trace = st.tabs(
-        ["Puntos clave", "Transcripción", "Gráficos", "Cómo se hizo"]
-    )
+    tab_points, tab_transcript, tab_charts, tab_trace = briefing_tabs(briefing)
     with tab_points:
         render_key_points(briefing)
     with tab_transcript:
