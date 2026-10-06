@@ -305,6 +305,93 @@ _GRAMMAR_RE = re.compile(
 )
 
 
+# Concordancia artículo-sustantivo en un vocabulario financiero acotado (visto con Haiku: «la
+# lanzamiento», «Los cifras»). Solo se comprueba artículo o demostrativo **pegado** al sustantivo y
+# con el mismo número (un desacuerdo de número suele ser un pronombre: «los cifra en…»). Fuera de
+# la lista, los femeninos con «a» tónica («el alza») y los ambiguos («la margen del río»).
+_FEM_NOUNS = (
+    ("cifra", "cifras"), ("acción", "acciones"), ("venta", "ventas"), ("cotización", "cotizaciones"),
+    ("subida", "subidas"), ("caída", "caídas"), ("bajada", "bajadas"), ("sesión", "sesiones"),
+    ("bolsa", "bolsas"), ("ganancia", "ganancias"), ("pérdida", "pérdidas"), ("empresa", "empresas"),
+    ("compañía", "compañías"), ("previsión", "previsiones"), ("rentabilidad", "rentabilidades"),
+    ("jornada", "jornadas"), ("semana", "semanas"), ("operación", "operaciones"),
+    ("noticia", "noticias"), ("plataforma", "plataformas"), ("deuda", "deudas"),
+    ("inversión", "inversiones"), ("recomendación", "recomendaciones"),
+    ("valoración", "valoraciones"), ("facturación", "facturaciones"), ("tendencia", "tendencias"),
+)
+_MASC_NOUNS = (
+    ("lanzamiento", "lanzamientos"), ("resultado", "resultados"), ("beneficio", "beneficios"),
+    ("índice", "índices"), ("precio", "precios"), ("valor", "valores"), ("dato", "datos"),
+    ("trimestre", "trimestres"), ("mercado", "mercados"), ("dividendo", "dividendos"),
+    ("ingreso", "ingresos"), ("contrato", "contratos"), ("acuerdo", "acuerdos"),
+    ("descenso", "descensos"), ("avance", "avances"), ("retroceso", "retrocesos"),
+    ("sector", "sectores"), ("banco", "bancos"), ("objetivo", "objetivos"), ("punto", "puntos"),
+    ("crecimiento", "crecimientos"), ("repunte", "repuntes"), ("rebote", "rebotes"),
+    ("cierre", "cierres"), ("máximo", "máximos"), ("mínimo", "mínimos"), ("día", "días"),
+    ("rendimiento", "rendimientos"), ("anuncio", "anuncios"),
+)
+#: sustantivo -> (género, número).
+_NOUN_GENDER: dict[str, tuple[str, str]] = {
+    **{w: ("f", n) for pair in _FEM_NOUNS for w, n in zip(pair, "sp", strict=True)},
+    **{w: ("m", n) for pair in _MASC_NOUNS for w, n in zip(pair, "sp", strict=True)},
+}
+#: Formas verbales iguales a un sustantivo masculino singular: tras «la» puede ser un pronombre
+#: («para que la avance», «la cierre»), así que no se corrigen.
+_VERB_LIKE = frozenset({"avance", "cierre", "repunte", "rebote", "contrato", "ingreso", "acuerdo", "anuncio"})
+#: determinante -> (clase, género, número).
+_DETERMINERS: dict[str, tuple[str, str, str]] = {
+    "el": ("def", "m", "s"), "la": ("def", "f", "s"), "los": ("def", "m", "p"), "las": ("def", "f", "p"),
+    "un": ("ind", "m", "s"), "una": ("ind", "f", "s"), "unos": ("ind", "m", "p"), "unas": ("ind", "f", "p"),
+    "este": ("dem", "m", "s"), "esta": ("dem", "f", "s"), "estos": ("dem", "m", "p"), "estas": ("dem", "f", "p"),
+    "del": ("del", "m", "s"), "al": ("al", "m", "s"),
+}
+_DET_FORMS = {
+    (cls, g, n): w for w, (cls, g, n) in _DETERMINERS.items() if cls in ("def", "ind", "dem")
+}
+_AGREEMENT_RE = re.compile(
+    r"\b(?:(de|a)\s+)?(" + "|".join(_DETERMINERS) + r")\s+("
+    + "|".join(sorted(_NOUN_GENDER, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+
+
+def _agreement_fix(match: re.Match[str]) -> str | None:
+    """Corrección de un artículo que no concuerda con el sustantivo, o ``None`` si concuerda."""
+    prep, det, noun = match.group(1), match.group(2), match.group(3)
+    cls, d_gender, d_number = _DETERMINERS[det.lower()]
+    gender, number = _NOUN_GENDER[noun.lower()]
+    if d_number != number or d_gender == gender:
+        return None
+    if det.lower() == "la" and noun.lower() in _VERB_LIKE:
+        return None
+    if cls in ("del", "al"):  # «del subida» -> «de la subida»; «al sesión» -> «a la sesión»
+        fixed = ("de la" if cls == "del" else "a la") + f" {noun}"
+        prefix = f"{prep} " if prep else ""
+        out = prefix + fixed
+        return out if not det[0].isupper() or prep else out[0].upper() + out[1:]
+    if cls == "def" and gender == "m" and number == "s" and prep:  # «de la lanzamiento» -> «del»
+        contracted = "del" if prep.lower() == "de" else "al"
+        out = f"{contracted} {noun}"
+        return out[0].upper() + out[1:] if prep[0].isupper() else out
+    new_det = _DET_FORMS[(cls, gender, number)]
+    if det[0].isupper():
+        new_det = new_det[0].upper() + new_det[1:]
+    return (f"{prep} " if prep else "") + f"{new_det} {noun}"
+
+
+def agreement_issues(text: str) -> list[str]:
+    """Artículos que no concuerdan en género con un sustantivo financiero frecuente («la
+    lanzamiento», «Los cifras»). Sin repetir, tal como aparecen."""
+    found = [m.group(0) for m in _AGREEMENT_RE.finditer(text or "") if _agreement_fix(m) is not None]
+    return list(dict.fromkeys(found))
+
+
+def fix_agreement(text: str) -> str:
+    """Corrige la concordancia de ``agreement_issues`` («la lanzamiento» -> «el lanzamiento»,
+    «de la lanzamiento» -> «del lanzamiento», «Los cifras» -> «Las cifras»)."""
+    return _AGREEMENT_RE.sub(lambda m: _agreement_fix(m) or m.group(0), text or "")
+
+
 #: Marcas de markdown que el modelo a veces cuela en texto que se va a leer en voz alta.
 _MARKDOWN = re.compile(r"\*\*|__|`+|^\s*#{1,6}\s+|^\s*[-*•]\s+", re.MULTILINE)
 
@@ -330,6 +417,7 @@ def grammar_issues(text: str) -> list[str]:
     """Expresiones de ``GRAMMAR_FIXES`` y tildes mal puestas («contrasteís») en ``text``."""
     found = [m.group(0) for m in _GRAMMAR_RE.finditer(text or "")]
     found += [m.group(0) for m in _MISPLACED_EIS.finditer(text or "")]
+    found += agreement_issues(text)
     return list(dict.fromkeys(found))
 
 
@@ -346,6 +434,7 @@ def fix_spoken_text(text: str) -> str:
     text = _MARKDOWN.sub("", text)  # «**Recordatorio:**» se leería con asteriscos
     text = _GRAMMAR_RE.sub(_fix, text)
     text = _MISPLACED_EIS.sub(lambda m: m.group(1) + "éis", text)
+    text = fix_agreement(text)
     odd = set(odd_words(text))
     if odd:
         text = " ".join(t for t in text.split() if t not in odd)
@@ -367,26 +456,103 @@ _HEDGES = re.compile(
 )
 
 
-def unhedged_causal_claims(text: str) -> list[str]:
-    """Frases que afirman una causa («sube principalmente por…», «cae debido a…») sin atribuirla
-    a una fuente ni matizarla («según los titulares…», «podría deberse a…»).
+#: Causas «firmes» que el Guionista endurece a partir del análisis (evaluación del 06-oct-2026):
+#: el mercado como sujeto que siente («el mercado ha celebrado», «los inversores castigan»),
+#: «es lo que está presionando la cotización» y verbos causales sobre el precio («lastra la
+#: acción», «impulsa al Ibex»). Solo las neutraliza una atribución explícita (``_ATTRIBUTION``),
+#: no la mera palabra «noticia» («el mercado ha celebrado la noticia» sigue siendo causa firme).
+_FIRM_CAUSAL = re.compile(
+    r"\b(?:el mercado|los mercados|los inversores|la bolsa|el parqu[ée])\s+(?:lo\s+|la\s+|le\s+|los\s+|las\s+)?"
+    r"(?:ha\s+|han\s+|est[áa]n?\s+)?(?:celebr|castig|premi|aplaud|penaliz)\w*"
+    r"|\b(?:es|son|fue|ha sido|era) lo que (?:est[áa]n? |ha |han |estaba |estaban )?"
+    r"(?:presion|impuls|lastr|empuj|mueve|movi|mov[íi]|explic|hace|hizo|provoc|castig|fren|hund|tir)\w*"
+    r"|\b(?:presion|lastr|impuls|empuj|castig|penaliz|hund)(?:a|an|ando|ó|aron|ado|ada)\s+"
+    r"(?:a\s+)?(?:la cotizaci[óo]n|las cotizaciones|la acci[óo]n|las acciones|el valor|los t[íi]tulos|"
+    r"el precio|al [íi]ndice|el [íi]ndice|al ibex|el ibex|a la bolsa|la bolsa)\b",
+    re.IGNORECASE,
+)
+_ATTRIBUTION = re.compile(
+    r"\b(?:según|segun|relaciona\w*|vincula\w*|atribuye\w*|apunta\w*|podría\w*|parece\w*|"
+    r"interpreta\w*|sugiere\w*|señala\w*|achaca\w*)\b",
+    re.IGNORECASE,
+)
+#: «Los analistas» generaliza una opinión: solo vale si el análisis también habla de analistas
+#: en plural (con una sola fuente, «según Barclays»).
+_GENERIC_ANALYSTS = re.compile(r"\b(?:los|varios|muchos) (?:analistas|expertos)\b", re.IGNORECASE)
 
-    Indicador de calidad para la traza y la evaluación (no recorta nada: el matiz lo pone el
-    prompt y una frase así puede ser correcta si la causa es un hecho del contexto).
+
+def unhedged_causal_claims(text: str, reference: str | None = None) -> list[str]:
+    """Frases que afirman una causa («sube principalmente por…», «cae debido a…», «el mercado ha
+    celebrado…», «es lo que está presionando la cotización») sin atribuirla a una fuente ni
+    matizarla («según los titulares…», «podría deberse a…»).
+
+    Con ``reference`` (el análisis que se está contando), también las que generalizan «los
+    analistas» / «los expertos» cuando la referencia no habla de analistas en plural (una sola
+    fuente: hay que nombrarla).
+
+    El Guionista lo usa como puerta (reintento con la lista de frases); el Q&A, para reintentar y
+    matizar; la evaluación, como indicador.
+    """
+    plural_ok = reference is None or bool(_GENERIC_ANALYSTS.search(reference))
+    out: list[str] = []
+    for s in _SENTENCE_SPLIT.split(text or ""):
+        causal = (_CAUSAL.search(s) and not _HEDGES.search(s)) or (
+            _FIRM_CAUSAL.search(s) and not _ATTRIBUTION.search(s)
+        )
+        if causal or (not plural_ok and _GENERIC_ANALYSTS.search(s)):
+            out.append(s.strip())
+    return out
+
+
+# ── Tono valorativo ───────────────────────────────────────────────────────────────
+
+#: Valoraciones y emociones de inversión que ``contains_advice`` no ve («os debería preocupar»,
+#: «suena a un buen negocio», «la estrella del día», «impresionante»). No son consejo, pero
+#: transmiten un juicio que el análisis no hace: el Guionista pide reescribirlas.
+_EVALUATIVE = [
+    re.compile(
+        r"\b(?:os|te|nos|les?)\s+(?:deber[íi]a|deber[íi]an|tiene que|tienen que|puede|pueden|va a|van a)\s+"
+        r"(?:preocupar|inquietar|alegrar|tranquilizar|ilusionar|asustar|entusiasmar)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:es|son|suena(?:n)? a|parece(?:n)?|ser[íi]a)\s+(?:un |una )?"
+        r"(?:buen[oa]?|mal[oa]?|gran|excelente|magnífic[oa]|estupend[oa]|fantástic[oa])\s+"
+        r"(?:negocio|noticia|operación|acuerdo|inversión|momento|dato|resultado|señal)s?\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(?:la|una|las|como|gran|nueva) estrellas?\b"),
+    re.compile(
+        r"\b(?:impresionantes?|espectacular(?:es)?|brutal(?:es)?|incre[íi]bles?|alucinantes?|"
+        r"fantástic[oa]s?|tremend[oa]s?|preocupantes?|alarmantes?|decepcionantes?|desastros[oa]s?|"
+        r"de infarto|una pasada)\b",
+        re.IGNORECASE,
+    ),
+]
+
+
+def evaluative_tone(text: str) -> list[str]:
+    """Frases con tono valorativo o emocional sobre la inversión («aquí hay algo que os debería
+    preocupar», «eso suena a un buen negocio para Indra», «Meta, la estrella… impresionante»).
+
+    Las atribuidas («según Barclays, es una buena noticia para…») no cuentan: es opinión ajena.
     """
     return [
         s.strip()
         for s in _SENTENCE_SPLIT.split(text or "")
-        if _CAUSAL.search(s) and not _HEDGES.search(s)
+        if any(p.search(s) for p in _EVALUATIVE) and not re.search(r"\bseg[úu]n\b", s, re.IGNORECASE)
     ]
 
 
 __all__ = [
     "ADVICE_REMINDER_ES",
     "GRAMMAR_FIXES",
+    "agreement_issues",
     "asks_for_advice",
     "contains_advice",
+    "evaluative_tone",
     "extract_figures",
+    "fix_agreement",
     "fix_spoken_text",
     "grammar_issues",
     "looks_like_injection",

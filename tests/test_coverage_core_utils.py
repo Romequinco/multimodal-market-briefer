@@ -169,6 +169,7 @@ def test_get_logger_survives_invalid_config(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(config, "get_settings", _fake_get_settings(None))
     root = logging.getLogger("briefer")
     level = root.level
+    root.setLevel(logging.NOTSET)  # sin nivel previo: lo fija get_logger (INFO por defecto)
     try:
         assert logging_utils.get_logger("x").name == "briefer.x"
         assert root.level == logging.INFO

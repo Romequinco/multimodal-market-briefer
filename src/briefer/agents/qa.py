@@ -36,6 +36,7 @@ from briefer.agents.guardrails import (
     strip_advice,
     unhedged_causal_claims,
 )
+from briefer.agents.scriptwriter import fix_regionalisms
 from briefer.logging_utils import get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import Briefing, QAAnswer
@@ -172,7 +173,8 @@ def answer(
     - Citas ``[id]`` -> ``sources`` (solo las que existen en el briefing).
     - Guardarraíles MiFID: se eliminan frases de recomendación y, si la pregunta pedía
       consejo personalizado, se añade el recordatorio de que no es asesoramiento.
-    - Texto hablado limpio: gramática y caracteres raros (``guardrails.fix_spoken_text``).
+    - Texto hablado limpio: gramática y caracteres raros (``guardrails.fix_spoken_text``) y
+      regionalismos («mantención» -> «mantenimiento»; ``scriptwriter.fix_regionalisms``).
     - ``trace`` (opcional) recibe notas de calidad: consejo pedido, frase recortada, intento de
       inyección en la pregunta, nº de fuentes citadas (el pipeline las guarda en ``detail``).
     """
@@ -205,7 +207,7 @@ def answer(
         if retry:
             raw_text = _RETRY_PREAMBLE.sub("", raw_text, count=1)
         clean, cited = _extract_citations(raw_text, briefing)
-        clean, stripped = strip_advice(fix_spoken_text(clean))
+        clean, stripped = strip_advice(fix_regionalisms(fix_spoken_text(clean)))
         return raw_text, clean, cited, stripped
 
     raw_text, text, sources, changed = _ask(messages)

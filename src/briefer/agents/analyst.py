@@ -18,6 +18,8 @@ persiste, se recorta.
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from datetime import UTC, datetime
 
 from briefer.agents import load_prompt
@@ -28,6 +30,7 @@ from briefer.agents.guardrails import (
     strip_figures,
     untraceable_figures,
 )
+from briefer.agents.timeframe import time_frame
 from briefer.logging_utils import get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import DISCLAIMER_ES, Analysis, KeyPoint, MarketContext, NewsItem
@@ -212,6 +215,84 @@ def allowed_tickers(context: MarketContext) -> set[str]:
     return tickers
 
 
+#: Palabras del principio del titular / del título donde debe aparecer un valor del usuario.
+FOCUS_LEAD_WORDS = 5
+
+
+def focus_tickers(context: MarketContext) -> set[str]:
+    """Valores del usuario (tickers + cartera), sin índices de referencia (``^IBEX``…)."""
+    tickers = {t.upper() for t in context.tickers}
+    if context.portfolio:
+        tickers |= {p.ticker.upper() for p in context.portfolio.positions}
+    return {t for t in tickers if not t.startswith("^")}
+
+
+def _fold(text: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", text or "")
+    return "".join(c for c in decomposed if not unicodedata.combining(c)).casefold()
+
+
+def _focus_names(tickers: set[str]) -> list[str]:
+    """Nombres, alias y raíz (``TEF``) de los tickers, plegados (sin tildes, minúsculas)."""
+    try:
+        from briefer.ingest.tickers import TICKER_UNIVERSE
+    except Exception:  # pragma: no cover - el universo es una ayuda
+        TICKER_UNIVERSE = {}  # noqa: N806
+    names: set[str] = set()
+    for t in tickers:
+        names.add(t.split(".", 1)[0])
+        info = TICKER_UNIVERSE.get(t)
+        if info:
+            names.add(str(info["name"]))
+            names.update(str(a) for a in info["aliases"])
+    return sorted({_fold(n) for n in names if n}, key=len, reverse=True)
+
+
+def leads_with(text: str, tickers: set[str], words: int = FOCUS_LEAD_WORDS) -> bool:
+    """``True`` si alguno de ``tickers`` (por nombre, alias o raíz) aparece en las primeras
+    ``words`` palabras de ``text`` («Indra se lleva contratos de Aena…» no empieza por Aena)."""
+    lead = _fold(" ".join((text or "").split()[:words]))
+    return any(re.search(rf"(?<!\w){re.escape(n)}(?!\w)", lead) for n in _focus_names(tickers))
+
+
+def focus_problems(analysis: Analysis, context: MarketContext) -> list[str]:
+    """Regla 6c del prompt, comprobada: si hay noticias de los valores del usuario, el titular y
+    el primer punto clave tratan de uno de ellos (los índices y otras empresas, como contexto).
+
+    Returns:
+        Problemas en texto para el LLM (vacío si el foco es correcto o no hay noticias suyas).
+    """
+    focus = focus_tickers(context)
+    with_news = sorted(t for t in focus if any(t in {x.upper() for x in n.tickers} for n in context.news))
+    if not with_news:
+        return []
+    names = ", ".join(_label(t, _ticker_names()) for t in with_news)
+    problems: list[str] = []
+    if not leads_with(analysis.headline, focus):
+        problems.append(
+            f"El titular («{analysis.headline}») no trata de un valor del usuario: debe empezar por uno de "
+            f"sus valores con noticias hoy ({names}); otras empresas e índices, como contexto."
+        )
+    first = analysis.key_points[0] if analysis.key_points else None
+    if first is not None and not focus & {t.upper() for t in first.tickers}:
+        problems.append(
+            f"El primer punto clave («{first.title}») no trata de un valor del usuario: ordena los puntos "
+            f"empezando por sus valores ({names})."
+        )
+    return problems
+
+
+def _focus_first(points: list[KeyPoint], focus: set[str]) -> list[KeyPoint]:
+    """Si el primer punto no es de un valor del usuario y otro sí, ese pasa a ser el primero."""
+    if not points or not focus or focus & {t.upper() for t in points[0].tickers}:
+        return points
+    for i, kp in enumerate(points):
+        if focus & {t.upper() for t in kp.tickers}:
+            log.info("Analista: el primer punto clave no era de un valor del usuario; se reordena")
+            return [kp, *points[:i], *points[i + 1 :]]
+    return points
+
+
 def _clean_ref(ref: str) -> str:
     return ref.strip().strip("[]()`'\"").strip().lower()
 
@@ -227,6 +308,7 @@ def postprocess_analysis(
       id, URL o nombre de documento, y se normalizan al id/nombre canónico).
     - Frases con recomendaciones de compra/venta -> fuera (MiFID II).
     - Puntos sin título ni explicación -> fuera; como mucho ``max_points``.
+    - Si el primer punto no es de un valor del usuario y otro sí, ese pasa delante (regla 6c).
     """
     valid_refs = allowed_sources(context)
     valid_tickers = allowed_tickers(context)
@@ -264,6 +346,7 @@ def postprocess_analysis(
                 }
             )
         )
+    points = _focus_first(points, focus_tickers(context))
     if len(points) > max_points:
         log.info("Analista: recortando de %d a %d puntos clave", len(points), max_points)
         points = points[:max_points]
@@ -319,6 +402,22 @@ def strip_untraceable(analysis: Analysis, figures: list[str]) -> Analysis:
     )
 
 
+def _ensure_focus(analysis: Analysis, context: MarketContext, notes: list[str]) -> Analysis:
+    """Tras el reintento: si el titular sigue sin tratar de un valor del usuario, se usa el
+    título del primer punto clave que sí lo hace (determinista)."""
+    if not focus_problems(analysis, context):
+        notes.append("foco: corregido en el reintento")
+        return analysis
+    focus = focus_tickers(context)
+    if not leads_with(analysis.headline, focus):
+        for kp in analysis.key_points:
+            if focus & {t.upper() for t in kp.tickers} and leads_with(kp.title, focus):
+                notes.append("foco: titular sustituido por el del primer punto del usuario")
+                return analysis.model_copy(update={"headline": kp.title})
+    notes.append("foco: sigue sin un valor del usuario al frente")
+    return analysis
+
+
 def _as_analysis(result: object) -> Analysis:
     if isinstance(result, Analysis):
         return result
@@ -333,13 +432,18 @@ def analyze(
     *,
     check_figures: bool = True,
     trace: list[str] | None = None,
+    now: datetime | None = None,
 ) -> Analysis:
     """Ejecuta el Agente Analista y devuelve un ``Analysis`` validado y saneado.
 
     Puerta de *grounding* (``check_figures``): si el análisis contiene cifras que no aparecen
     en el contexto, se pide **una** corrección al LLM con la lista; si persisten, se eliminan
-    las frases que las contienen. El resultado se anota en ``trace`` (el pipeline lo guarda en
-    ``StepMetric.detail``).
+    las frases que las contienen. En el mismo reintento se corrige el **foco** (regla 6c,
+    ``focus_problems``): si hay noticias de los valores del usuario, el titular y el primer punto
+    tratan de uno de ellos; si el titular sigue sin hacerlo, se usa el título del primer punto
+    del usuario. El resultado se anota en ``trace`` (el pipeline lo guarda en
+    ``StepMetric.detail``). El mensaje lleva el marco temporal (``timeframe``: sesión abierta o
+    cerrada a la hora ``now``) para no hablar de «cierre» con precios intradía.
 
     Args:
         context: contexto del día (de ``pipeline.run_briefing``).
@@ -347,10 +451,12 @@ def analyze(
         max_chars: límite de longitud del mensaje de usuario.
         check_figures: activar la puerta de cifras trazables.
         trace: lista opcional donde se añaden notas de calidad legibles.
+        now: hora de generación (por defecto, la actual en Madrid; los tests la inyectan).
     """
     notes = trace if trace is not None else []
     system = load_prompt("analyst")
-    user = build_user_message(context, max_chars=max_chars)
+    frame = time_frame(now, sorted(focus_tickers(context)))
+    user = build_user_message(context, max_chars=max_chars) + "\n\n## Momento de generación\n" + frame.note
     messages: list[dict] = [{"role": "user", "content": user}]
     if suspicious := suspicious_sources(context):
         notes.append(f"inyección: texto con forma de instrucción en {', '.join(suspicious[:4])} (tratado como dato)")
@@ -362,8 +468,13 @@ def analyze(
     if check_figures:
         reference = grounding_reference(context)
         missing = untraceable_figures(analysis_text(analysis), reference)
-        if missing or advice:
+        off_focus = focus_problems(analysis, context)
+        if missing or advice or off_focus:
             fixes: list[str] = []
+            if off_focus:
+                log.warning("Analista: titular o primer punto fuera de los valores del usuario; se pide una corrección")
+                fixes.extend(off_focus)
+                notes.append("foco: titular o primer punto sin valor del usuario -> 1 reintento")
             if missing:
                 log.warning("Analista: cifras no trazables %s; se pide una corrección", missing)
                 fixes.append(
@@ -391,6 +502,8 @@ def analyze(
             except Exception as exc:  # el primer análisis sigue siendo aprovechable
                 log.warning("Analista: falló el reintento de corrección (%s); se recorta el original", exc)
                 notes.append(f"grounding: reintento fallido ({type(exc).__name__})")
+            if off_focus:
+                analysis = _ensure_focus(analysis, context, notes)
             still = untraceable_figures(analysis_text(analysis), reference)
             if still:
                 analysis = strip_untraceable(analysis, still)
@@ -418,7 +531,10 @@ __all__ = [
     "analysis_text",
     "analyze",
     "build_user_message",
+    "focus_problems",
+    "focus_tickers",
     "grounding_reference",
+    "leads_with",
     "postprocess_analysis",
     "strip_untraceable",
     "suspicious_sources",

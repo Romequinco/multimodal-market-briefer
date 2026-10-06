@@ -107,7 +107,12 @@ class _RedactingFormatter(logging.Formatter):
 
 
 def get_logger(name: str | None = None) -> logging.Logger:
-    """Logger del paquete (``briefer`` o ``briefer.<name>``), configurado una sola vez."""
+    """Logger del paquete (``briefer`` o ``briefer.<name>``), configurado una sola vez.
+
+    El nivel sale de ``BRIEFER_LOG_LEVEL`` solo si nadie lo ha fijado antes: un
+    ``logging.getLogger("briefer").setLevel(...)`` del usuario (cuaderno, script) previo a la
+    primera llamada se respeta.
+    """
     global _configured
     if not _configured:
         try:
@@ -123,7 +128,8 @@ def get_logger(name: str | None = None) -> logging.Logger:
                 _RedactingFormatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s", "%H:%M:%S")
             )
             root.addHandler(handler)
-        root.setLevel(getattr(logging, level, logging.INFO))
+        if root.level == logging.NOTSET:  # no pisar un nivel fijado explícitamente
+            root.setLevel(getattr(logging, level, logging.INFO))
         _configured = True
     if not name:
         return logging.getLogger(_LOGGER_NAME)

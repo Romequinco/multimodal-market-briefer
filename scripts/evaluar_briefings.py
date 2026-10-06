@@ -330,7 +330,6 @@ def _judge_model():
 
 def judge_input(briefing, portfolio_tickers: list[str] | None) -> str:
     """Contexto resumido (titulares + extractos ≤ 200), análisis y guion para el juez."""
-    from briefer.agents import scriptwriter
     from briefer.agents.analyst import analysis_text
 
     ctx = briefing.context
@@ -352,7 +351,7 @@ def judge_input(briefing, portfolio_tickers: list[str] | None) -> str:
     out += ["", "# ANÁLISIS", analysis_text(briefing.analysis)]
     for kp in briefing.analysis.key_points:
         out.append(f"(fuentes de «{kp.title}»: {', '.join(kp.sources) or 'ninguna'})")
-    out += ["", "# GUION", "\n".join(f"{l.speaker}: {l.text}" for l in briefing.script.lines)]
+    out += ["", "# GUION", "\n".join(f"{ln.speaker}: {ln.text}" for ln in briefing.script.lines)]
     return "\n".join(out)
 
 
@@ -405,6 +404,7 @@ def judge_all(run_real: bool, records: list[dict[str, Any]], budget_eur: float =
 def metrics_report_for(records: list[dict[str, Any]]) -> dict[str, Any]:
     """``scripts/metrics_report.build_report`` sobre las carpetas de estos briefings (solo disco)."""
     import metrics_report as mr
+
     from briefer.config import get_settings
 
     out = get_settings().output_path

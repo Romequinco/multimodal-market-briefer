@@ -175,6 +175,11 @@ def _mock_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         monkeypatch.setenv(key, value)
     monkeypatch.setenv("BRIEFER_OUTPUT_DIR", str(tmp_path / "outputs"))
     monkeypatch.setenv("BRIEFER_CACHE_DIR", str(tmp_path / "cache"))
+    # Reloj fijo para el marco temporal del guion (saludo, «cierre»): martes 06-oct-2026 a las
+    # 19:00 en Madrid, sesión cerrada. Los tests de mediodía inyectan ``now`` explícitamente.
+    from briefer.agents import timeframe
+
+    monkeypatch.setattr(timeframe, "madrid_now", lambda: datetime(2026, 10, 6, 19, 0))
     reset_settings_cache()
     _reset_ingest_state()
     before = _ingest_threads()

@@ -20,12 +20,14 @@ Si el LLM no da nada aprovechable, se genera un guion mínimo a partir del propi
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Literal
 
 from briefer import brand
 from briefer.agents import load_prompt
 from briefer.agents.guardrails import (
     contains_advice,
+    evaluative_tone,
     extract_figures,
     fix_spoken_text,
     grammar_issues,
@@ -36,6 +38,7 @@ from briefer.agents.guardrails import (
     unhedged_causal_claims,
     untraceable_figures,
 )
+from briefer.agents.timeframe import TimeFrame, time_frame
 from briefer.logging_utils import error_text, get_logger
 from briefer.providers.base import LLMProvider
 from briefer.schemas import Analysis, PodcastScript, ScriptLine
@@ -62,12 +65,27 @@ MAX_SAME_SPEAKER_RUN = 2  # intervenciones seguidas del mismo locutor que se tol
 #: detecta para marcar el paso como fallback).
 FALLBACK_NOTE = "guion: respaldo determinista (el LLM no devolvió un guion válido)"
 
-CLOSING_LINE_ES = (
+_CLOSING_BODY = (
     "Y antes de despedirnos, un recordatorio importante: este episodio lo ha generado "
     "automáticamente un sistema de inteligencia artificial y nuestras voces son sintéticas. "
     "Es información con fines divulgativos, no asesoramiento financiero ni una recomendación "
-    "de inversión. Contrastad siempre con fuentes oficiales. Buenas noches y ¡hasta mañana!"
+    "de inversión. Contrastad siempre con fuentes oficiales."
 )
+#: Cierre de la edición de noche (``closing_line`` lo adapta a la hora: de día, sin «buenas noches»).
+CLOSING_LINE_ES = f"{_CLOSING_BODY} Buenas noches y ¡hasta mañana!"
+
+
+def closing_line(frame: TimeFrame | None = None) -> str:
+    """Cierre obligatorio con el aviso legal; «buenas noches» solo si el marco es de noche."""
+    if frame is None or frame.is_night:
+        return CLOSING_LINE_ES
+    return f"{_CLOSING_BODY} ¡Hasta mañana!"
+
+
+def episode_frame(analysis: Analysis, now: datetime | None = None) -> TimeFrame:
+    """Marco temporal del episodio (``timeframe.time_frame``) con los tickers del análisis."""
+    tickers = [t for kp in analysis.key_points for t in kp.tickers if not t.startswith("^")]
+    return time_frame(now, tickers)
 #: Locutores por defecto (marca): A = Toro, B = Osa. El pipeline pasa los de ``Settings``.
 DEFAULT_SPEAKERS: tuple[str, str] = (brand.SPEAKER_A_NAME, brand.SPEAKER_B_NAME)
 
@@ -103,8 +121,11 @@ def estimate_duration_s(lines: list[ScriptLine], wpm: int = WORDS_PER_MINUTE) ->
     return round(words / max(1, wpm) * 60, 1)
 
 
-def _render_system(target_minutes: float, speaker_names: tuple[str, str]) -> str:
+def _render_system(
+    target_minutes: float, speaker_names: tuple[str, str], frame: TimeFrame | None = None
+) -> str:
     target_words = target_written_words(target_minutes)
+    frame = frame or time_frame()
     return (
         load_prompt("scriptwriter")
         .replace("{target_minutes}", f"{target_minutes:g}")
@@ -115,7 +136,8 @@ def _render_system(target_minutes: float, speaker_names: tuple[str, str]) -> str
         .replace("{speaker_a_role}", brand.SPEAKER_A_ROLE)
         .replace("{speaker_b_role}", brand.SPEAKER_B_ROLE)
         .replace("{brand}", brand.BRAND_NAME)
-        .replace("{greeting}", brand.GREETING)
+        .replace("{greeting}", frame.greeting)
+        .replace("{time_frame}", frame.note)
     )
 
 
@@ -212,12 +234,18 @@ def script_problems(
     *,
     reference: str | None = None,
     analysis: Analysis | None = None,
+    frame: TimeFrame | None = None,
 ) -> list[str]:
     """Lista de problemas del guion (vacía si es válido). Textos pensados para el LLM.
 
     ``reference``: texto del ``Analysis`` (``build_user_message``); si se indica, las cifras del
-    guion que no aparezcan en él son un problema (*grounding* del guion).
+    guion que no aparezcan en él son un problema (*grounding* del guion) y «los analistas» solo
+    vale si el análisis habla de analistas en plural.
     ``analysis``: si se indica, cada punto clave debe estar tratado (``missing_key_points``).
+    ``frame``: si se indica y la sesión no ha cerrado, decir «cierre del día», «cierra en…» o
+    «buenas noches» de día es un problema (``premature_close_claims``).
+    Siempre: causas afirmadas sin atribuir (``unhedged_causal_claims``) y tono valorativo
+    (``evaluative_tone``).
     """
     problems: list[str] = []
     lines = script.lines
@@ -266,7 +294,8 @@ def script_problems(
     if bad := grammar_issues(text):
         problems.append(
             "Errores gramaticales: " + ", ".join(f"«{b}»" for b in bad[:5])
-            + " (con «para que» va subjuntivo: «para que veáis»)."
+            + " (con «para que» va subjuntivo: «para que veáis»; el artículo concuerda con el "
+            "sustantivo: «el lanzamiento», «las cifras»)."
         )
     if regional := regionalisms(text):
         problems.append(
@@ -274,7 +303,69 @@ def script_problems(
             + ". Escribe en español de España («descontado», «allí», «aquí», «ahora mismo», «charlar», "
             "«ordenador», «móvil»)."
         )
+    if causal := unhedged_causal_claims(text, reference=reference):
+        problems.append(
+            "Estas frases convierten en hecho una causa o una opinión: " + "; ".join(f"«{c}»" for c in causal[:4])
+            + ". Atribúyelas a su fuente («según <fuente>…», «la noticia lo relaciona con…», «apunta a…») "
+            "o quítalas; no digas «el mercado ha celebrado/castigado» ni «es lo que está presionando», y "
+            "si la opinión es de una sola fuente, nómbrala en vez de «los analistas»."
+        )
+    if evaluative := evaluative_tone(text):
+        problems.append(
+            "Tono valorativo: " + "; ".join(f"«{e}»" for e in evaluative[:4])
+            + ". Describe lo que ha pasado sin valorarlo ni transmitir emociones de inversión "
+            "(nada de «os debería preocupar», «buen negocio», «la estrella», «impresionante»)."
+        )
+    if frame is not None and (early := premature_close_claims(text, frame)):
+        problems.append(
+            f"Marco temporal: {frame.note} Sobran " + ", ".join(f"«{e}»" for e in early[:5]) + "."
+        )
     return problems
+
+
+# ── Marco temporal: «cierre» y saludo de noche cuando la sesión sigue abierta ──────
+_CLOSE_CLAIMS = re.compile(
+    r"\bcierre del d[íi]a\b|\bcierre de (?:la|esta) sesi[óo]n\b|\bcierre de hoy\b"
+    r"|\bal cierre\b(?!\s+(?:de|del)\b)|\b(?:ahora que|cuando) cierra la sesi[óo]n\b"
+    r"|\bla sesi[óo]n (?:ya )?ha cerrado\b"
+    r"|\bcierran? (?:en|con|la sesi[óo]n|el d[íi]a|la jornada|plano|en positivo|en negativo)\b"
+    r"|\bc[óo]mo cierran?\b|\bhan? cerrado (?:en|con) (?:un|una|el|la|\d)",
+    re.IGNORECASE,
+)
+_NIGHT_GREETING = re.compile(r"\bbuenas noches\b", re.IGNORECASE)
+#: Reparaciones seguras (frases hechas) cuando la sesión sigue abierta.
+_CLOSE_FIXES: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bcon el cierre del d[íi]a\b", re.IGNORECASE), "con lo que va de sesión"),
+    (re.compile(r"\bel cierre del d[íi]a\b", re.IGNORECASE), "lo que va de sesión"),
+    (re.compile(r"\b(?:ahora que|cuando) cierra la sesi[óo]n\b", re.IGNORECASE), "a esta hora de la sesión"),
+    (re.compile(r"\bal cierre\b(?!\s+(?:de|del)\b)", re.IGNORECASE), "a esta hora"),
+    (re.compile(r"\bcierra en (?=[-+−]?\d)", re.IGNORECASE), "cotiza en "),
+    (re.compile(r"\bc[óo]mo cierra\b", re.IGNORECASE), "cómo va"),
+    (re.compile(r"\bc[óo]mo cierran\b", re.IGNORECASE), "cómo van"),
+]
+
+
+def premature_close_claims(text: str, frame: TimeFrame) -> list[str]:
+    """Expresiones que dan la sesión por cerrada (o saludan de noche) cuando, según ``frame``,
+    ningún mercado del episodio ha cerrado todavía. Vacío si se puede hablar de cierre."""
+    found: list[str] = []
+    if not frame.can_say_close:
+        found += [m.group(0) for m in _CLOSE_CLAIMS.finditer(text or "")]
+    if not frame.is_night:
+        found += [m.group(0) for m in _NIGHT_GREETING.finditer(text or "")]
+    return list(dict.fromkeys(found))
+
+
+def fix_time_frame(text: str, frame: TimeFrame) -> str:
+    """Reparación determinista de las frases hechas de ``premature_close_claims`` (las demás
+    quedan para el reintento): «buenas noches» -> saludo de ``frame``; «con el cierre del día»
+    -> «con lo que va de sesión»; «cierra en 45,19» -> «cotiza en 45,19»…"""
+    if not frame.is_night:
+        text = _NIGHT_GREETING.sub(lambda m: _keep_case(m.group(0), frame.greeting.lower()), text)
+    if not frame.can_say_close:
+        for pattern, fix in _CLOSE_FIXES:
+            text = pattern.sub(lambda m, f=fix: _keep_case(m.group(0), f), text)  # type: ignore[misc]
+    return text
 
 
 # ── Regionalismos ──────────────────────────────────────────────────────────────────
@@ -309,6 +400,21 @@ REGIONALISM_FIXES: list[tuple[re.Pattern[str], str, str]] = [
     (re.compile(_ARTICLE + r"celulares\b", re.IGNORECASE), r"\1 móviles", "celulares"),
     (re.compile(_ARTICLE + r"celular\b", re.IGNORECASE), r"\1 móvil", "celular"),
     (re.compile(r"\bchec(ar|amos|ad)\b", re.IGNORECASE), "comprob\\1", "checar"),
+    # «mantención» (femenino) -> «mantenimiento» (masculino): el artículo cambia con él.
+    *[
+        (re.compile(rf"\b{wrong}\b", re.IGNORECASE), right, word)
+        for wrong, right, word in (
+            ("de la mantención", "del mantenimiento", "mantención"),
+            ("a la mantención", "al mantenimiento", "mantención"),
+            ("la mantención", "el mantenimiento", "mantención"),
+            ("una mantención", "un mantenimiento", "mantención"),
+            ("esta mantención", "este mantenimiento", "mantención"),
+            ("las mantenciones", "los mantenimientos", "mantenciones"),
+            ("unas mantenciones", "unos mantenimientos", "mantenciones"),
+            ("mantenciones", "mantenimientos", "mantenciones"),
+            ("mantención", "mantenimiento", "mantención"),
+        )
+    ],
 ]
 
 
@@ -345,12 +451,17 @@ def fix_homoglyphs(text: str) -> str:
     return text.translate(_HOMOGLYPHS)
 
 
-def _repair(lines: list[ScriptLine], untraceable: list[str] | None = None) -> list[ScriptLine]:
+def _repair(
+    lines: list[ScriptLine], untraceable: list[str] | None = None, frame: TimeFrame | None = None
+) -> list[ScriptLine]:
     """Reparación determinista: homoglifos, gramática, regionalismos y palabras raras, vacíos,
-    frases de recomendación, frases con cifras no trazables (``untraceable``) y 2 locutores."""
+    frases de recomendación, frases con cifras no trazables (``untraceable``), saludo y
+    «cierre» si la sesión sigue abierta (``frame``) y 2 locutores."""
     cleaned: list[ScriptLine] = []
     for line in lines:
         text = fix_regionalisms(fix_spoken_text(" ".join(fix_homoglyphs(line.text).split())))
+        if frame is not None:
+            text = fix_time_frame(text, frame)
         text, changed = strip_advice(text)
         if changed:
             log.warning("Guionista: eliminada una frase con recomendación de inversión")
@@ -369,15 +480,27 @@ def _repair(lines: list[ScriptLine], untraceable: list[str] | None = None) -> li
     return cleaned
 
 
-def fallback_script(analysis: Analysis, speaker_names: tuple[str, str] = DEFAULT_SPEAKERS) -> PodcastScript:
+def fallback_script(
+    analysis: Analysis,
+    speaker_names: tuple[str, str] = DEFAULT_SPEAKERS,
+    frame: TimeFrame | None = None,
+) -> PodcastScript:
     """Guion mínimo y determinista construido solo con el análisis (si el LLM falla).
 
-    Termina con A; ``_finalize`` añade el cierre en boca de B (Osa)."""
+    El saludo y el marco («el cierre del día» o «lo que va de sesión») dependen de ``frame``
+    (por defecto, la hora actual). Termina con A; ``_finalize`` añade el cierre en boca de B (Osa)."""
     a, b = speaker_names
+    frame = frame or episode_frame(analysis)
+    if frame.session == "open" and not frame.can_say_close:
+        moment = "lo que va de sesión"
+    elif frame.session == "closed" and frame.when.weekday() < 5:
+        moment = "el cierre del día"
+    else:
+        moment = "el último cierre"
     lines = [
         ScriptLine(
             speaker="A",
-            text=f"{brand.GREETING}, soy {a} y esto es {brand.BRAND_NAME}, el cierre del día.",
+            text=f"{frame.greeting}, soy {a} y esto es {brand.BRAND_NAME}, {moment}.",
         ),
         ScriptLine(speaker="B", text=f"Y yo soy {b}. El titular de hoy: {analysis.headline}."),
     ]
@@ -393,21 +516,24 @@ def _finalize(
     analysis: Analysis,
     untraceable: list[str] | None = None,
     speaker_names: tuple[str, str] = DEFAULT_SPEAKERS,
+    frame: TimeFrame | None = None,
 ) -> PodcastScript:
     """Repara, añade el cierre obligatorio si falta y recalcula la duración.
 
     El cierre lo dice siempre B (Osa, la prudente): si la última intervención ya es de B, el
     aviso se añade a esa intervención para no romper la alternancia de locutores."""
-    lines = merge_long_runs(_repair(script.lines, untraceable))
+    frame = frame or episode_frame(analysis)
+    lines = merge_long_runs(_repair(script.lines, untraceable, frame))
     if not lines:
         log.warning("Guionista: guion vacío tras reparar; se usa el guion de respaldo")
-        lines = _repair(fallback_script(analysis, speaker_names).lines)
+        lines = _repair(fallback_script(analysis, speaker_names, frame).lines, frame=frame)
     if not _has_closing(lines):
         closer: Literal["A", "B"] = "B"
+        closing = closing_line(frame)
         if lines[-1].speaker == closer:
-            lines[-1] = ScriptLine(speaker=closer, text=f"{lines[-1].text} {CLOSING_LINE_ES}")
+            lines[-1] = ScriptLine(speaker=closer, text=f"{lines[-1].text} {closing}")
         else:
-            lines.append(ScriptLine(speaker=closer, text=CLOSING_LINE_ES))
+            lines.append(ScriptLine(speaker=closer, text=closing))
     title = re.sub(r"\s+", " ", script.title or "").strip() or brand.episode_title(analysis.date)
     return PodcastScript(title=title, lines=lines, est_duration_s=estimate_duration_s(lines))
 
@@ -458,6 +584,7 @@ def write_script(
     length_tolerance: float | None = LENGTH_TOLERANCE,
     trace: list[str] | None = None,
     check_figures: bool = True,
+    now: datetime | None = None,
 ) -> PodcastScript:
     """Genera el guion del episodio (A/B alternando, apertura y cierre con disclaimer).
 
@@ -473,9 +600,12 @@ def write_script(
             pipeline las guarda en ``StepMetric.detail``.
         check_figures: *grounding* del guion: toda cifra debe estar en el ``Analysis``; si no,
             cuenta como problema (reintento) y lo que quede se elimina al reparar.
+        now: hora de generación (por defecto, la actual en Madrid): fija el saludo y si se puede
+            hablar de «cierre» (``timeframe.time_frame``; los tests la inyectan).
     """
     notes = trace if trace is not None else []
-    system = _render_system(target_minutes, speaker_names)
+    frame = episode_frame(analysis, now)
+    system = _render_system(target_minutes, speaker_names, frame)
     user = build_user_message(analysis)
     reference = user if check_figures else None
     messages: list[dict] = [{"role": "user", "content": user}]
@@ -492,7 +622,7 @@ def write_script(
         else:
             problems = script_problems(
                 script, target_minutes, length_tolerance, reference=reference,
-                analysis=analysis if check_figures else None,
+                analysis=analysis if check_figures else None, frame=frame,
             )
             score = (len(problems), abs(estimate_duration_s(script.lines) - target_minutes * 60))
             if best_score is None or score < best_score:
@@ -515,15 +645,18 @@ def write_script(
     if best is None:
         log.warning("Guionista: sin guion del LLM; se usa el guion de respaldo")
         notes.append(FALLBACK_NOTE)
-        best = fallback_script(analysis, speaker_names)
+        best = fallback_script(analysis, speaker_names, frame)
     untraceable = untraceable_figures(script_text(best), reference) if reference is not None else []
     if untraceable:
         notes.append(f"guion: eliminadas frases con cifras no trazables ({', '.join(untraceable[:6])})")
     elif reference is not None:
         notes.append("guion: cifras trazables al análisis")
-    final = _finalize(best, analysis, untraceable, speaker_names)
-    if causal := unhedged_causal_claims(script_text(final)):
+    final = _finalize(best, analysis, untraceable, speaker_names, frame)
+    if causal := unhedged_causal_claims(script_text(final), reference=reference):
         notes.append(f"guion: {len(causal)} frase(s) con causa no matizada")
+    if evaluative := evaluative_tone(script_text(final)):
+        notes.append(f"guion: {len(evaluative)} frase(s) con tono valorativo")
+    notes.append(f"guion: marco {frame.session} ({frame.when:%H:%M}, «{frame.greeting}»)")
     notes.append(f"guion: {len(final.lines)} intervenciones, ~{final.est_duration_s / 60:.1f} min")
     return final
 
@@ -540,12 +673,16 @@ __all__ = [
     "WORDS_PER_MINUTE",
     "WRITTEN_WORDS_PER_MINUTE",
     "build_user_message",
+    "closing_line",
     "duration_bounds_s",
+    "episode_frame",
     "estimate_duration_s",
     "fallback_script",
     "fix_regionalisms",
+    "fix_time_frame",
     "merge_long_runs",
     "missing_key_points",
+    "premature_close_claims",
     "regionalisms",
     "same_speaker_runs",
     "script_problems",
