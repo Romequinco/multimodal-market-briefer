@@ -190,7 +190,8 @@ def test_chart_validate_rejects_unsupported_format_and_empty_classifier() -> Non
         def classify(self, image, labels):
             return {}
 
-    assert chart_reader.classify_image(b"x", Empty()) == (chart_reader.NOT_CHART_LABEL, 0.0)  # type: ignore[arg-type]
+    route = chart_reader.classify_image(b"x", Empty())  # type: ignore[arg-type]
+    assert route.prob == 0.0 and not route.rejected and route.hint() == ""
 
 
 def test_read_chart_checks_llm_contract() -> None:

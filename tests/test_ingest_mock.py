@@ -355,8 +355,8 @@ def test_read_chart_rejects_non_financial_image() -> None:
         def describe(self, image: bytes, prompt: str) -> str:  # pragma: no cover - no debe llamarse
             raise AssertionError("no debe llamarse a visión")
 
-    insight = chart_reader.read_chart(SAMPLE_PNG.read_bytes(), "foto.png", NoVision(), classifier=NotChart())
-    assert "no parece un gráfico" in insight.summary
+    with pytest.raises(ValueError, match="no parece un gráfico financiero"):
+        chart_reader.read_chart(SAMPLE_PNG.read_bytes(), "foto.png", NoVision(), classifier=NotChart())
 
 
 @pytest.mark.parametrize("data", [b"", b"esto no es una imagen"])
@@ -366,8 +366,9 @@ def test_read_chart_invalid_image(data: bytes) -> None:
 
 
 def test_classify_image() -> None:
-    label, prob = chart_reader.classify_image(b"img", MockImageClassifier())
-    assert label == chart_reader.CHART_LABELS[0] and prob == pytest.approx(0.7)
+    route = chart_reader.classify_image(b"img", MockImageClassifier())
+    assert route.label == chart_reader.CHART_LABELS[0] and route.prob == pytest.approx(0.7)
+    assert route.kind == "grafico" and not route.rejected and not route.is_portfolio
 
 
 # ── pdf_reader ────────────────────────────────────────────────────────────────────
