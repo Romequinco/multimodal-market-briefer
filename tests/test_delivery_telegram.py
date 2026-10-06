@@ -134,6 +134,7 @@ def test_full_send_message_audio_photo_video(sample_briefing, tmp_path, fake):
     assert audio["data"]["duration"] == "2"
 
     assert photo["file"] == ("photo", "cover.png", b"PNGcover")  # la portada gana al gráfico
+    assert "Imagen generada por IA" in photo["data"]["caption"]  # AI Act art. 50
     assert video["file"] == ("video", "v.mp4", b"mp4video")
     assert video["data"]["supports_streaming"] == "true"
 
@@ -143,6 +144,7 @@ def test_photo_falls_back_to_overview_chart(sample_briefing, tmp_path, fake):
     tg.send_briefing_telegram(b, settings=_settings(tmp_path))
     photo = next(c for c in fake.calls if c["method"] == "sendPhoto")
     assert photo["file"] == ("photo", "overview_change.png", b"PNGoverview")
+    assert "generada por IA" not in photo["data"]["caption"]  # el gráfico no es imagen generativa
 
 
 def test_missing_files_are_skipped_silently(sample_briefing, tmp_path, fake):

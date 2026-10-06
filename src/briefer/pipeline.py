@@ -1380,7 +1380,8 @@ def _speak(answer: QAAnswer, briefing: Briefing | None, tts: TTSProvider, s: Set
         qa_dir.mkdir(parents=True, exist_ok=True)
         spoken = normalize_for_speech(answer.answer_text) or answer.answer_text
         step.est_cost_eur = costs.estimate_cost_eur(tts.provider_name, tts.model, n_chars=len(spoken))
-        return tts.synthesize(spoken, s.briefer_voice_b, qa_dir / f"respuesta_{new_briefing_id()}")
+        path = tts.synthesize(spoken, s.briefer_voice_b, qa_dir / f"respuesta_{new_briefing_id()}")
+        return podcast.tag_audio(path)  # metadatos «voces sintéticas IA» (AI Act art. 50)
 
     audio_path = _optional_step("qa.tts", tts.provider_name, tts.model, metrics, _synth)
     update: dict[str, object] = {"metrics": metrics}

@@ -54,7 +54,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from briefer.brand import BRAND_NAME
-from briefer.logging_utils import get_logger
+from briefer.logging_utils import error_text, get_logger
 from briefer.media.speech import normalize_for_speech
 from briefer.providers.base import TTSProvider
 from briefer.schemas import AudioAsset, AudioSegment, PodcastScript, ScriptLine
@@ -217,6 +217,26 @@ def _metadata_args(metadata: dict[str, str] | None) -> list[str]:
         if value:
             args += ["-metadata", f"{key}={value}"]
     return args
+
+
+def tag_audio(path: Path, metadata: dict[str, str] | None = None) -> Path:
+    """Escribe etiquetas (por defecto ``AI_AUDIO_METADATA``) en un MP3 sin recodificar (``-c copy``).
+
+    Para audios sueltos como la respuesta del Q&A (décimas de segundo). Los WAV (``MockTTS``) se
+    dejan tal cual. Si ffmpeg falla, se registra y se devuelve el fichero sin etiquetas.
+    """
+    if path.suffix.lower() != ".mp3":
+        return path
+    tmp = path.with_name(f"{path.stem}.{os.getpid()}.{threading.get_ident()}.tag.mp3")
+    try:
+        _run_ffmpeg(["-y", "-i", str(path), "-map", "0:a", "-c", "copy", "-id3v2_version", "3",
+                     *_metadata_args(AI_AUDIO_METADATA if metadata is None else metadata), str(tmp)])
+        tmp.replace(path)
+    except Exception as exc:  # las etiquetas son un extra: nunca rompen la respuesta
+        log.warning("No se pudieron etiquetar los metadatos de %s: %s", path.name, error_text(exc))
+    finally:
+        tmp.unlink(missing_ok=True)
+    return path
 
 
 def loudnorm_filter(lufs: float, true_peak_db: float = TRUE_PEAK_DB, lra: float = LOUDNESS_RANGE_LU) -> str:
@@ -613,6 +633,7 @@ def _assemble(
 
 __all__ = [
     "AI_AUDIO_METADATA",
+    "tag_audio",
     "DIALOGUE_MAX_CHARS",
     "DIALOGUE_MAX_LINES",
     "PAUSE_ANSWER_S",

@@ -111,7 +111,7 @@ def _text_page(pdf: PdfPages, title: str, paragraphs: list[str]) -> None:
     for para in paragraphs:
         fig.text(0.08, y, para, fontsize=10.5, va="top", wrap=True)
         y -= 0.035 * (para.count("\n") + 1) + 0.025
-    fig.text(0.08, 0.04, "Documento de ejemplo generado para la demo de Market Briefer. "
+    fig.text(0.08, 0.04, "Documento de ejemplo generado para la demo de Briefly. "
              "No contiene información real ni constituye asesoramiento financiero.", fontsize=7, color="#777777")
     pdf.savefig(fig)
     plt.close(fig)

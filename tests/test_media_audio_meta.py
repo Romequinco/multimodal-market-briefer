@@ -64,3 +64,23 @@ def test_wav_output_has_no_metadata_but_works(tmp_path: Path) -> None:
     script = PodcastScript(title="T", lines=[ScriptLine(speaker="A", text="Hola")])
     audio = podcast.synthesize_podcast(script, MockTTS(), tmp_path, "a", "b")
     assert audio.path.suffix == ".wav" and audio.path.exists()
+
+
+def test_tag_audio_writes_ai_metadata_without_reencoding(tmp_path) -> None:
+    """La respuesta hablada del Q&A también lleva las etiquetas de voz sintética (AI Act art. 50)."""
+    import subprocess
+
+    import imageio_ffmpeg
+
+    from briefer.media import podcast
+
+    exe = imageio_ffmpeg.get_ffmpeg_exe()
+    mp3 = tmp_path / "respuesta.mp3"
+    subprocess.run([exe, "-y", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono", "-t", "1", str(mp3)],
+                   check=True, capture_output=True)
+    podcast.tag_audio(mp3)
+    info = subprocess.run([exe, "-i", str(mp3)], capture_output=True).stderr.decode("utf-8", "replace")
+    assert "voces sintéticas IA" in info
+    wav = tmp_path / "x.wav"
+    wav.write_bytes(b"RIFF")
+    assert podcast.tag_audio(wav) == wav  # WAV (mock): sin tocar

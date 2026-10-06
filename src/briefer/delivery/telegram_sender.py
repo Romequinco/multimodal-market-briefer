@@ -47,6 +47,8 @@ TIMEOUT_UPLOAD: tuple[float, float] = (10.0, 120.0)
 MAX_RETRY_AFTER_S = 5.0
 #: Intérprete en ``sendAudio``: deja claro que las voces son sintéticas (compliance).
 AUDIO_PERFORMER = f"{BRAND_NAME} · voces sintéticas IA"
+#: Pie de la portada en ``sendPhoto`` (AI Act art. 50): además de la placa dibujada en la imagen.
+COVER_AI_LABEL = "Imagen generada por IA"
 NOT_CONFIGURED = "Telegram no configurado"
 _ERROR_CHARS = 160
 
@@ -193,16 +195,19 @@ def _resolve(path: Path | None, briefing: Briefing, settings: Settings) -> Path 
     return None
 
 
-def _picture(briefing: Briefing, settings: Settings) -> Path | None:
-    """Portada si existe; si no, el gráfico general (``overview_bar``). Nunca el de cartera."""
+def _picture(briefing: Briefing, settings: Settings) -> tuple[Path, bool] | None:
+    """Portada si existe; si no, el gráfico general (``overview_bar``). Nunca el de cartera.
+
+    Devuelve ``(ruta, es_portada)``: la portada es imagen generada por IA y su pie lo dice.
+    """
     cover = _resolve(briefing.cover_path, briefing, settings)
     if cover is not None:
-        return cover
+        return cover, True
     for chart in briefing.charts:
         if chart.kind == "overview_bar":
             found = _resolve(chart.path, briefing, settings)
             if found is not None:
-                return found
+                return found, False
     return None
 
 
@@ -268,7 +273,9 @@ def send_briefing_telegram(
 
     picture = _picture(briefing, s)
     if picture is not None:
-        upload("imagen", "sendPhoto", "photo", picture, {"caption": f"{BRAND_NAME} · {day}"}, MAX_PHOTO_BYTES)
+        path, is_cover = picture
+        caption = f"{BRAND_NAME} · {day}" + (f". {COVER_AI_LABEL}." if is_cover else "")
+        upload("imagen", "sendPhoto", "photo", path, {"caption": caption}, MAX_PHOTO_BYTES)
 
     if briefing.video is not None:
         video = _resolve(briefing.video.path, briefing, s)
