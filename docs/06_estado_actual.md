@@ -4,11 +4,36 @@
 > como hecho lo que alguien del equipo ha ejecutado y visto funcionar; lo no comprobado se marca **NO
 > VERIFICADO**. Las cifras de coste y latencia que no salgan de un `StepMetric` real se marcan **NO MEDIDO**.
 
-**Fecha:** mar 6-oct-2026 (tarde), cierre de la **fase 3** (rama `fase1`): arranque y robustez (Docker verificado,
-clon limpio en Windows, *stubs* retirados, CI simulada en local) · **Fase:** F0, D1, D2 y los caminos de evidencia
-cerrados · **Siguiente:** fase 4 (entregables del jueves) y subir `fase1` cuando el equipo decida (CI en GitHub) ·
-**Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) · **Contratos:** v0.3.9 ([03](03_contratos_modulos.md)) ·
-**Plan:** [05](05_roadmap_TODO.md)
+**Fecha:** mar 6-oct-2026 (noche), **estado final · listo para entregar** (rama `fase1`): fases 0-3 cerradas y
+entregables documentales hechos (README final con capturas, pitch PDF, guion de la demo) · **Siguiente:** demo
+grabada, pregenerado final y subir la rama · **Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) ·
+**Contratos:** v0.3.9 ([03](03_contratos_modulos.md)) · **Plan:** [05](05_roadmap_TODO.md)
+
+## Listo para entregar
+
+El MVP está **completo y verificado**: núcleo real de punta a punta, las modalidades del README verificadas en
+real (vídeo, router CLIP, cartera desde captura, portada local SDXS, FinBERT, Telegram), Docker verificado, clon
+limpio en Windows con `run.ps1`, **1225 tests sin red** + 13 `live` con ruff + mypy limpios, y evidencia medida
+(N = 6 briefings reales: p50 52,7 s y 0,034 €, 0 recomendaciones, 232/232 cifras trazables). Entregables:
+
+| Entregable | Estado |
+| --- | --- |
+| README final | **Hecho**: captura y enlaces arriba (demo, pitch PDF, insignia de CI), «Arranca en 2 comandos», 8 capturas, modalidades con «Activo en la demo», diagramas de flujo multimodal y de orquestación, arquitectura, mediciones, viabilidad y compliance resumidos, configuración en anexos |
+| Capturas | **Hecho**: 8 capturas reales en `docs/assets/capturas/` (1440×900, tema oscuro); algunas se rehacen con el mismo nombre tras el pregenerado final |
+| Pitch | **Hecho (borrador final)**: `pitch/pitch_briefly.pdf` (12 diapositivas), fuente `pitch/pitch_briefly.html`, `python scripts/build_pitch.py` |
+| Guion de la demo | **Hecho**: `pitch/demo_guion.md` (3:30-4:00 min) |
+
+**Queda antes de entregar:**
+
+1. **Demo grabada** (3-4 min) con `pitch/demo_guion.md` y su enlace en el README (marcador «Enlace a la demo:
+   (pendiente de grabar…)», arriba del todo) y en el pitch (`[enlace a la demo]`, diapositiva 10).
+2. **Tercer integrante**: un único marcador `TODO: tercer integrante` en la sección «Equipo» del README; en el
+   pitch, `[tercer integrante]` (diapositivas 1 y 12).
+3. *(Hecho)* **Pregenerado final** `20261006-160031-1665f6` (06-oct, 16:00; con portada SDXS, vídeo, voz Gemini, FinBERT,
+   PDF + gráfico; 0,141 €, 177 s, WER 0,5 %). Opcional: regenerarlo tras el cierre (17:35) para que diga «Buenas noches… cierre».
+4. **Subir la rama** `fase1` a `main` y comprobar la **CI en GitHub** (3.11 y 3.13; simulada en local en verde).
+5. **`run.sh` completo** en Linux/macOS con buena red (la prueba se cortó por red lenta).
+6. Higiene del repo (sin `.env`, `data/outputs/` ni `docs/raw/` en git) y etiqueta `v1.0`.
 
 ## Resumen
 
@@ -110,12 +135,12 @@ ruff + mypy limpios.
 | Cartera desde captura (06-oct) | Hecho, verificado en real | `ingest/portfolio.portfolio_from_image` vía `pipeline.portfolio_from_screenshot` (paso `ingest.portfolio_image`): visión (Sonnet 5.5) transcribe la tabla → Haiku 4.5 la estructura → mapeo determinista a tickers (`TICKER_UNIVERSE`), pesos por valor o por % de la captura; filas no reconocidas avisadas en la UI. Nada a disco (ADR-005); `detail` sin nombres ni cifras. Real con `data/samples/cartera_ejemplo.png` (ficticia): **5/5** posiciones correctas, **8,5 s**, **≈ 0,0054 €**. UI «Mi cartera»: subir captura o «Usar captura de ejemplo», con el consejo de recortar nombre y nº de cuenta |
 | Portada local (06-oct, tarde) | Hecho, verificado en real | `providers/image/sdxl_turbo.SDXLTurbo` (`BRIEFER_IMAGE_GEN_PROVIDER=local`, alias `sdxl_turbo`; diffusers en CPU; `requirements-local.txt`): SDXS `IDKiro/sdxs-512-dreamshaper` (1 paso, CreativeML OpenRAIL++ con uso comercial, ~1,8 GB la 1.ª vez; `BRIEFER_SDXL_MODEL`, `BRIEFER_SDXL_STEPS`) con el prompt corto `media.cover.build_cover_prompt_local` (< 77 tokens de CLIP). Verificada generando la portada del pregenerado (titular y placa «Imagen generada por IA»). Descartados `stabilityai/sd-turbo` (licencia de uso comercial restringido) y `SimianLuo/LCM_Dreamshaper_v7` (MIT, 4,3 GB) |
 | Portada con Gemini imagen (06-oct) | Implementado, con tests; **NO VERIFICADO en real** | `media/cover.py` + `providers/image/gemini_image.GeminiImage` (`BRIEFER_IMAGE_GEN_PROVIDER=gemini`, `BRIEFER_GEMINI_IMAGE_MODEL=gemini-3.1-flash-lite-image`, 16:9 a 1K): prompt de marca según el tono del día, sin cifras ni empresas; titular y «Briefly · fecha» superpuestos con Pillow y placa **«Imagen generada por IA»**; primera diapositiva del vídeo y foto de Telegram. Coste: 0,0336 $/imagen ≈ 0,029 € (**tarifa oficial**, consultada el 06-oct; no medido). Latencia **NO MEDIDA**. En mock funciona de punta a punta. Casilla «Portada con IA» desactivada en modo real si `BRIEFER_IMAGE_GEN_PROVIDER=none` |
-| Telegram (06-oct) | Hecho, verificado en real (8,5 s; mensaje, audio, imagen y vídeo) | `delivery/telegram_sender.send_briefing_telegram`: mensaje HTML (titular, puntos, fuentes, aviso legal) + audio + portada o gráfico general + vídeo; límites 50 MB audio/vídeo y 10 MB foto; un fallo posterior al mensaje no invalida lo enviado; el token nunca sale en errores ni logs. `scripts/telegram_setup.py [--write] [--test] [--chat-id]` saca el `chat_id` con `getUpdates` y lo escribe en `.env`. En la UI, «Enviar por → Telegram» solo aparece con token y chat. Falta crear el bot |
+| Telegram (06-oct) | Hecho, verificado en real (8,5 s; mensaje, audio, imagen y vídeo) | `delivery/telegram_sender.send_briefing_telegram`: mensaje HTML (titular, puntos, fuentes, aviso legal) + audio + portada o gráfico general + vídeo; límites 50 MB audio/vídeo y 10 MB foto; un fallo posterior al mensaje no invalida lo enviado; el token nunca sale en errores ni logs. `scripts/telegram_setup.py [--write] [--test] [--chat-id]` saca el `chat_id` con `getUpdates` y lo escribe en `.env`. En la UI, «Enviar por Telegram» solo aparece con token y chat. Bot del equipo: @BrieflyMiaxBot |
 | Evaluación de briefings (camino 1, 06-oct) | Hecho, medido en real | `notebooks/01_evaluacion_briefings.ipynb` + `scripts/evaluar_briefings.py [--real] [--budget]`; resultados en `notebooks/eval/resumen.md`. N = 6 (3 carteras + 3 listas, una con PDF + gráfico): 0 fallos, 0 sustitutos, 232/232 cifras trazables, 0 recomendaciones, 35/35 puntos clave con fuente, 6/6 podcasts en 3-5 min; juez Sonnet 1-5: 3,33 / 4,0 / 4,17 / 3,33 (fidelidad / claridad / sin consejo / utilidad); 0,41 € |
 | Comparativa de modelos (camino 2, 06-oct) | Hecho, decidido | `notebooks/02_comparativa_modelos.ipynb`, `notebooks/eval/comparativa/resumen.md`, [ADR-007](decisiones/ADR-007-modelos-por-agente.md) aceptado: Sonnet 5.5 / Haiku 4.5 / Gemini 2.5 Flash en Analista, Guionista y Q&A con juez ciego; se confirman los modelos actuales (ADR-006); Gemini plan B (cadena 0,021 € frente a 0,037 €; más reintentos en el Analista y guiones > 5 min); 0,55 € |
 | Cuaderno de recorrido (camino 6, 06-oct) | Hecho | `notebooks/00_recorrido_pipeline.ipynb`: 15 pasos con entrada, salida tipada y `StepMetric`, en mock, sin red ni claves, 13 s |
 | Calidad del guion y del análisis (06-oct, tras la evaluación) | Hecho, verificado en real | `agents/timeframe.py` (hora de Madrid, sesión EU/EE. UU., `greeting_for`, `time_frame`); `scriptwriter.episode_frame` / `closing_line(frame)` y puerta `premature_close_claims` (no habla de «cierre» antes del cierre); `guardrails.unhedged_causal_claims` ampliado, nueva puerta `guardrails.evaluative_tone` con reintento y `agreement_issues` / `fix_agreement`; Analista con `focus_tickers` / `focus_problems` / `_ensure_focus`. Real: `20261006-142229-4926f2` (TEF, REP, AENA, 14:22), 0,043 €; `tests/test_quality_eval_fixes.py` |
-| Tests y CI | Hecho | **1223 passed**, 13 deselected en la CI simulada en local (fase 3: ruff + mypy limpios, Python 3.13, torch/transformers/diffusers bloqueados como en GitHub); 1202 tests sin red + 13 `live` (`-m live`) tras la fase 2 (1116 + 12 en la fase 1); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
+| Tests y CI | Hecho | **1225 tests sin red** + 13 `live` al cierre (06-oct, noche); **1223 passed**, 13 deselected en la CI simulada en local (fase 3: ruff + mypy limpios, Python 3.13, torch/transformers/diffusers bloqueados como en GitHub); 1202 tests sin red + 13 `live` (`-m live`) tras la fase 2 (1116 + 12 en la fase 1); ruff + mypy limpios; red bloqueada en los tests (`conftest.py`); **cobertura 97 %** (antes 91 %); CI: job **ruff + mypy** y pytest con resumen de cobertura (matriz Python 3.11 y 3.13) |
 
 ## Mediciones (05-oct-2026 y fases 1 y 2 del 06-oct-2026)
 
@@ -163,7 +188,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | CI en GitHub Actions con la rama `fase1` | Simulada en local (1223 passed, ruff + mypy limpios); falta la ejecución real en GitHub al subir la rama (decisión del equipo) | Al subir `fase1` |
 | Clave de grupo con límite de gasto | Pendiente de decisión del equipo (requiere la consola de Anthropic). El contraste con la factura se cerró el 06-oct: revisado a ojo, cuadra aproximadamente | D3 |
 | Proveedores sin implementar | Ninguno en el registry (v0.3.9, D3): `OpenAILLM`, Qwen-VL, Whisper local y ElevenLabs borrados; un `.env` antiguo que los nombre cae a `mock` con aviso | Hoja de ruta (docs/05, *Won't*) |
-| Capturas, demo grabada, pitch | — | D3 |
+| Demo grabada | Guion listo (`pitch/demo_guion.md`); falta grabarla y poner el enlace en el README y en el pitch. Capturas, pitch y README final, hechos | D3 |
 
 ## Riesgos abiertos
 
@@ -180,7 +205,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Modalidades prometidas > demostradas (06-oct: todo verificado en real; el email se retiró) | Nota de 4.2 | Vídeo, CLIP, captura de cartera y portada local ya verificados en real; columna «Activo en la demo» honesta en el README; recortes en [05](05_roadmap_TODO.md#recortes-si-no-da-tiempo) |
 | **Facturación de Google para la portada** (mitigado el 06-oct) | Solo afecta a `gemini` | La portada recomendada es la local (`BRIEFER_IMAGE_GEN_PROVIDER=local`, SDXS, 0 €); descargar el modelo (~1,8 GB) antes de la demo |
 | **CLIP: descarga y primera carga** | ~600 MB la 1.ª vez (≈ 28 s) e imports en frío ≈ 11 s: la 1.ª subida del día tarda más; `torch` pesado en Docker | Opcional (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER`); dependencias en `requirements-local.txt`; si falta, la imagen va a visión sin pista; descargar el modelo antes de la demo |
-| Capturas, demo y pitch al 0 % | Entregable | Code freeze jue 11:00; D3 dedicado |
+| Demo grabada pendiente (capturas, pitch y README ya hechos) | Entregable R17 | Guion con tiempos y trucos de edición en `pitch/demo_guion.md`; si no da tiempo, la portada enseña el pregenerado real sin claves |
 | **Tarifa de Gemini TTS sin verificar** (modelo en *preview*; se usa la de los *flash* TTS anteriores) | El coste de la voz premium (≈ 0,047 € por episodio) puede ser otro | Marcado «estimación, verificar» en `costs.py` y en [04](04_viabilidad_costes_latencia_compliance.md); mirar la factura de Google; edge-tts sigue por defecto (0 €) |
 | **SRT aproximado con Gemini** | Los subtítulos pueden ir algo adelantados o atrasados dentro de un tramo | Tiempos repartidos en proporción a la longitud hablada; tramos de ≤ 12 líneas; con edge-tts los tiempos son exactos |
 | Gemini TTS lento o caído en la demo | Briefing en vivo más lento | Cae a edge-tts (marcado en la traza); el pregenerado ya está generado; el Q&A no usa Gemini |
@@ -188,16 +213,18 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | **Calidad editorial del guion** (juez fase 2: fidelidad 3,33 y utilidad 3,33 sobre 5) | Percepción del podcast; nota de 4.2 | Mitigado con las puertas nuevas (causas sin atribuir, tono valorativo, concordancia, marco horario, foco en los valores del usuario) y reintento; **re-evaluar** con `scripts/evaluar_briefings.py --real` antes del pregenerado final |
 
 
-## Próximos pasos (fase 4)
+## Próximos pasos (hasta la entrega)
 
-1. ~~**Fase 3**~~ (hecha el 06-oct por la tarde: Docker verificado, clon limpio en Windows, *stubs* retirados, CI
-   simulada). Restos: `run.sh` completo en Linux/macOS con buena red y re-evaluar la calidad
-   (`scripts/evaluar_briefings.py --real`) con las puertas nuevas.
-2. **Subir `fase1`** a `main` cuando el equipo lo decida y comprobar la CI de GitHub (3.11 y 3.13).
-   **Usuario:** clave de grupo con límite.
-3. **mié 22:00** · *feature freeze*. Construir la imagen de Docker con antelación en la máquina de la demo.
-4. **Fase 4 (jue 8)** · pregenerado final (con vídeo si se enseña en la portada), clon limpio con el código final,
-   capturas, demo grabada, pitch PDF y README final; entrega 16:30.
+1. ~~**Fase 3**~~ (hecha el 06-oct por la tarde) y ~~**entregables documentales**~~ (06-oct, noche: README final,
+   8 capturas, pitch PDF de 12 diapositivas y guion de la demo).
+2. *(Hecho el 06-oct)* Pregenerado final; si se regenera tras el cierre, rehacer las capturas 01-03 con el mismo nombre.
+3. **Demo grabada** con `pitch/demo_guion.md`; poner el enlace en el README (arriba) y en el pitch
+   (`python scripts/build_pitch.py --demo-url <URL>` para el QR).
+4. **Tercer integrante** en el README («Equipo») y en el pitch.
+5. **Subir `fase1`** a `main` y comprobar la CI de GitHub (3.11 y 3.13); `run.sh` completo con buena red;
+   construir la imagen de Docker con antelación en la máquina de la demo.
+6. **jue 8, 16:00** · higiene del repo y etiqueta `v1.0`; entrega 16:30. Opcional: re-evaluar la calidad
+   (`scripts/evaluar_briefings.py --real`) con las puertas nuevas. **Usuario:** clave de grupo con límite.
 
 ## Registro de jornadas
 
@@ -216,3 +243,4 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | 06-oct-2026 (email retirado) | Email retirado (decisión de producto): entrega por web y Telegram. Borrado `delivery/email_sender.py`, `DELIVERY_CHANNELS = ("telegram",)`, sin `SMTP_*`; `Channel` conserva `"email"` como reservado. Contratos v0.3.7. 1148 tests sin red + 13 `live`; ruff y mypy limpios |
 | 06-oct-2026 (fase 2) | **Evidencia y mediciones:** camino 1 (N = 6 briefings reales, 0 fallos, pared p50 52,7 / p95 68,2 s, coste p50 0,0337 / p95 0,0620 €, 232/232 cifras trazables, 0 recomendaciones, juez 3,33 / 4,0 / 4,17 / 3,33; 0,41 €), camino 2 ([ADR-007](decisiones/ADR-007-modelos-por-agente.md): se confirman Sonnet en el Analista y Haiku en Guionista y Q&A, Gemini plan B; 0,55 €), camino 6 (cuaderno de 15 pasos en mock, 13 s), revisión de prompts con 3 carteras, `docs/04` reforzado (costes fijos ≈ 1.070 / 3.700 €/mes, punto de equilibrio, transferencias RGPD). **Calidad:** `agents/timeframe.py`, marco horario del guion, puertas de causas y tono valorativo con reintento, concordancia de artículos, foco en los valores del usuario; verificado en real (`20261006-142229-4926f2`, 0,043 €). Contratos v0.3.8 (aditivo; `schemas.py` sin cambios). 1202 tests sin red + 13 `live`; ruff y mypy limpios |
 | 06-oct-2026 (fase 3, tarde) | **Arranque y robustez.** Docker verificado por primera vez (*build* completa con `LOCAL_MODELS=true`, 3,37 GB / 769 MB; *healthy* en 10 s; briefing real en el contenedor con gráfico, vídeo, portada SDXS y Telegram: 114 s, 0,061 €, 0 errores); arreglada la caché de Hugging Face de root (CLIP con `PermissionError`) en el `Dockerfile`. Clon limpio en Windows con `run.ps1` sin `.env` (app en 220 s, modo demo). `run.sh` en `python:3.11-slim` sin terminar por red lenta (NO VERIFICADO del todo). *Stubs* retirados (v0.3.9); «Briefly» en `run.ps1`, `run.sh` y `demo.py`. CI simulada en local: ruff + mypy limpios, 1223 passed / 13 deselected (Python 3.13); CI de GitHub pendiente de subir la rama. Red de PyPI/Debian muy lenta (*builds* de 6-60 min): construir la imagen con antelación |
+| 06-oct-2026 (noche, estado final) | **Listo para entregar.** Compliance final (portada a Telegram con aviso de IA, metadatos de voz sintética en la respuesta del Q&A, PDF de ejemplo con la marca). **Entregables:** 8 capturas reales en `docs/assets/capturas/`, pitch técnico `pitch/pitch_briefly.pdf` (12 diapositivas, regenerable con `scripts/build_pitch.py`), guion de la demo `pitch/demo_guion.md` y **README final** (captura y enlaces arriba, «Arranca en 2 comandos», capturas, diagrama de orquestación nuevo, mediciones, viabilidad y compliance resumidos, configuración en anexos). Checklist de rúbrica de [00](00_enunciado.md) actualizado. 1225 tests sin red + 13 `live`. Pendiente: demo grabada, tercer integrante, pregenerado final, subir la rama (CI en GitHub), `run.sh` completo, `v1.0` |
