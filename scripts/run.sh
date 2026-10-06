@@ -75,5 +75,5 @@ if [ "$EXPOSE" = 1 ]; then
   ADDRESS="0.0.0.0"
   echo "AVISO: --expose activo. Cualquiera en tu red podra usar la app (y tus claves de API)."
 fi
-echo "Lanzando Market Briefer en http://localhost:$PORT  (Ctrl+C para parar) ..."
+echo "Lanzando Briefly en http://localhost:$PORT  (Ctrl+C para parar) ..."
 exec "$PY" -m streamlit run app/main.py --server.address "$ADDRESS" --server.port "$PORT" --server.headless true

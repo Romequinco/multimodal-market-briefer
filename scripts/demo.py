@@ -42,7 +42,7 @@ from briefer.schemas import DISCLAIMER_ES, Briefing, StepMetric
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     s = get_settings()
-    parser = argparse.ArgumentParser(description="Market Briefer — demo por línea de comandos")
+    parser = argparse.ArgumentParser(description="Briefly — demo por línea de comandos")
     parser.add_argument(
         "--tickers", nargs="+", default=s.default_tickers, help="Tickers (formato Yahoo o nombre de empresa)"
     )

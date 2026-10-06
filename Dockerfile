@@ -52,8 +52,9 @@ COPY data/samples/ data/samples/
 COPY docs/assets/ docs/assets/
 COPY .env.example .env.example
 
-RUN mkdir -p data/cache data/outputs \
-    && chown -R app:app data
+# hf-cache: el volumen con nombre hereda el dueño (app) de esta carpeta al crearse por primera vez.
+RUN mkdir -p data/cache data/outputs /home/app/.cache/huggingface \
+    && chown -R app:app data /home/app/.cache
 
 USER app
 

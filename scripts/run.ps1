@@ -100,6 +100,6 @@ if ($Expose) {
 } else {
     $Address = "localhost"
 }
-Write-Host "Lanzando Market Briefer en http://localhost:$Port  (Ctrl+C para parar) ..."
+Write-Host "Lanzando Briefly en http://localhost:$Port  (Ctrl+C para parar) ..."
 & $Py -m streamlit run app/main.py --server.address $Address --server.port $Port --server.headless true
 exit $LASTEXITCODE
