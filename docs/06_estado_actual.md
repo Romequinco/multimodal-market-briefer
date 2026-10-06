@@ -151,7 +151,7 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | Portada con Gemini en real | Opcional: la portada ya funciona en local y gratis; Gemini necesitaría una clave **con facturación activa** (429 con cuota 0) | Won't salvo que sobre tiempo |
 | Docker | `Dockerfile` con modelos locales por defecto (`ARG LOCAL_MODELS=true`: torch CPU + transformers + diffusers + accelerate; `false` para imagen mínima), volumen `hf-cache`, pip con `PIP_DEFAULT_TIMEOUT=120` / `PIP_RETRIES=10`; `docker compose config` válido, pero la *build* **NO VERIFICADA** (06-oct: intentada con Docker Desktop, red degradada, se paró) | D2 Sync 4 / D3 |
 | `run.sh` y clon limpio en Linux/macOS | `scripts/run.sh` | D3 |
-| Contraste con la factura y clave de grupo | p50/p95 ya medidos (N = 6, fase 2). Falta comparar el coste estimado con las consolas de Anthropic, OpenAI y Google y crear la clave de grupo con límite: requieren acceso a las cuentas (**usuario**) | D3 |
+| Clave de grupo con límite de gasto | Pendiente de decisión del equipo (requiere la consola de Anthropic). El contraste con la factura se cerró el 06-oct: revisado a ojo, cuadra aproximadamente | D3 |
 | Proveedores sin implementar | `OpenAILLM` (*stub* documentado), Qwen-VL, Whisper local, ElevenLabs (la voz premium es ya Gemini TTS); `SDXLTurbo` ya **no** es *stub* (portada local) | Won't; limpieza D3 |
 | Capturas, demo grabada, pitch | — | D3 |
 
