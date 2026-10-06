@@ -325,9 +325,9 @@ def test_m6_pending_features_disabled_in_ui() -> None:
     at = AppTest.from_file(str(APP_DIR / "pages" / "1_Briefing.py"), default_timeout=60).run()
     assert not at.exception
     labels = {c.label: c for c in at.checkbox}
-    assert not labels["Generar vídeo corto"].disabled
+    assert not labels["Vídeo corto"].disabled
     # El email sigue en desarrollo: no se ofrece como canal.
-    assert "email" not in at.multiselect[1].options  # «Enviar también por»
+    assert "email" not in at.multiselect[1].options  # «Enviar por»
     at.button[0].click().run()  # generar: sin avisos de pasos fallidos ni entregas fallidas
     assert not at.exception
     warnings = "\n".join(w.value for w in at.warning)

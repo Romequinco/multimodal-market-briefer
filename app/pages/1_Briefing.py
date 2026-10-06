@@ -114,13 +114,14 @@ COVER_READY = mode != "real" or settings.briefer_image_gen_provider != "none"
 TELEGRAM_READY = bool(settings.telegram_bot_token and settings.telegram_chat_id)
 with st.expander("Opciones avanzadas: vídeo, portada y envíos"):
     col1, col2, col3 = st.columns(3)
-    make_video = col1.checkbox("Generar vídeo corto", value=False,
+    make_video = col1.checkbox("Vídeo corto", value=False,
                                help="Vídeo vertical 9:16 con el podcast, los gráficos y subtítulos (unos segundos más).")
-    make_cover = col2.checkbox("Generar portada con IA", value=False, disabled=not COVER_READY,
+    make_cover = col2.checkbox("Portada con IA", value=False, disabled=not COVER_READY,
                                help="Ilustración generada por IA a partir del tono del día (no representa datos)."
                                if COVER_READY else "Configura BRIEFER_IMAGE_GEN_PROVIDER (p. ej. gemini) en .env.")
     channels = [c for c in ("email", "telegram") if not IN_DEVELOPMENT.get(c) and (c != "telegram" or TELEGRAM_READY)]
-    deliver = col3.multiselect("Enviar también por", channels, disabled=not channels,
+    deliver = col3.multiselect("Enviar por", channels, disabled=not channels,
+                               placeholder="Telegram" if channels else "Telegram sin configurar",
                                help="Telegram: configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID "
                                "(scripts/telegram_setup.py). Email: en desarrollo.")
     st.caption("El email está en desarrollo; el briefing siempre queda disponible en la web.")
