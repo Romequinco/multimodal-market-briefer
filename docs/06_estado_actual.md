@@ -27,8 +27,7 @@ limpio en Windows con `run.ps1`, **1225 tests sin red** + 13 `live` con ruff + m
 
 1. **Demo grabada** (3-4 min) con `pitch/demo_guion.md` y su enlace en el README (marcador «Enlace a la demo:
    (pendiente de grabar…)», arriba del todo) y en el pitch (`[enlace a la demo]`, diapositiva 10).
-2. **Tercer integrante**: un único marcador `TODO: tercer integrante` en la sección «Equipo» del README; en el
-   pitch, `[tercer integrante]` (diapositivas 1 y 12).
+2. *(Hecho)* **Equipo** completo en el README y el pitch: Óscar Romero Quincoces, Daniel García López y Fernando Dapena Tauste.
 3. *(Hecho)* **Pregenerado final** `20261006-160031-1665f6` (06-oct, 16:00; con portada SDXS, vídeo, voz Gemini, FinBERT,
    PDF + gráfico; 0,141 €, 177 s, WER 0,5 %). Opcional: regenerarlo tras el cierre (17:35) para que diga «Buenas noches… cierre».
 4. **Subir la rama** `fase1` a `main` y comprobar la **CI en GitHub** (3.11 y 3.13; simulada en local en verde).

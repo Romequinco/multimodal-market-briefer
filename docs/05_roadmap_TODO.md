@@ -9,7 +9,7 @@ cada uno marca la que coge escribiendo su nombre al lado. Contratos y firmas rea
 > (capturas, «Arranca en 2 comandos», diagrama de orquestación, mediciones, viabilidad, compliance, configuración en
 > anexos), **8 capturas** en `docs/assets/capturas/`, **pitch** `pitch/pitch_briefly.pdf` (12 diapositivas) y
 > **guion de la demo** `pitch/demo_guion.md`; `docs/06` y la checklist de `docs/00` al día. 1225 tests sin red + 13
-> `live`. Quedan: demo grabada, tercer integrante (README y pitch), pregenerado final, subir la rama (CI en GitHub),
+> `live`. Quedan: demo grabada, subir la rama (CI en GitHub),
 > `run.sh` completo, higiene del repo y `v1.0`.
 
 > **Actualización mar 6-oct-2026 (fase 3 · arranque y robustez).** **Docker verificado** por primera vez: *build*

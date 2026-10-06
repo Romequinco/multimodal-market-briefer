@@ -17,8 +17,7 @@ Material de la presentación final (entrega: 8-oct-2026).
 .venv/Scripts/python scripts/build_pitch.py --demo-url <URL>    # + QR de la demo (requiere pip install segno)
 ```
 
-**Marcadores por rellenar** en `pitch_briefly.html` (buscar `MARCADOR`): `[tercer integrante]` (diapositivas 1 y
-12) y `[enlace a la demo]` (diapositiva 10). Si falta una captura, la diapositiva de producto muestra un marco con
+**Marcador por rellenar** en `pitch_briefly.html` (buscar `MARCADOR`): `[enlace a la demo]` (diapositiva 10). Si falta una captura, la diapositiva de producto muestra un marco con
 su nombre en vez de romper el diseño. Inter y JetBrains Mono no van incluidas: si no están instaladas, el deck usa
 Segoe UI y Consolas.
 

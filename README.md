@@ -27,7 +27,7 @@ texto a voz, CLIP, FinBERT, SDXS) con contratos tipados entre cada paso.
 > CLIP, cartera desde captura, portada local y Telegram incluidos), **Docker verificado**,
 > clon limpio en Windows con `run.ps1`, **1225 tests sin red** (+ 13 «live») con ruff + mypy, y evaluación de
 > **6 briefings reales** (p50 52,7 s y 0,034 €; 0 recomendaciones; 232/232 cifras trazables). Quedan la demo
-> grabada, el nombre del tercer integrante y subir la rama (CI en GitHub). Detalle y registro de jornadas en
+> grabada y subir la rama (CI en GitHub). Detalle y registro de jornadas en
 > [docs/06_estado_actual.md](docs/06_estado_actual.md).
 
 > **Aviso legal.** Briefly genera **información financiera genérica con fines educativos**. No es asesoramiento
@@ -534,8 +534,8 @@ transcripción, los gráficos y los metadatos del audio. Guía completa en
 | Integrante | Notas |
 | --- | --- |
 | Óscar Romero Quincoces | |
-| Daniel García | Integración de FinBERT: «impacto de la noticia» (PR #1) |
-| **TODO: tercer integrante** | |
+| Daniel García López | Integración de FinBERT: «impacto de la noticia» (PR #1) |
+| Fernando Dapena Tauste | |
 
 El trabajo se organizó en tres carriles paralelos, cada uno contra los mocks de `providers/mock.py` y los
 contratos de `schemas.py`:
