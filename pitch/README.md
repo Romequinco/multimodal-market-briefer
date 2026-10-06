@@ -1,8 +1,28 @@
 # Pitch deck técnico · Briefly
 
-Aquí irá el material de la presentación final (entrega: 8-oct-2026).
+Material de la presentación final (entrega: 8-oct-2026).
 
-Contenido previsto (TODO):
+| Fichero | Qué es |
+| --- | --- |
+| [`pitch_briefly.pdf`](pitch_briefly.pdf) | Deck técnico exportado: 12 diapositivas 16:9 (1280 × 720) |
+| [`pitch_briefly.html`](pitch_briefly.html) | Fuente del deck (HTML + CSS inline, fuente Source Serif 4 local, logos de `docs/assets/marca/`, capturas de `docs/assets/capturas/`) |
+| [`demo_guion.md`](demo_guion.md) | Guion de la demo grabada (3:30-4:00 min): checklist previa, pasos con tiempos, locución, trucos de edición |
+| `assets/` | Fotograma del vídeo 9:16 del pregenerado (lo extrae el script) y, si se genera, el QR de la demo |
+
+**Regenerar el PDF** (Chrome o Edge del sistema en modo headless; sin dependencias nuevas):
+
+```bash
+.venv/Scripts/python scripts/build_pitch.py                    # → pitch/pitch_briefly.pdf
+.venv/Scripts/python scripts/build_pitch.py --preview <carpeta> # + una PNG por diapositiva para revisar
+.venv/Scripts/python scripts/build_pitch.py --demo-url <URL>    # + QR de la demo (requiere pip install segno)
+```
+
+**Marcadores por rellenar** en `pitch_briefly.html` (buscar `MARCADOR`): `[tercer integrante]` (diapositivas 1 y
+12) y `[enlace a la demo]` (diapositiva 10). Si falta una captura, la diapositiva de producto muestra un marco con
+su nombre en vez de romper el diseño. Inter y JetBrains Mono no van incluidas: si no están instaladas, el deck usa
+Segoe UI y Consolas.
+
+Contenido original previsto:
 - `pitch_briefly.pdf` — deck técnico exportado (10-12 diapositivas):
   problema y usuario, propuesta de valor, demo, arquitectura multimodal (diagrama de flujo
   de datos), modelos encadenados y por qué, costes por briefing y latencias medidas

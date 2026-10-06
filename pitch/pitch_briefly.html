@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Briefly · Pitch técnico</title>
+<!--
+  Pitch deck técnico de Briefly (MIAX · Taller B5-T4).
+  12 diapositivas de 1280 × 720 px; una página del PDF por diapositiva.
+  Exportar:  .venv/Scripts/python scripts/build_pitch.py [--preview carpeta]
+  Cifras: docs/04, docs/06, notebooks/eval/resumen.md y ADR-006/007 (medidas o marcadas «estimación»).
+
+  MARCADORES POR RELLENAR (buscar «MARCADOR»):
+    · [tercer integrante]   → nombre del tercer miembro del equipo (diapositivas 1 y 12)
+    · [enlace a la demo]    → URL de la demo grabada (diapositiva 10); QR con --demo-url
+-->
+<style>
+@font-face {
+  font-family: "Source Serif 4";
+  src: url("../docs/assets/marca/fuentes/SourceSerif4-Variable.ttf") format("truetype");
+  font-weight: 200 900;
+  font-style: normal;
+}
+@font-face { font-family: "BodySans"; src: local("Inter"), local("Inter Regular"), local("Segoe UI"), local("Helvetica Neue"), local("Arial"); font-weight: 400; }
+@font-face { font-family: "BodySans"; src: local("Inter SemiBold"), local("Inter Semi Bold"), local("Segoe UI Semibold"), local("Segoe UI Bold"), local("Arial Bold"); font-weight: 600; }
+
+:root {
+  --bg: #12151B;
+  --bg-sidebar: #0E1116;
+  --surface: #1C2129;
+  --surface-2: #232A34;
+  --border: #2A313B;
+  --border-strong: #6B7480;
+  --text: #D6DEE8;
+  --text-strong: #FFFFFF;
+  --muted: #9A9992;
+  --accent: #C0502A;
+  --accent-soft: #F0997B;
+  --up: #5DCAA5;
+  --down: #F09595;
+  --amber: #EF9F27;
+  --serif: "Source Serif 4", Georgia, serif;
+  --sans: "Inter", "BodySans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+@page { size: 1280px 720px; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+body {
+  font-family: var(--sans); font-size: 17px; line-height: 1.45;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+@media screen {
+  body { background: #07090C; padding: 24px 0; }
+  .slide { margin: 0 auto 24px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+}
+
+.slide {
+  width: 1280px; height: 720px; position: relative; overflow: hidden;
+  padding: 50px 72px 70px;
+  background:
+    radial-gradient(900px 520px at 108% -12%, rgba(192,80,42,.16), transparent 62%),
+    radial-gradient(700px 400px at -10% 115%, rgba(240,153,123,.05), transparent 60%),
+    var(--bg);
+  break-after: page; page-break-after: always;
+  display: flex; flex-direction: column;
+}
+.slide:last-child { break-after: auto; page-break-after: auto; }
+
+/* Cabecera de diapositiva */
+.kicker {
+  font-family: var(--mono); font-size: 13px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 8px;
+}
+.kicker b { color: var(--accent-soft); font-weight: 500; }
+h1, h2, h3 { font-family: var(--serif); color: var(--text-strong); margin: 0; font-weight: 600; letter-spacing: -.01em; }
+h2.title { font-size: 40px; line-height: 1.12; margin-bottom: 8px; }
+.lede { color: var(--muted); font-size: 17.5px; margin: 0 0 22px; max-width: 1040px; }
+.lede strong { color: var(--text); font-weight: 600; }
+
+/* Pie */
+.foot {
+  position: absolute; left: 72px; right: 72px; bottom: 22px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--mono); font-size: 11.5px; color: var(--muted); letter-spacing: .04em;
+  border-top: 1px solid var(--border); padding-top: 10px;
+}
+.foot .brand { display: flex; align-items: center; gap: 8px; }
+.foot svg { width: 18px; height: 18px; }
+
+/* Utilidades */
+.n { font-family: var(--mono); font-weight: 500; color: var(--text-strong); white-space: nowrap; }
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); }
+.soft { color: var(--accent-soft); }
+.amber { color: var(--amber); }
+.up { color: var(--up); }
+.tag {
+  display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border-strong); color: var(--muted); white-space: nowrap;
+  vertical-align: middle;
+}
+.tag.med { border-color: rgba(93,202,165,.55); color: var(--up); }
+.tag.est { border-color: rgba(239,159,39,.6); color: var(--amber); }
+.tag.pub { border-color: rgba(240,153,123,.6); color: var(--accent-soft); }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px;
+}
+.card h3 { font-size: 21px; margin-bottom: 6px; }
+.grid { display: grid; gap: 18px; }
+ul.clean { list-style: none; margin: 0; padding: 0; }
+ul.clean li { padding-left: 18px; position: relative; margin: 0 0 7px; }
+ul.clean li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.placeholder {
+  color: var(--amber); border: 1px dashed var(--amber); border-radius: 4px; padding: 0 6px; font-family: var(--mono); font-size: .86em;
+}
+
+/* Figuras con respaldo si falta la imagen */
+.shot {
+  position: relative; margin: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+.shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.shot figcaption {
+  position: absolute; left: 8px; bottom: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  background: rgba(14,17,22,.88); color: var(--text); padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);
+}
+.shot.missing { border-style: dashed; display: flex; align-items: center; justify-content: center; }
+.shot.missing img { display: none; }
+.shot.missing::after { content: attr(data-name); font-family: var(--mono); font-size: 12px; color: var(--muted); padding: 12px; text-align: center; }
+
+/* ───────────── 1 · Portada ───────────── */
+.s-cover { padding: 0; flex-direction: row; }
+.s-cover .left { width: 640px; padding: 70px 0 60px 80px; display: flex; flex-direction: column; }
+.s-cover .logo { width: 340px; margin: 6px 0 40px -6px; }
+.s-cover .tagline { font-family: var(--serif); font-size: 44px; line-height: 1.12; color: var(--text-strong); font-weight: 600; letter-spacing: -.01em; margin: 0 0 18px; }
+.s-cover .sub { font-size: 19px; color: var(--text); margin: 0 0 auto; max-width: 520px; }
+.s-cover .team { font-size: 17px; color: var(--text-strong); margin: 0 0 6px; }
+.s-cover .meta { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: .06em; }
+.s-cover .right { flex: 1; position: relative; padding: 70px 70px 60px 10px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.s-cover .right .shot { height: 324px; }
+.s-cover .right .note { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.onair { font-family: var(--mono); font-size: 13px; color: var(--accent-soft); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 14px; }
+.onair::before { content: "● "; }
+
+/* ───────────── 2 · Problema ───────────── */
+.pains { grid-template-columns: repeat(4, 1fr); margin-bottom: 20px; }
+.pains .card { padding: 16px 18px; }
+.pains .ico { font-family: var(--mono); color: var(--accent-soft); font-size: 13px; margin-bottom: 6px; letter-spacing: .06em; }
+.pains h3 { font-size: 19px; line-height: 1.2; }
+.pains p { margin: 6px 0 0; font-size: 15px; color: var(--muted); }
+.who { grid-template-columns: 1.15fr 1fr; }
+.who .card h3 { display: flex; align-items: center; gap: 10px; }
+.who p { margin: 4px 0 8px; font-size: 15.5px; }
+.gap-line { margin-top: 18px; font-size: 16px; color: var(--text); border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; }
+
+/* ───────────── 3 · Producto ───────────── */
+.prod { display: grid; grid-template-columns: 640px 1fr; gap: 26px; flex: 1; min-height: 0; }
+.prod .main { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.prod .main .shot.big { height: 330px; }
+.prod .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.prod .thumbs .shot { height: 128px; }
+.prod .side { display: grid; grid-template-columns: 172px 1fr; gap: 18px; align-items: start; }
+.phone {
+  width: 172px; height: 330px; border-radius: 26px; border: 6px solid #2E3540; background: #000; overflow: hidden; position: relative;
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+.phone img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.phone.missing img { display: none; }
+.phone.missing::after { content: "Vídeo 9:16"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.deliver li { font-size: 15px; margin-bottom: 8px; }
+.deliver li b { color: var(--text-strong); font-weight: 600; }
+.cap-mini { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; width: 172px; }
+
+/* ───────────── 4 · Modalidades ───────────── */
+table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.t th {
+  text-align: left; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); font-weight: 500; padding: 6px 10px; border-bottom: 1px solid var(--border-strong);
+}
+table.t td { padding: 5.5px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.t td:first-child { font-family: var(--mono); color: var(--accent-soft); font-size: 12.5px; white-space: nowrap; }
+table.t td.m { color: var(--text-strong); }
+table.t tr.in td:first-child { color: var(--accent-soft); }
+table.t tr.out td:first-child { color: var(--up); }
+table.t tr.ctl td:first-child { color: var(--amber); }
+.legend { display: flex; gap: 18px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+.legend i { font-style: normal; }
+
+/* ───────────── 5 · Cadena ───────────── */
+.lane { display: flex; align-items: stretch; gap: 0; margin-bottom: 10px; }
+.lane-label {
+  writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); text-align: center; width: 22px; margin-right: 8px;
+  border-left: 2px solid var(--accent); padding: 0 4px 0 0;
+}
+.node {
+  flex: 1; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 10px; padding: 8px 11px;
+  min-width: 0;
+}
+.node .k { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.node .m { font-weight: 600; color: var(--text-strong); font-size: 15px; line-height: 1.2; margin: 2px 0 3px; }
+.node .d { font-family: var(--mono); font-size: 11px; color: var(--accent-soft); }
+.node.local { border-color: rgba(93,202,165,.6); }
+.node.local .d { color: var(--up); }
+.node.gate { border-style: dashed; border-color: var(--amber); background: rgba(239,159,39,.06); }
+.node.gate .d { color: var(--amber); }
+.node.io { background: transparent; border-style: dotted; }
+.arrow { width: 22px; flex: none; display: flex; align-items: center; justify-content: center; color: var(--accent-soft); font-size: 18px; }
+.why { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 6px; }
+.why .card { padding: 10px 13px; }
+.why h3 { font-size: 16px; margin-bottom: 3px; }
+.why p { margin: 0; font-size: 13px; line-height: 1.38; color: var(--text); }
+.chain-legend { display: flex; gap: 16px; font-family: var(--mono); font-size: 11px; color: var(--muted); margin: -4px 0 10px; }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid var(--border-strong); background: var(--surface); }
+.sw.l { border-color: var(--up); }
+.sw.g { border: 1px dashed var(--amber); }
+
+/* ───────────── 6 · Arquitectura ───────────── */
+.arch { display: grid; grid-template-columns: 650px 1fr; gap: 30px; flex: 1; }
+.layers { display: flex; flex-direction: column; gap: 8px; }
+.layer { border: 1px solid var(--border-strong); border-radius: 10px; padding: 9px 14px; background: var(--surface); }
+.layer .ln { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-soft); }
+.layer .lt { color: var(--text-strong); font-weight: 600; font-size: 16px; }
+.layer .ld { font-size: 13.5px; color: var(--muted); }
+.layer.biz { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 9px; }
+.layer.biz .sub { background: var(--surface-2); border-radius: 7px; padding: 6px 9px; }
+.layer.biz .sub .lt { font-size: 14.5px; font-family: var(--mono); font-weight: 500; }
+.layer.biz .sub .ld { font-size: 12px; }
+.layer.prov { border-color: var(--accent); }
+.layer.ext { background: transparent; border-style: dotted; }
+.down-arrow { text-align: center; color: var(--accent-soft); font-size: 13px; line-height: 1; margin: -3px 0; }
+.facts { display: flex; flex-direction: column; gap: 12px; }
+.fact { display: grid; grid-template-columns: 116px 1fr; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.fact .big { font-family: var(--mono); font-size: 25px; color: var(--text-strong); font-weight: 500; }
+.fact p { margin: 0; font-size: 14.5px; }
+.fact p b { color: var(--text-strong); font-weight: 600; }
+
+/* ───────────── 7 · Resultados ───────────── */
+.res { display: grid; grid-template-columns: 1fr 470px; gap: 26px; flex: 1; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-content: start; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; }
+.kpi .l { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.kpi .v { font-family: var(--mono); font-size: 28px; color: var(--text-strong); font-weight: 500; margin: 3px 0 1px; letter-spacing: -.02em; }
+.kpi .v small { font-size: 15px; color: var(--muted); }
+.kpi .s { font-size: 12.5px; color: var(--muted); }
+.judge { margin-top: 14px; }
+.judge h3, .cmp h3 { font-size: 18px; margin-bottom: 8px; }
+.bar { display: grid; grid-template-columns: 102px 1fr 40px; gap: 10px; align-items: center; font-size: 13px; margin-bottom: 5px; }
+.bar .track { height: 9px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+.bar .fill { height: 100%; background: var(--accent-soft); border-radius: 5px; }
+.bar .val { font-family: var(--mono); text-align: right; color: var(--text-strong); font-size: 12.5px; }
+.cmp table.t { font-size: 13px; }
+.cmp table.t td:first-child { color: var(--text); font-family: var(--sans); font-size: 13px; }
+.cmp table.t tr.pick td { background: rgba(192,80,42,.12); }
+.cmp table.t td.num { font-family: var(--mono); text-align: right; white-space: nowrap; }
+.cmp table.t th.num { text-align: right; }
+.method { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+/* ───────────── 8 · Unit economics ───────────── */
+.ue { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; flex: 1; }
+.ue .card { padding: 14px 16px; display: flex; flex-direction: column; }
+.ue h3 { font-size: 18.5px; margin-bottom: 8px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; padding: 4.5px 0; border-bottom: 1px solid var(--border); }
+.row:last-child { border-bottom: 0; }
+.row .n { font-size: 14px; }
+.row.total { border-top: 1px solid var(--border-strong); border-bottom: 0; margin-top: 2px; }
+.row.total span:first-child { color: var(--text-strong); font-weight: 600; }
+.stack { display: flex; height: 16px; border-radius: 5px; overflow: hidden; margin: 6px 0 10px; }
+.stack div { height: 100%; }
+.callout {
+  margin-top: 14px; display: flex; align-items: center; gap: 20px; background: rgba(192,80,42,.12);
+  border: 1px solid rgba(192,80,42,.5); border-radius: 12px; padding: 12px 18px;
+}
+.callout .big { font-family: var(--serif); font-size: 23px; color: var(--text-strong); font-weight: 600; line-height: 1.2; }
+.callout p { margin: 0; font-size: 14px; }
+.sublabel { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 10px 0 2px; }
+
+/* ───────────── 9 · Compliance ───────────── */
+.comp { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.comp .card { padding: 14px 15px; }
+.comp .law { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-soft); }
+.comp h3 { font-size: 18.5px; margin: 3px 0 9px; line-height: 1.2; }
+.comp li { font-size: 14.5px; line-height: 1.4; margin-bottom: 8px; }
+.comp code { font-family: var(--mono); font-size: 11.5px; color: var(--amber); }
+.disclaimer {
+  margin-top: 14px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 10px 16px; font-size: 14px;
+  display: flex; gap: 14px; align-items: center; background: var(--bg-sidebar);
+}
+.disclaimer .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--amber); white-space: nowrap; }
+
+/* ───────────── 10 · Demo ───────────── */
+.demo { display: grid; grid-template-columns: 300px 1fr; gap: 40px; flex: 1; }
+.qr {
+  width: 240px; height: 240px; border-radius: 14px; border: 2px dashed var(--amber); position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center; background: var(--surface);
+}
+.qr img { width: 100%; height: 100%; display: block; background: #fff; }
+.qr.missing img { display: none; }
+.qr.missing::after { content: "QR de la demo\A(pendiente)"; white-space: pre; text-align: center; font-family: var(--mono); font-size: 13px; color: var(--amber); }
+.demo .link { margin-top: 14px; font-size: 16px; }
+.demo .run { margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--text); background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; line-height: 1.6; }
+.demo .run .c { color: var(--muted); }
+ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 40px 1fr 92px; gap: 12px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 16.5px; }
+ol.steps li::before { content: counter(s, decimal-leading-zero); font-family: var(--mono); color: var(--accent-soft); font-size: 14px; }
+ol.steps li b { color: var(--text-strong); font-weight: 600; }
+ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted); text-align: right; }
+
+/* ───────────── 11 · Roadmap ───────────── */
+.road { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; flex: 1; }
+.road .col { display: flex; flex-direction: column; gap: 10px; }
+.road .colh { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-soft); border-bottom: 2px solid var(--accent); padding-bottom: 6px; }
+.road .colh span { color: var(--muted); }
+.road .card { padding: 14px 16px; }
+.road h3 { font-size: 18px; margin-bottom: 4px; line-height: 1.25; }
+.road p { margin: 0; font-size: 14.5px; color: var(--muted); line-height: 1.42; }
+.road p b { color: var(--text); font-weight: 600; }
+
+/* ───────────── 12 · Cierre ───────────── */
+.s-close { align-items: center; justify-content: center; text-align: center; }
+.s-close .logo { width: 380px; margin-bottom: 26px; }
+.s-close .tagline { font-family: var(--serif); font-size: 38px; color: var(--text-strong); font-weight: 600; margin: 0 0 10px; }
+.s-close .motto { font-size: 20px; color: var(--accent-soft); margin: 0 0 34px; font-family: var(--serif); font-style: italic; font-weight: 400; }
+.s-close .people { display: flex; gap: 22px; justify-content: center; margin-bottom: 26px; }
+.s-close .person { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 22px; min-width: 230px; }
+.s-close .person .nm { color: var(--text-strong); font-weight: 600; font-size: 17px; }
+.s-close .person .rl { font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-top: 2px; }
+.s-close .links { font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<!-- Icono de marca reutilizable (velas-ecualizador) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ico" viewBox="2 4 78 74">
+      <line x1="14" y1="26" x2="14" y2="68" stroke="#F0997B" stroke-width="3" stroke-linecap="round"/>
+      <rect x="8" y="36" width="12" height="24" rx="2" fill="#F0997B"/>
+      <line x1="32" y1="14" x2="32" y2="74" stroke="#C0502A" stroke-width="3" stroke-linecap="round"/>
+      <rect x="26" y="22" width="12" height="42" rx="2" fill="#C0502A"/>
+      <line x1="50" y1="32" x2="50" y2="64" stroke="#F0997B" stroke-width="3" stroke-linecap="round"/>
+      <rect x="44" y="40" width="12" height="16" rx="2" fill="#F0997B"/>
+      <line x1="68" y1="8" x2="68" y2="72" stroke="#C0502A" stroke-width="3" stroke-linecap="round"/>
+      <rect x="62" y="16" width="12" height="48" rx="2" fill="#C0502A"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ═══════════════ 1 · PORTADA ═══════════════ -->
+<section class="slide s-cover">
+  <div class="left">
+    <img class="logo" src="../docs/assets/marca/briefly_logo_oscuro.svg" alt="briefly">
+    <div class="onair">Edición de noche · en antena</div>
+    <p class="tagline">El cierre del día, mientras vuelves a casa</p>
+    <p class="sub">Lo que ha movido tu cartera hoy, contado a dos voces en unos cuatro minutos. Un MVP FinTech
+      que encadena modelos de lenguaje, visión, voz e imagen.</p>
+    <!-- MARCADOR: sustituir [tercer integrante] por el nombre del tercer miembro del equipo -->
+    <p class="team">Óscar Romero Quincoces · Daniel García · <span class="placeholder">[tercer integrante]</span></p>
+    <div class="meta">MIAX · TALLER B5-T4 · PITCH TÉCNICO · 8-OCT-2026</div>
+  </div>
+  <div class="right">
+    <figure class="shot" data-name="data/samples/demo_briefing/cover.png">
+      <img src="../data/samples/demo_briefing/cover.png" alt="Portada de un episodio generada por Briefly" onerror="this.parentElement.classList.add('missing')">
+    </figure>
+    <div class="note">Portada real de un episodio: ilustración SDXS en local (0 €) · titular y placa «Imagen generada por IA» con Pillow</div>
+  </div>
+</section>
+
+<!-- ═══════════════ 2 · PROBLEMA ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>02</b> · Problema y usuario</div>
+  <h2 class="title">Mucha información, poco tiempo y nada sobre tu cartera</h2>
+  <p class="lede">El inversor minorista que gestiona su cartera tiene un problema de <strong>tiempo y de formato</strong>, no de acceso a la información.</p>
+
+  <div class="grid pains">
+    <div class="card"><div class="ico">01 · DISPERSA</div><h3>Titulares mezclados</h3><p>Lo relevante para tus valores, perdido entre cientos de noticias irrelevantes.</p></div>
+    <div class="card"><div class="ico">02 · DENSA</div><h3>PDFs y gráficos</h3><p>Resultados de 40 páginas y velas japonesas exigen tiempo y formación.</p></div>
+    <div class="card"><div class="ico">03 · GENÉRICA</div><h3>Nadie habla de lo tuyo</h3><p>Podcasts y newsletters no conocen tu cartera; buena parte, en inglés y con jerga.</p></div>
+    <div class="card"><div class="ico">04 · PULL</div><h3>Hay que saber preguntar</h3><p>Un chat con IA responde, pero no llega solo ni lee tu PDF dentro de un flujo.</p></div>
+  </div>
+
+  <div class="grid who">
+    <div class="card">
+      <h3>Inversor minorista <span class="tag pub">B2C · cara visible</span></h3>
+      <p>Hispanohablante, 25-55 años, cartera propia en un broker online (acciones y ETFs, 5-20 posiciones). Sin tiempo para seguir el mercado a diario.</p>
+      <p class="muted" style="font-size:14.5px;margin:0">Lo escucha en el trayecto de vuelta; lo lee o lo ve si prefiere; pregunta por voz si algo no le cuadra.</p>
+    </div>
+    <div class="card">
+      <h3>Neobancos y brokers <span class="tag med">B2B2C · el negocio</span></h3>
+      <p>Quieren más uso diario de su app: «su» edición de noche, con su marca, sus valores y sus locutores.</p>
+      <p class="muted" style="font-size:14.5px;margin:0">El cliente ya es entidad supervisada; la distribución la pone él.</p>
+    </div>
+  </div>
+  <div class="gap-line"><b class="soft">El hueco:</b> contenido financiero <em>push</em>, personalizado por cartera, en español, multiformato y con compliance desde el diseño.</div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>02 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 3 · PRODUCTO ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>03</b> · Producto</div>
+  <h2 class="title">Un episodio al día que se escucha, se lee, se ve y se pregunta</h2>
+  <p class="lede">Eliges valores o cargas tu cartera; al cierre llega tu edición. Toro abre con lo que sube; Osa pone el contexto, los riesgos y el aviso legal.</p>
+  <div class="prod">
+    <div class="main">
+      <figure class="shot big" data-name="docs/assets/capturas/02_briefing.png">
+        <img src="../docs/assets/capturas/02_briefing.png" alt="Briefing del día en la app" onerror="this.parentElement.classList.add('missing')">
+        <figcaption>Briefing del día · puntos clave con fuente</figcaption>
+      </figure>
+      <div class="thumbs">
+        <figure class="shot" data-name="01_portada.png">
+          <img src="../docs/assets/capturas/01_portada.png" alt="Portada" onerror="this.parentElement.classList.add('missing')">
+          <figcaption>Portada</figcaption>
+        </figure>
+        <figure class="shot" data-name="04_preguntar.png">
+          <img src="../docs/assets/capturas/04_preguntar.png" alt="Preguntar por voz" onerror="this.parentElement.classList.add('missing')">
+          <figcaption>Preguntar por voz</figcaption>
+        </figure>
+        <figure class="shot" data-name="06_cartera.png">
+          <img src="../docs/assets/capturas/06_cartera.png" alt="Mi cartera" onerror="this.parentElement.classList.add('missing')">
+          <figcaption>Mi cartera</figcaption>
+        </figure>
+      </div>
+    </div>
+    <div class="side">
+      <div>
+        <div class="phone"><img src="assets/video_frame.png" alt="Fotograma del vídeo 9:16" onerror="this.parentElement.classList.add('missing')"></div>
+        <div class="cap-mini">vídeo 9:16 real del episodio</div>
+      </div>
+      <ul class="clean deliver">
+        <li><b>Podcast a 2 voces</b> (Toro y Osa), 3-4 min, voces sintéticas</li>
+        <li><b>Transcripción + SRT</b> sincronizados</li>
+        <li><b>Gráficos del día</b> con fecha y fuente</li>
+        <li><b>Vídeo vertical 9:16</b> con subtítulos por locutor</li>
+        <li><b>Portada</b> generada con IA, rotulada</li>
+        <li><b>Telegram</b>: resumen, audio, imagen y vídeo</li>
+        <li><b>Q&amp;A por voz</b>: preguntas y responde hablando, con citas</li>
+        <li><b>Mi cartera</b> desde una captura del broker</li>
+        <li><b>«Cómo se hizo»</b>: modelo, latencia y coste de cada paso</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>03 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 4 · MODALIDADES ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>04</b> · Modalidades</div>
+  <h2 class="title">Cada modalidad resuelve una fricción concreta</h2>
+  <p class="lede" style="margin-bottom:12px">Las fuentes ya son multimodales y el consumo también. Todas estas rutas se han <strong>verificado en real</strong> (06-oct-2026).</p>
+  <table class="t">
+    <thead><tr><th>Modalidad</th><th>Para qué en Briefly</th><th>Modelo / herramienta</th><th>Medido</th></tr></thead>
+    <tbody>
+      <tr class="in"><td>Imagen → etiqueta</td><td>Router de subidas: gráfico, tabla, captura de cartera o «no financiera»</td><td class="m">CLIP local (CPU)</td><td class="mono">70-85 ms · 0 €</td></tr>
+      <tr class="in"><td>Imagen → texto</td><td>Captura de un gráfico de cotización → descripción y cifras</td><td class="m">Claude Sonnet 5.5 visión + Haiku</td><td class="mono">≈ 0,016 €</td></tr>
+      <tr class="in"><td>Imagen → datos</td><td>Cartera desde la captura del broker (tickers y pesos, nada a disco)</td><td class="m">Sonnet visión → Haiku → mapeo</td><td class="mono">5/5 · 8,5 s · 0,0054 €</td></tr>
+      <tr class="in"><td>Documento → texto</td><td>PDF de resultados → cifras clave al análisis</td><td class="m">pypdf + Sonnet visión + Haiku</td><td class="mono">≈ 0,015 €</td></tr>
+      <tr class="in"><td>Audio → texto</td><td>Pregunta por voz del usuario</td><td class="m">gpt-4o-mini-transcribe</td><td class="mono">1,3 s · WER 0</td></tr>
+      <tr><td>Texto → texto</td><td>Analista (interpreta), Guionista (diálogo) y Q&amp;A (responde con citas)</td><td class="m">Sonnet 5.5 · Haiku 4.5 · Haiku 4.5</td><td class="mono">0,025 + 0,008 €</td></tr>
+      <tr><td>Texto → etiqueta</td><td>Tono de cada noticia (▲/▼/●), nunca agregado por valor</td><td class="m">Haiku traduce → FinBERT local</td><td class="mono">0,0082 € · opcional</td></tr>
+      <tr class="out"><td>Texto → audio</td><td>Podcast a dos voces y respuesta hablada del Q&amp;A</td><td class="m">edge-tts · Gemini TTS (premium)</td><td class="mono">17,1 s · 0 €</td></tr>
+      <tr class="ctl"><td>Audio → texto (QA)</td><td>El STT escucha el podcast y mide el WER contra el guion</td><td class="m">OpenAI STT</td><td class="mono">WER 1,1-1,4 %</td></tr>
+      <tr class="out"><td>Datos → imagen</td><td>Gráficos del día con índices de referencia</td><td class="m">matplotlib</td><td class="mono">1,5 s · 0 €</td></tr>
+      <tr class="out"><td>Texto → imagen</td><td>Portada del episodio según el tono del día (sin cifras ni empresas)</td><td class="m">SDXS local (CPU)</td><td class="mono">4-7 s · 0 €</td></tr>
+      <tr class="out"><td>Imagen + audio → vídeo</td><td>Vídeo 9:16 con subtítulos por locutor y rótulo de voz sintética</td><td class="m">Pillow + ffmpeg</td><td class="mono">6-9 s · 0 €</td></tr>
+      <tr class="out"><td>Briefing → mensajería</td><td>Resumen, audio, portada y vídeo al móvil</td><td class="m">Telegram Bot API</td><td class="mono">8,5 s · 0 €</td></tr>
+    </tbody>
+  </table>
+  <div class="legend"><i class="soft">■ entrada</i><i>■ razonamiento</i><i class="up">■ salida</i><i class="amber">■ control de calidad</i><span>· coste por uso, medido con tokens reales × tarifa</span></div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>04 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 5 · CADENA DE MODELOS ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>05</b> · Orquestación multimodelo</div>
+  <h2 class="title">Cada paso con el modelo que basta, y una puerta detrás</h2>
+  <p class="lede" style="margin-bottom:10px">Contratos tipados (Pydantic) entre pasos; ingesta y subidas en paralelo. La traza «Cómo se hizo» enseña cada eslabón.</p>
+  <div class="chain-legend"><span><i class="sw"></i>API de pago</span><span><i class="sw l"></i>modelo local · 0 €</span><span><i class="sw g"></i>puerta determinista (sin modelo)</span><span>latencia p50 · coste p50 (N = 6)</span></div>
+
+  <div class="lane">
+    <div class="lane-label">Briefing</div>
+    <div class="node local"><div class="k">imagen → etiqueta</div><div class="m">CLIP router</div><div class="d">70-85 ms · filtra antes de pagar</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="k">imagen / PDF → texto</div><div class="m">Claude Sonnet 5.5 visión</div><div class="d">≈ 0,015 € por subida</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="k">noticias + visión → análisis</div><div class="m">Sonnet 5.5 · Analista</div><div class="d">14,2 s · 0,025 €</div></div>
+    <div class="arrow">→</div>
+    <div class="node gate"><div class="k">puertas</div><div class="m">Grounding · consejo · inyección</div><div class="d">1 reintento o se recorta</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="k">análisis → diálogo</div><div class="m">Haiku 4.5 · Guionista</div><div class="d">11,6 s · 0,008 € + puertas</div></div>
+  </div>
+  <div class="lane">
+    <div class="lane-label">Salidas</div>
+    <div class="node local"><div class="k">texto → audio</div><div class="m">edge-tts · Gemini TTS</div><div class="d">17,1 s · 0 € (Gemini premium)</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="k">audio → texto (control)</div><div class="m">OpenAI STT verifica</div><div class="d">WER 1,1 % del podcast</div></div>
+    <div class="arrow">→</div>
+    <div class="node local"><div class="k">texto → imagen</div><div class="m">SDXS · portada</div><div class="d">4-7 s · 0 €</div></div>
+    <div class="arrow">→</div>
+    <div class="node local"><div class="k">imagen + audio → vídeo</div><div class="m">Pillow + ffmpeg</div><div class="d">6-9 s · 0 €</div></div>
+    <div class="arrow">→</div>
+    <div class="node io"><div class="k">entrega</div><div class="m">Web + Telegram</div><div class="d">8,5 s · 0 €</div></div>
+  </div>
+  <div class="lane">
+    <div class="lane-label">Q&amp;A</div>
+    <div class="node io"><div class="k">entrada</div><div class="m">Pregunta por voz</div><div class="d">silencio cortado en local</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="k">audio → texto</div><div class="m">gpt-4o-mini-transcribe</div><div class="d">1,3 s · WER 0</div></div>
+    <div class="arrow">→</div>
+    <div class="node"><div class="k">texto → texto</div><div class="m">Haiku 4.5 · Q&amp;A</div><div class="d">cita fuentes · reconduce «¿vendo?»</div></div>
+    <div class="arrow">→</div>
+    <div class="node local"><div class="k">texto → audio</div><div class="m">edge-tts (Osa)</div><div class="d">siempre edge: latencia</div></div>
+    <div class="arrow">→</div>
+    <div class="node io"><div class="k">de punta a punta</div><div class="m">≈ 6 s con voz</div><div class="d">p50 6,4 s frío · 6,0 s caliente</div></div>
+  </div>
+
+  <div class="why">
+    <div class="card"><h3>Sonnet analiza</h3><p>Único limpio a la primera en la comparativa; juez de fidelidad <span class="n">4,5</span> frente a <span class="n">2,0</span> (Haiku) y <span class="n">3,0</span> (Gemini). ADR-007</p></div>
+    <div class="card"><h3>Haiku escribe y responde</h3><p>Guionista <span class="n">3,2×</span> más barato que Sonnet; las puertas deterministas cubren lo que se le escapa. ADR-006</p></div>
+    <div class="card"><h3>Local donde basta</h3><p>CLIP descarta imágenes sin llamar a visión (ahorra <span class="n">≈ 0,016 €</span> cada una); portada, vídeo y FinBERT, en CPU.</p></div>
+    <div class="card"><h3>Plan B de proveedor</h3><p>Gemini 2.5 Flash probado de punta a punta: cadena <span class="n">0,021 €</span> frente a <span class="n">0,037 €</span>, pero Analista 2× más lento.</p></div>
+  </div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>05 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 6 · ARQUITECTURA ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>06</b> · Arquitectura</div>
+  <h2 class="title">Proveedores intercambiables, lógica pura, interfaz fina</h2>
+  <p class="lede" style="margin-bottom:16px">Cambiar de modelo es configuración (<span class="mono" style="font-size:15px">.env</span>), no código. Repo <span class="mono" style="font-size:15px">multimodal-market-briefer</span>, paquete <span class="mono" style="font-size:15px">briefer</span>.</p>
+  <div class="arch">
+    <div class="layers">
+      <div class="layer"><div class="ln">UI · app/</div><div class="lt">Streamlit multipágina</div><div class="ld">Portada · Briefing · Preguntar · Mi cartera · Histórico. Nunca llama a un modelo.</div></div>
+      <div class="down-arrow">▼</div>
+      <div class="layer"><div class="ln">Orquestación · pipeline.py</div><div class="lt">run_briefing() · answer_question()</div><div class="ld">Paralelismo, métricas por paso (latencia, coste), tolerancia a fallos.</div></div>
+      <div class="down-arrow">▼</div>
+      <div class="layer biz">
+        <div class="sub"><div class="lt">ingest/</div><div class="ld">noticias, precios, PDF, gráfico, cartera, voz</div></div>
+        <div class="sub"><div class="lt">agents/</div><div class="ld">analista, guionista, Q&amp;A, puertas</div></div>
+        <div class="sub"><div class="lt">media/</div><div class="ld">gráficos, podcast, SRT, vídeo, portada</div></div>
+        <div class="sub"><div class="lt">delivery/</div><div class="ld">Telegram</div></div>
+      </div>
+      <div class="down-arrow">▼</div>
+      <div class="layer prov"><div class="ln">Conexión con modelos · providers/</div><div class="lt">LLM · visión · STT · TTS · imagen · mock</div><div class="ld">Interfaz común + registry por config. Todo proveedor tiene su mock.</div></div>
+      <div class="down-arrow">▼</div>
+      <div class="layer ext"><div class="ld">Anthropic · OpenAI · Gemini · edge-tts · Hugging Face (CLIP, FinBERT, SDXS) · ffmpeg · Telegram</div></div>
+    </div>
+    <div class="facts">
+      <div class="fact"><div class="big">1223</div><p><b>tests sin red</b> (red bloqueada) + 13 «live»; cobertura 97 %; ruff + mypy limpios; CI en 3.11 y 3.13.</p></div>
+      <div class="fact"><div class="big">3 modos</div><p><b>Real</b>, <b>sin claves</b> (voces reales) y <b>offline</b> (todo mock). La app abre con un briefing real pregenerado sin claves ni red.</p></div>
+      <div class="fact"><div class="big">Fallback</div><p><b>Sustituto marcado</b>: si un paso núcleo falla, sale un sustituto avisado en la UI y en naranja en la traza; los opcionales se omiten. Probado con una clave inválida (401 real).</p></div>
+      <div class="fact"><div class="big">10 s</div><p><b>Docker</b> <em>healthy</em>; briefing real dentro del contenedor en 114 s y 0,061 €. <b>Clon limpio</b> con <span class="mono" style="font-size:13px">run.ps1</span>: app arriba en 220 s.</p></div>
+      <div class="fact" style="border-bottom:0"><div class="big">7 ADR</div><p>Decisiones registradas: stack, proveedores, tolerancia a fallos, salida JSON, privacidad de la cartera, modelos por agente.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>06 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 7 · RESULTADOS ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>07</b> · Resultados medidos</div>
+  <h2 class="title">Medido, no prometido</h2>
+  <p class="lede" style="margin-bottom:16px">Evaluación de <strong>N = 6 briefings reales</strong> (06-oct-2026): 3 carteras y 3 listas de valores, una con PDF + gráfico. 0 fallos, 0 sustitutos.</p>
+  <div class="res">
+    <div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">Briefing de punta a punta</div><div class="v">52,7 s</div><div class="s">p50 · p95 <span class="n">68,2 s</span></div></div>
+        <div class="kpi"><div class="l">Coste por briefing</div><div class="v">0,034 €</div><div class="s">p50 · p95 <span class="n">0,062 €</span></div></div>
+        <div class="kpi"><div class="l">Q&amp;A con voz</div><div class="v">6,0 s</div><div class="s">p50 caliente · <span class="n">6,4 s</span> en frío · objetivo &lt; 10 s</div></div>
+        <div class="kpi"><div class="l">Cifras trazables</div><div class="v">100 %</div><div class="s"><span class="n">232/232</span> a su fuente</div></div>
+        <div class="kpi"><div class="l">Frases con recomendación</div><div class="v">0</div><div class="s">puerta determinista + prompt</div></div>
+        <div class="kpi"><div class="l">Puntos clave con fuente</div><div class="v">35/35</div><div class="s">podcasts de 3,2-3,7 min (6/6)</div></div>
+      </div>
+      <div class="judge">
+        <h3>Juez LLM (Sonnet, 1-5)</h3>
+        <div class="bar"><span>Claridad</span><div class="track"><div class="fill" style="width:80%"></div></div><span class="val">4,0</span></div>
+        <div class="bar"><span>Sin consejo</span><div class="track"><div class="fill" style="width:83.4%"></div></div><span class="val">4,17</span></div>
+        <div class="bar"><span>Fidelidad</span><div class="track"><div class="fill" style="width:66.6%"></div></div><span class="val">3,33</span></div>
+        <div class="bar"><span>Utilidad</span><div class="track"><div class="fill" style="width:66.6%"></div></div><span class="val">3,33</span></div>
+        <div class="method">Los matices que marcó el juez (causas más firmes que el análisis, tono valorativo) se convirtieron en puertas nuevas con reintento.</div>
+      </div>
+    </div>
+    <div class="cmp">
+      <h3>Comparativa por agente (juez ciego)</h3>
+      <table class="t">
+        <thead><tr><th>Agente · modelo</th><th class="num">Coste</th><th class="num">Latencia</th><th class="num">Fidelidad</th></tr></thead>
+        <tbody>
+          <tr class="pick"><td>Analista · Sonnet 5.5</td><td class="num">0,026 €</td><td class="num">15,0 s</td><td class="num">4,5</td></tr>
+          <tr><td>Analista · Haiku 4.5</td><td class="num">0,010 €</td><td class="num">16,9 s</td><td class="num">2,0</td></tr>
+          <tr><td>Analista · Gemini 2.5 Flash</td><td class="num">0,015 €</td><td class="num">32,9 s</td><td class="num">3,0</td></tr>
+          <tr><td>Guionista · Sonnet 5.5</td><td class="num">0,035 €</td><td class="num">21,1 s</td><td class="num">4,25</td></tr>
+          <tr class="pick"><td>Guionista · Haiku 4.5</td><td class="num">0,011 €</td><td class="num">14,9 s</td><td class="num">3,5</td></tr>
+          <tr><td>Guionista · Gemini 2.5 Flash</td><td class="num">0,007 €</td><td class="num">15,5 s</td><td class="num">4,0</td></tr>
+          <tr class="pick"><td>Q&amp;A · Haiku 4.5</td><td class="num">0,004 €</td><td class="num">3,8 s</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+      <div class="method">Gemini en el guion: 3 reintentos por pasar de 5 min (1 de 4 acabó fuera de rango). En todas las salidas finales: 0 cifras no trazables y 0 recomendaciones.<br><br>
+      <b class="soft">Método.</b> Pared con <span class="mono">perf_counter</span>; coste = tokens reales × tarifa (<span class="mono">costs.py</span>), no factura. <span class="mono">notebooks/01_evaluacion_briefings</span> y <span class="mono">02_comparativa_modelos</span> (gasto 0,41 € + 0,55 €).</div>
+    </div>
+  </div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>07 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 8 · UNIT ECONOMICS ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>08</b> · Unit economics</div>
+  <h2 class="title">Céntimos por episodio; el negocio está en el B2B2C</h2>
+  <p class="lede" style="margin-bottom:14px">Tres tipos de cifra: <span class="tag med">medido</span> <span class="tag pub">tarifa pública</span> <span class="tag est">estimación</span>. Sin IVA salvo el precio Pro; sin salarios ni marketing.</p>
+  <div class="ue">
+    <div class="card">
+      <h3>Coste por briefing</h3>
+      <div class="stack"><div style="width:74%;background:var(--accent)"></div><div style="width:26%;background:var(--accent-soft)"></div></div>
+      <div class="row"><span>Analista · Sonnet 5.5</span><span class="n">0,025 €</span></div>
+      <div class="row"><span>Guionista · Haiku 4.5</span><span class="n">0,008 €</span></div>
+      <div class="row"><span>Noticias, gráficos, edge-tts, vídeo, portada</span><span class="n">0 €</span></div>
+      <div class="row total"><span>p50 (N = 6) <span class="tag med">medido</span></span><span class="n">0,034 €</span></div>
+      <div class="sublabel">En producción</div>
+      <div class="row"><span>+ voz con contrato (Azure) <span class="tag est">est.</span></span><span class="n">+0,049 €</span></div>
+      <div class="row"><span>+ PDF o gráfico subido</span><span class="n">+0,016 €</span></div>
+      <div class="row"><span>Pregunta por voz al Q&amp;A</span><span class="n">≈ 0,0055 €</span></div>
+      <div class="row"><span>Episodio base con Azure</span><span class="n">≈ 0,083 €</span></div>
+    </div>
+    <div class="card">
+      <h3>Coste variable por usuario y mes</h3>
+      <div class="row"><span>Free · catálogo compartido</span><span class="n">≈ 0,015 €</span></div>
+      <div class="row"><span>Pro · episodio propio (hoy)</span><span class="n">≈ 2,11 €</span></div>
+      <div class="row"><span>Pro · híbrido por segmentos</span><span class="n">≈ 0,75 €</span></div>
+      <div class="row"><span>B2B2C · segmentos</span><span class="n">≈ 0,05 €/MAU</span></div>
+      <div class="row"><span>B2B2C · personalizado</span><span class="n">≈ 0,20 €/MAU</span></div>
+      <div class="sublabel">Costes fijos mensuales <span class="tag est">est.</span></div>
+      <div class="row"><span>A · lanzamiento B2C</span><span class="n">≈ 1.070 €</span></div>
+      <div class="row"><span>B · listo para B2B2C</span><span class="n">≈ 3.700 €</span></div>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">En A, el cumplimiento es más de la mitad del fijo; en B pesan las licencias de noticias y precios.</p>
+    </div>
+    <div class="card">
+      <h3>Planes y punto de equilibrio</h3>
+      <div class="row"><span>Free</span><span class="n">0 €</span></div>
+      <div class="row"><span>Pro <span class="muted">(a validar)</span></span><span class="n">6,99 €/mes</span></div>
+      <div class="row"><span>Marca blanca</span><span class="n">15.000 € + 1.500 €/mes</span></div>
+      <div class="row"><span>… + por usuario activo</span><span class="n">0,30 €/MAU</span></div>
+      <div class="sublabel">Equilibrio <span class="tag est">est.</span></div>
+      <div class="row"><span>B2C, fijo A, 4 % conversión</span><span class="n">≈ 9.200 reg.</span></div>
+      <div class="row"><span>B2C, fijo B, 4 % conversión</span><span class="n">≈ 31.900 reg.</span></div>
+      <div class="row"><span>B2B2C, fijo B, 1 cliente</span><span class="n">≈ 9.800 MAU</span></div>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">Pro neto ≈ 5,37 € → margen ≈ 3,26 € (episodio propio) o ≈ 4,62 € (híbrido).</p>
+    </div>
+  </div>
+  <div class="callout">
+    <div class="big">Un broker con ~10.000 usuarios activos cubre el fijo B; en B2C harían falta ~32.000 registrados captados uno a uno</div>
+    <p>Margen por MAU del <span class="n">83 %</span> con segmentos compartidos por valor. Condición: generar por segmentos y migrar la voz a un TTS con contrato.</p>
+  </div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico · fuentes y tarifas: docs/04 § 6</span><span>08 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 9 · COMPLIANCE ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>09</b> · Compliance</div>
+  <h2 class="title">El cumplimiento es código, no un anexo</h2>
+  <p class="lede" style="margin-bottom:16px">Cada riesgo regulatorio tiene un control en el producto y un test. «Te contamos el mercado; tú decides.»</p>
+  <div class="comp">
+    <div class="card">
+      <div class="law">MiFID II</div>
+      <h3>Informa, no asesora</h3>
+      <ul class="clean">
+        <li>Prompts de los 3 agentes prohíben recomendar; <b>segunda barrera determinista</b> que recorta o pide reescritura (<code>contains_advice</code>).</li>
+        <li><b>Grounding</b>: cifras no trazables → reintento y, si persisten, fuera.</li>
+        <li>El Q&amp;A reconduce «¿vendo?»; la cartera solo <b>selecciona</b> noticias.</li>
+        <li>31 tests de <b>red-team</b> (inyección, consejo, fuera de ámbito).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="law">RGPD</div>
+      <h3>La cartera no se guarda</h3>
+      <ul class="clean">
+        <li><code>portfolio: null</code> en disco; al LLM solo <b>tickers y pesos</b>, en memoria (ADR-005).</li>
+        <li>Captura del broker en memoria, sin guardar; la app pide recortar nombre y cuenta.</li>
+        <li>Audio de la pregunta y subidas, <b>borrados</b>; secretos redactados.</li>
+        <li>Transferencias: DPF + DPA con cláusulas tipo; en producción, regiones UE (Azure, OpenAI).</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="law">AI Act · art. 50</div>
+      <h3>Siempre se sabe que es IA</h3>
+      <ul class="clean">
+        <li>Osa lo <b>dice en el audio</b>; metadatos ID3 «voces sintéticas IA».</li>
+        <li>Vídeo con rótulo fijo «Voces sintéticas generadas con IA».</li>
+        <li>Portada con placa «Imagen generada por IA», sin cifras ni empresas.</li>
+        <li>Voces de catálogo: no se clona a nadie. No es sistema de alto riesgo.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="law">Derechos de autor</div>
+      <h3>Fuente o no ha pasado</h3>
+      <ul class="clean">
+        <li>Por noticia: titular + <b>extracto ≤ 200 caracteres</b> + fuente + enlace; nunca el cuerpo.</li>
+        <li>Solo se lee el <code>&lt;head&gt;</code> del medio y se respeta su <code>robots.txt</code>.</li>
+        <li>Análisis y guion con palabras propias, citando la fuente.</li>
+        <li>Producción: noticias y precios <b>licenciados</b> (en el coste fijo).</li>
+      </ul>
+    </div>
+  </div>
+  <div class="disclaimer"><span class="lbl">Aviso legal</span><span>Contenido informativo generado con IA. No constituye asesoramiento de inversión ni recomendación de compra o venta. Puede contener errores. Las voces son sintéticas.</span></div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>09 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 10 · DEMO ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>10</b> · Demo</div>
+  <h2 class="title">Tres minutos de producto real</h2>
+  <p class="lede" style="margin-bottom:18px">Grabada en modo real con las claves del equipo. Sin claves, la app abre igualmente con un briefing real pregenerado.</p>
+  <div class="demo">
+    <div>
+      <!-- QR: python scripts/build_pitch.py --demo-url URL (necesita segno); si no existe, se ve el marco -->
+      <div class="qr"><img src="assets/qr_demo.png" alt="QR de la demo" onerror="this.parentElement.classList.add('missing')"></div>
+      <!-- MARCADOR: sustituir [enlace a la demo] por la URL de la demo grabada -->
+      <div class="link">Vídeo: <span class="placeholder">[enlace a la demo]</span></div>
+      <div class="run"><span class="c"># arrancar en local</span><br>scripts\run.ps1 · scripts/run.sh<br>docker compose up --build<br><span class="c"># → http://localhost:8501</span></div>
+    </div>
+    <ol class="steps">
+      <li><span><b>Portada</b>: el episodio pregenerado suena; propuesta de valor y «Cómo se hizo» en una línea.</span><span class="t">0:00</span></li>
+      <li><span><b>Briefing</b>: valores, opciones avanzadas (vídeo, portada, Telegram) y un gráfico de velas.</span><span class="t">0:25</span></li>
+      <li><span><b>Resultado</b>: puntos clave con fuente, podcast Toro/Osa, transcripción y gráficos.</span><span class="t">1:00</span></li>
+      <li><span><b>Vídeo 9:16</b> y <b>«Cómo se hizo»</b>: modelo, latencia y coste de cada paso.</span><span class="t">1:25</span></li>
+      <li><span><b>Mi cartera</b>: captura del broker → 5/5 posiciones, sin guardar nada.</span><span class="t">2:00</span></li>
+      <li><span><b>Preguntar por voz</b>: «¿Por qué ha subido hoy el Santander?» y Osa responde, con fuentes.</span><span class="t">2:30</span></li>
+      <li><span><b>Telegram</b> en el móvil: resumen, audio, portada y vídeo.</span><span class="t">3:15</span></li>
+    </ol>
+  </div>
+  <div class="disclaimer" style="margin-top:auto;margin-bottom:6px"><span class="lbl">En pantalla</span><span>Voces sintéticas generadas con IA · información, no asesoramiento financiero. Cartera de ejemplo ficticia.</span></div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico · guion completo en pitch/demo_guion.md</span><span>10 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 11 · ROADMAP ═══════════════ -->
+<section class="slide">
+  <div class="kicker"><b>11</b> · Roadmap</div>
+  <h2 class="title">Del MVP a un piloto con un broker</h2>
+  <p class="lede" style="margin-bottom:16px">Lo que falta para producción está identificado y costeado; nada exige rehacer la arquitectura.</p>
+  <div class="road">
+    <div class="col">
+      <div class="colh">Escala <span>· coste</span></div>
+      <div class="card"><h3>Segmentos compartidos por valor</h3><p>Análisis y ~1 min de audio por valor, una vez al día; cada episodio se monta con segmentos + intro personal. Coste variable <b>≈ 2,11 € → ≈ 0,75 €</b> por Pro.</p></div>
+      <div class="card"><h3>Batch nocturno</h3><p>Episodios pregenerados antes de que el usuario los pida (latencia percibida 0) con la API batch, más barata.</p></div>
+    </div>
+    <div class="col">
+      <div class="colh">Producción <span>· contratos</span></div>
+      <div class="card"><h3>TTS con contrato</h3><p>Azure AI Speech en región UE sustituye a edge-tts (sin SLA). <b>≈ 0,049 €</b> por episodio (estimación); misma familia de voces.</p></div>
+      <div class="card"><h3>Noticias y precios licenciados</h3><p>Agregador comercial + agencia en español en lugar de RSS y yfinance. Ya incluido en el fijo B.</p></div>
+      <div class="card"><h3>Privacidad reforzada</h3><p>Recorte automático de cabeceras de la captura, DPA firmados, EIPD y Claude en región UE si un cliente lo exige.</p></div>
+    </div>
+    <div class="col">
+      <div class="colh">Producto <span>· canal</span></div>
+      <div class="card"><h3>App móvil y edición de mañana</h3><p>Notificación al cierre y antes de la apertura; misma identidad, otro saludo.</p></div>
+      <div class="card"><h3>Piloto B2B2C de marca blanca</h3><p>Un neobanco o broker: su marca, su catálogo y sus locutores (nombres configurables). <b>~10.000 MAU</b> cubren el fijo de producción.</p></div>
+      <div class="card"><h3>Calidad editorial</h3><p>Subir fidelidad y utilidad del juez (3,3 / 5) con más evaluación y prueba con usuarios reales.</p></div>
+    </div>
+  </div>
+  <div class="disclaimer" style="margin-top:14px"><span class="lbl">Pendiente hoy</span><span><span class="mono" style="font-size:13px">run.sh</span> verificado del todo en Linux/macOS · CI en GitHub al subir la rama · portada con Gemini (requiere facturación; la local ya funciona) · métricas de hábito: ninguna medida todavía.</span></div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>11 / 12</span></div>
+</section>
+
+<!-- ═══════════════ 12 · CIERRE ═══════════════ -->
+<section class="slide s-close">
+  <img class="logo" src="../docs/assets/marca/briefly_logo_oscuro.svg" alt="briefly">
+  <p class="tagline">El cierre del día, mientras vuelves a casa</p>
+  <p class="motto">Te contamos el mercado; tú decides.</p>
+  <div class="people">
+    <div class="person"><div class="nm">Óscar Romero Quincoces</div><div class="rl">Equipo Briefly</div></div>
+    <div class="person"><div class="nm">Daniel García</div><div class="rl">Equipo Briefly</div></div>
+    <!-- MARCADOR: sustituir [tercer integrante] por el nombre del tercer miembro del equipo -->
+    <div class="person"><div class="nm"><span class="placeholder">[tercer integrante]</span></div><div class="rl">Equipo Briefly</div></div>
+  </div>
+  <div class="links">github.com/Romequinco/multimodal-market-briefer · MIAX · Taller B5-T4 · 8-oct-2026<br>
+    Tres personas, seis modelos de IA, un toro y una osa.</div>
+  <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · voces sintéticas generadas con IA · información, no asesoramiento financiero</span><span>12 / 12</span></div>
+</section>
+
+</body>
+</html>
