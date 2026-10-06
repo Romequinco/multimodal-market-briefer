@@ -219,8 +219,10 @@ MOCK_SCREENSHOT_TRANSCRIPTION = (
 _NON_POSITION_ROWS = _TOTAL_ROWS | {"efectivo", "liquidez", "saldo", "cash", "saldo disponible"}
 #: Forma plausible de un ticker de Yahoo que el usuario ve en la captura (``SAP.DE``, ``BRK-B``).
 _SYMBOL_RE = re.compile(r"^[A-Z0-9][A-Z0-9.\-]{0,11}$")
-#: ``"1.500"`` o ``"12.345.678 €"``: separador de miles español sin parte decimal.
-_THOUSANDS_ONLY = re.compile(r"^\d{1,3}(?:\.\d{3})+(?:\s*€)?$")
+#: ``"1.500"`` o ``"12.345.678"`` (ya sin divisa): separador de miles español sin parte decimal.
+_THOUSANDS_ONLY = re.compile(r"^\d{1,3}(?:\.\d{3})+$")
+#: Símbolos y códigos de divisa que se quitan antes de leer el número.
+_CURRENCY_RE = re.compile(r"[€$£]|\b(?:EUR|USD|GBP)\b", re.IGNORECASE)
 _NO_POSITIONS_MSG = (
     "No se ha encontrado ninguna posición reconocible en la captura. Sube una captura nítida de la "
     "pantalla de posiciones de tu broker (con el nombre o ticker de cada valor y sus títulos, valor o "
@@ -255,7 +257,8 @@ def _lenient_number(text: str) -> float | None:
     Las capturas son de brokers en español: ``"1.500"`` (puntos en grupos de 3, sin coma) son
     miles, no decimales.
     """
-    if _THOUSANDS_ONLY.match(text.strip()):
+    text = _CURRENCY_RE.sub("", text).strip()
+    if _THOUSANDS_ONLY.match(text):
         text = text.replace(".", "")
     try:
         return _parse_number(text, "valor", 0)

@@ -1108,7 +1108,10 @@ def _run_briefing(
     video_asset = None
     if make_video:
         notify("Montando el vídeo…")
-        images = ([cover_path] if cover_path else []) + [c.path for c in chart_assets]
+        # Nunca el gráfico de la cartera: el vídeo se guarda en data/outputs y se envía (ADR-005).
+        images = ([cover_path] if cover_path else []) + [
+            c.path for c in chart_assets if c.kind != "portfolio_pie"
+        ]
         video_asset = _optional_step(
             "media.video",
             "ffmpeg",

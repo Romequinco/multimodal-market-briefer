@@ -292,3 +292,14 @@ def test_page_shows_friendly_error_for_unreadable_screenshot(monkeypatch: pytest
     errors = "\n".join(str(e.value) for e in at.error)
     assert "No se pudo leer la captura" in errors and "Traceback" not in errors
     assert "portfolio" not in at.session_state
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [("1.500", 1500.0), ("1.500 €", 1500.0), ("1.500 EUR", 1500.0), ("$1.500", 1500.0), ("€ 1.500", 1500.0),
+     ("1.234,5 €", 1234.5), ("22,6 %", 22.6), ("117,20 USD", 117.2)],
+)
+def test_lenient_number_with_currency(text: str, expected: float) -> None:
+    from briefer.ingest.portfolio import _lenient_number
+
+    assert _lenient_number(text) == pytest.approx(expected)

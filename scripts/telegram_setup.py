@@ -85,7 +85,11 @@ def write_env_value(env_path: Path, key: str, value: str) -> None:
     Conserva el resto de líneas, comentarios y finales de línea. Crea el fichero si no existe.
     """
     # Bytes y no read_text: read_text convierte \r\n en \n y se perderían los finales de Windows.
-    text = env_path.read_bytes().decode("utf-8") if env_path.exists() else ""
+    raw = env_path.read_bytes() if env_path.exists() else b""
+    try:
+        text = raw.decode("utf-8-sig")  # sin BOM: la clave de la 1.ª línea se reconoce
+    except UnicodeDecodeError:
+        text = raw.decode("cp1252")  # .env guardado en ANSI (Bloc de notas antiguo)
     newline = "\r\n" if "\r\n" in text else "\n"
     lines = text.splitlines(keepends=True)
     new_line = f"{key}={value}"
@@ -125,6 +129,9 @@ def main(argv: list[str] | None = None, settings: Settings | None = None, env_pa
     parser.add_argument("--chat-id", help="chat a usar si hay varios (o uno que no aparezca)")
     parser.add_argument("--env-file", type=Path, default=None, help="ruta del .env (por defecto, el del repo)")
     args = parser.parse_args(argv)
+    # Nombres de chat con emojis: en una consola o redirección cp1252 no deben acabar en traceback.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
 
     s = settings or get_settings()
     env_file = args.env_file or env_path or ROOT / ".env"

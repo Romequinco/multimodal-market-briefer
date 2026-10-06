@@ -74,3 +74,22 @@ def test_chart_goes_to_vision_with_route_in_trace(settings: Settings, chart_png:
     insight = pipeline.process_upload(chart_png, providers, metrics)
     assert insight.source_type == "chart" and vision.calls >= 1
     assert (metrics[-1].detail or "").startswith("Clasificador fake: gráfico de velas")
+
+
+def test_video_never_includes_portfolio_chart(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
+    """El vídeo se guarda en data/outputs y se envía: el gráfico de la cartera no entra (ADR-005)."""
+    from briefer.schemas import Portfolio, Position
+
+    seen: list[list[Path]] = []
+
+    def fake_video(audio, images, out_path, transcript=None, **_kw):
+        seen.append(list(images))
+        raise RuntimeError("sin vídeo en el test")
+
+    monkeypatch.setattr(pipeline.video_mod, "make_video", fake_video)
+    pf = Portfolio(name="P", positions=[Position(ticker="SAN.MC", weight=0.6), Position(ticker="AAPL", weight=0.4)])
+    briefing = pipeline.run_briefing([], portfolio=pf, settings=settings, use_mock=True, make_video=True)
+    pie = [c.path for c in briefing.charts if c.kind == "portfolio_pie"]
+    assert seen and seen[0]
+    assert not set(seen[0]) & set(pie)
+    assert all("portfolio" not in p.name for p in seen[0])

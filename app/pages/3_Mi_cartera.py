@@ -99,18 +99,20 @@ def _load_image(image: bytes, name: str) -> None:
     """Lee la captura vía pipeline (visión -> LLM barato) y deja la cartera en la sesión."""
     st.session_state.pop(IMAGE_ERROR_KEY, None)
     st.session_state.pop(DISCARDED_KEY, None)
-    try:
-        from briefer.pipeline import portfolio_from_screenshot  # perezoso: la página no depende de él
-    except ImportError as exc:
-        pending(NotImplementedError(str(exc)), "la lectura de carteras desde una captura")
-        return
+    from briefer.pipeline import portfolio_from_screenshot  # perezoso: solo al leer una captura
+
     stats: dict = {}
     try:
         with st.spinner("Leyendo la captura con el modelo de visión…"):
             portfolio, _metric = portfolio_from_screenshot(image, name=name, mode=mode, stats_out=stats)
         st.session_state["portfolio"] = portfolio
         st.session_state[DISCARDED_KEY] = list(stats.get("discarded") or [])
-        st.success(f"Cartera «{name}» leída de la captura: {len(portfolio.positions)} posiciones.")
+        if mode == "real":
+            st.success(f"Cartera «{name}» leída de la captura: {len(portfolio.positions)} posiciones.")
+        else:
+            # Sin visión real, el mock devuelve siempre la cartera de la captura de ejemplo.
+            st.info(f"Modo demo: se usa la cartera de la captura de ejemplo ({len(portfolio.positions)} "
+                    "posiciones). Activa el modo real para leer tu propia captura.")
     except NotImplementedError as exc:
         pending(exc, "la lectura de carteras desde una captura")
     except ValueError as exc:

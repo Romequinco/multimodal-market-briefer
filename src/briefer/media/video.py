@@ -483,7 +483,7 @@ def make_video(
             vfilter += ",ass=subs.ass:fontsdir=fonts"
         vfilter += ",format=yuv420p"
 
-        metadata = {**AI_AUDIO_METADATA, "title": title or brand.BRAND_NAME, "artist": brand.BRAND_NAME}
+        metadata = {**AI_AUDIO_METADATA, "title": title or brand.BRAND_NAME}
         meta_args = [arg for key, value in metadata.items() for arg in ("-metadata", f"{key}={value}")]
         tmp_out = work / "video.mp4"
         args = [
