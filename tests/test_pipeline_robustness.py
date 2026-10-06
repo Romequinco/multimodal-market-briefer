@@ -5,7 +5,8 @@
   ``PipelineStepError.metrics``;
 - Q&A en dos tiempos (``answer_question(speak=False)`` + ``speak_answer``) y ``warmup``;
 - cliente de Anthropic compartido y precalentado sin coste;
-- modelo configurable del Guionista.
+- modelo configurable del Guionista;
+- coste de la portada anotado aunque falle el título superpuesto.
 """
 
 from __future__ import annotations
@@ -18,9 +19,9 @@ from types import SimpleNamespace
 import pytest
 from pydantic import BaseModel
 
-from briefer import pipeline
+from briefer import costs, pipeline
 from briefer.config import Settings
-from briefer.providers.base import LLMProvider
+from briefer.providers.base import ImageGenProvider, LLMProvider
 from briefer.providers.llm import _anthropic_common as common
 from briefer.providers.llm.anthropic_llm import AnthropicLLM
 from briefer.providers.mock import MockLLM
@@ -263,3 +264,42 @@ def test_scriptwriter_llm_defaults_to_cheap_and_is_configurable(anthropic_settin
     assert llm.model == "claude-sonnet-5-5" and llm.provider_name == "anthropic"
     mock_providers = pipeline.get_providers(custom, use_mock=True)
     assert isinstance(pipeline.scriptwriter_llm(custom, mock_providers), MockLLM)
+
+
+# ── Coste de la portada: se anota en cuanto la imagen se ha generado ──────────────
+
+
+class _PaidImageGen(ImageGenProvider):
+    """Generador falso «de pago» (tarifa de Gemini) que escribe un PNG sin red."""
+
+    provider_name, model = "gemini", "gemini-3.1-flash-lite-image"
+
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+
+    def generate(self, prompt: str, out_path: Path) -> Path:
+        if self.fail:
+            raise RuntimeError("cuota agotada")
+        from briefer.providers.mock import write_solid_png
+
+        return write_solid_png(out_path)
+
+
+@pytest.mark.parametrize(("gen_fails", "charged"), [(False, True), (True, False)])
+def test_cover_cost_is_recorded_even_if_overlay_fails(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch, gen_fails: bool, charged: bool
+) -> None:
+    providers = pipeline.get_providers(settings, use_mock=True)
+    providers.image_gen = _PaidImageGen(fail=gen_fails)
+    monkeypatch.setattr(pipeline, "_providers_for_mode", lambda *_a: providers)
+
+    def broken_overlay(*_a, **_k):
+        raise OSError("fuente rota")
+
+    monkeypatch.setattr(pipeline.cover_mod, "overlay_title", broken_overlay)
+    briefing = pipeline.run_briefing(["SAN.MC"], settings=settings, use_mock=True, make_cover=True)
+    cover_metric = next(m for m in briefing.metrics if m.step == "media.cover")
+    assert cover_metric.error  # el paso falló (opcional: el briefing sale igual)
+    expected = costs.estimate_image_cost_eur("gemini", 1, "gemini-3.1-flash-lite-image") if charged else 0.0
+    assert expected > 0 or not charged
+    assert cover_metric.est_cost_eur == pytest.approx(expected)

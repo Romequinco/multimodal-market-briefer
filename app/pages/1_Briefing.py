@@ -103,7 +103,8 @@ uploads = st.file_uploader(
     type=UPLOAD_TYPES,
     accept_multiple_files=True,
     help="Los PDF se leen con extracción de texto + visión; las imágenes con visión; los audios "
-    "se transcriben (voz a texto) y se añaden como contexto del análisis. Se borran al terminar.",
+    "se transcriben (voz a texto) y se añaden como contexto del análisis. Se borran al terminar. "
+    "Las capturas de tu cartera del broker se suben en «Mi cartera», no aquí.",
 )
 
 #: Funciones que el pipeline aún no implementa: se enseñan desactivadas y «en desarrollo» para

@@ -245,6 +245,128 @@ def test_nothing_is_written_to_disk(monkeypatch: pytest.MonkeyPatch) -> None:
     assert set(os.listdir(tmp_dir)) - before == set()
 
 
+# ── Pesos mixtos: solo una base que cubra todas las posiciones ────────────────────
+
+
+def test_mixed_rows_use_percent_when_value_does_not_cover_all(png: bytes) -> None:
+    llm = FakeLLM([
+        ScreenshotHolding(name="Inditex", ticker="ITX", value=9000, weight_pct=75),
+        ScreenshotHolding(name="Apple", ticker="AAPL", weight_pct=25),  # sin valor
+    ])
+    stats: dict = {}
+    p = portfolio_from_image(png, FakeVision("tabla"), llm, stats_out=stats)
+    assert _weights(p) == {"ITX.MC": pytest.approx(0.75), "AAPL": pytest.approx(0.25)}
+    assert stats["weight_basis"] == "weight_pct" and "weight_note" not in stats
+
+
+def test_value_preferred_when_it_covers_all(png: bytes) -> None:
+    llm = FakeLLM([
+        ScreenshotHolding(name="Inditex", ticker="ITX", value=600, weight_pct=50),
+        ScreenshotHolding(name="Apple", ticker="AAPL", value=400),  # sin peso %
+    ])
+    stats: dict = {}
+    p = portfolio_from_image(png, FakeVision("tabla"), llm, stats_out=stats)
+    assert _weights(p) == {"ITX.MC": pytest.approx(0.6), "AAPL": pytest.approx(0.4)}
+    assert stats["weight_basis"] == "value"
+
+
+def test_no_basis_covering_all_leaves_every_weight_empty(png: bytes) -> None:
+    """Antes: Inditex 100 % y Apple sin peso (cartera sesgada). Ahora: solo tickers y títulos."""
+    llm = FakeLLM([
+        ScreenshotHolding(name="Inditex", ticker="ITX", quantity=10, value=600),
+        ScreenshotHolding(name="Apple", ticker="AAPL", quantity=5),  # solo títulos
+    ])
+    stats: dict = {}
+    p = portfolio_from_image(png, FakeVision("tabla"), llm, stats_out=stats)
+    assert [(x.ticker, x.weight, x.quantity) for x in p.positions] == [("ITX.MC", None, 10), ("AAPL", None, 5)]
+    assert stats["weight_basis"] == "none" and "sin pesos" in stats["weight_note"]
+    assert "pesos incompletos" in format_screenshot_stats(stats)
+    # Un dict de estadísticas reutilizado no arrastra el aviso de una lectura anterior.
+    portfolio_from_image(png, FakeVision("tabla"), FakeLLM([ScreenshotHolding(name="Apple", ticker="AAPL", value=1)]),
+                         stats_out=stats)
+    assert "weight_note" not in stats and stats["weight_basis"] == "value"
+
+
+# ── Privacidad: errores de salida estructurada sin contenido de la captura ─────────
+
+#: Dato «sensible» de la captura que no debe aparecer en log, StepMetric ni mensaje.
+SECRET = "Banco Santander 6.780,00 EUR"
+
+
+def _validation_error() -> Exception:
+    from pydantic import ValidationError
+
+    try:
+        ScreenshotHoldings.model_validate({"rows": [{"name": "x", "quantity": SECRET}]})
+    except ValidationError as exc:
+        assert SECRET in str(exc)  # el ValidationError real sí lleva el input_value
+        return exc
+    raise AssertionError("se esperaba ValidationError")
+
+
+def _structured_output_error() -> Exception:
+    from briefer.providers.llm._structured import StructuredOutputError
+
+    return StructuredOutputError(f"ScreenshotHoldings: salida no válida tras 2 intentos: {_validation_error()}")
+
+
+class RaisingLLM(LLMProvider):
+    provider_name = "fake"
+    model = "fake-llm"
+
+    def __init__(self, exc: Exception) -> None:
+        super().__init__()
+        self.exc = exc
+
+    def complete(self, system: str, messages: list[dict], response_model: type[BaseModel] | None = None):
+        raise self.exc
+
+
+@pytest.mark.parametrize("make_exc", [_validation_error, _structured_output_error])
+def test_structured_output_error_does_not_leak_portfolio(
+    make_exc, png: bytes, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    from briefer import pipeline
+
+    monkeypatch.setattr(pipeline.registry, "get_llm", lambda *_a, **_k: RaisingLLM(make_exc()))
+    monkeypatch.setattr(pipeline.registry, "get_vision", lambda *_a, **_k: FakeVision(SECRET))
+    metrics: list[StepMetric] = []
+    real_track = pipeline.track_step
+    monkeypatch.setattr(pipeline, "track_step", lambda *a, **k: real_track(*a, metrics=metrics, **k))
+    with caplog.at_level("DEBUG", logger="briefer"), pytest.raises(ValueError) as info:
+        pipeline.portfolio_from_screenshot(png, mode="real")
+    assert SECRET not in str(info.value) and "captura" in str(info.value)
+    assert info.value.__suppress_context__ and info.value.__cause__ is None  # tampoco en el traceback
+    assert metrics and metrics[0].step == "ingest.portfolio_image"
+    assert metrics[0].error and SECRET not in metrics[0].error and "6.780" not in metrics[0].error
+    assert SECRET not in caplog.text and "6.780" not in caplog.text
+
+
+def test_pipeline_masks_any_validation_error_from_portfolio_reader(
+    png: bytes, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Red de seguridad del pipeline: un ValidationError de cualquier punto de la lectura."""
+    from briefer import pipeline
+
+    def boom(*_a, **_k):
+        raise _validation_error()
+
+    monkeypatch.setattr(pipeline.portfolio_mod, "portfolio_from_image", boom)
+    with caplog.at_level("DEBUG", logger="briefer"), pytest.raises(ValueError) as info:
+        pipeline.portfolio_from_screenshot(png, mode="mock")
+    assert type(info.value) is ValueError and SECRET not in str(info.value)
+    assert SECRET not in caplog.text
+
+
+def test_friendly_value_errors_still_reach_the_ui(png: bytes) -> None:
+    from briefer import pipeline
+
+    with pytest.raises(ValueError, match="ninguna posición reconocible"):
+        portfolio_from_image(png, FakeVision("SIN POSICIONES"), FakeLLM([]))
+    with pytest.raises(ValueError, match="formato no soportado"):
+        pipeline.portfolio_from_screenshot(b"no es una imagen", mode="mock")
+
+
 # ── Página «Mi cartera» ───────────────────────────────────────────────────────────
 
 pytest.importorskip("streamlit")

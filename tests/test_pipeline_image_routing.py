@@ -93,3 +93,92 @@ def test_video_never_includes_portfolio_chart(settings: Settings, monkeypatch: p
     assert seen and seen[0]
     assert not set(seen[0]) & set(pie)
     assert all("portfolio" not in p.name for p in seen[0])
+
+
+# ── Sin router: la propia visión clasifica la captura de cartera (ADR-005) ─────────
+
+#: Lo que contestaría un modelo de visión desobediente: marcador + nombres e importes.
+LEAKY_PORTFOLIO_ANSWER = "TIPO: cartera\nBanco Santander | SAN | 1.500 | 6.780,00 €"
+
+
+class ScriptedVision:
+    """Visión falsa que responde ``answer`` y cuenta las llamadas (sin red)."""
+
+    provider_name, model = "fake", "fake-vision"
+
+    def __init__(self, answer: str) -> None:
+        self.answer, self.calls, self.last_usage = answer, 0, {"input_tokens": 0, "output_tokens": 0}
+
+    def describe(self, image: bytes, prompt: str) -> str:
+        self.calls += 1
+        assert chart_reader.PORTFOLIO_MARKER in prompt  # el prompt pide clasificar
+        return self.answer
+
+
+class SpyLLM:
+    provider_name, model = "fake", "fake-llm"
+
+    def __init__(self) -> None:
+        self.calls, self.last_usage = 0, {"input_tokens": 0, "output_tokens": 0}
+
+    def complete(self, system, messages, response_model=None):
+        self.calls += 1
+        raise AssertionError("no debe llamarse al LLM de estructura con una captura de cartera")
+
+
+@pytest.mark.parametrize("answer", ["TIPO: cartera", LEAKY_PORTFOLIO_ANSWER, "**Tipo:** Cartera"])
+def test_vision_classifies_portfolio_without_router(answer: str, chart_png: Path) -> None:
+    llm = SpyLLM()
+    with pytest.raises(ValueError) as info:
+        chart_reader.read_chart(chart_png.read_bytes(), "cartera.png", ScriptedVision(answer), llm)  # type: ignore[arg-type]
+    assert str(info.value) == chart_reader.PORTFOLIO_REDIRECT_MSG and llm.calls == 0
+
+
+def test_type_line_is_removed_from_chart_description(chart_png: Path) -> None:
+    vision = ScriptedVision("TIPO: grafico\nGráfico de velas de SAN.MC en septiembre. Cierre 4,52 €.")
+    insight = chart_reader.read_chart(chart_png.read_bytes(), "g.png", vision)  # type: ignore[arg-type]
+    assert "TIPO" not in insight.extracted_text and insight.extracted_text.startswith("Gráfico de velas")
+    assert insight.summary == "Gráfico de velas de SAN.MC en septiembre."
+
+
+def test_mock_vision_still_reads_charts(chart_png: Path) -> None:
+    from briefer.providers.mock import MockLLM, MockVision
+
+    insight = chart_reader.read_chart(chart_png.read_bytes(), "g.png", MockVision(), MockLLM())
+    assert insight.source_type == "chart" and insight.extracted_text.startswith("[MOCK]")
+
+
+def test_chart_structured_output_error_is_masked(chart_png: Path) -> None:
+    from pydantic import ValidationError
+
+    from briefer.schemas import DocumentInsight
+
+    class BadLLM(SpyLLM):
+        def complete(self, system, messages, response_model=None):
+            DocumentInsight.model_validate({"source_type": "chart", "summary": "CIFRA-SECRETA"})
+
+    vision = ScriptedVision("TIPO: grafico\nGráfico.")
+    with pytest.raises(ValueError) as info:
+        chart_reader.read_chart(chart_png.read_bytes(), "g.png", vision, BadLLM())  # type: ignore[arg-type]
+    assert not isinstance(info.value, ValidationError) and "CIFRA-SECRETA" not in str(info.value)
+    assert info.value.__suppress_context__
+
+
+def test_portfolio_upload_without_router_is_never_persisted(
+    settings: Settings, chart_png: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Captura de cartera subida en «Briefing» sin CLIP: no llega a ``briefing.json``."""
+    base = pipeline.get_providers(settings, use_mock=True)
+    providers = replace(base, classifier=None, vision=ScriptedVision(LEAKY_PORTFOLIO_ANSWER))  # type: ignore[arg-type]
+    metrics: list[StepMetric] = []
+    with pytest.raises(ValueError, match="Mi cartera"):
+        pipeline.process_upload(chart_png, providers, metrics)
+    assert metrics[-1].error and "Santander" not in metrics[-1].error
+
+    monkeypatch.setattr(pipeline, "_providers_for_mode", lambda *_a: providers)
+    upload = tmp_path / "cartera.png"
+    upload.write_bytes(chart_png.read_bytes())
+    briefing = pipeline.run_briefing(["SAN.MC"], uploads=[upload], settings=settings, use_mock=True)
+    assert briefing.context.insights == []
+    saved = "".join(p.read_text(encoding="utf-8") for p in settings.output_path.rglob("*.json"))
+    assert "6.780" not in saved and "Banco Santander" not in saved

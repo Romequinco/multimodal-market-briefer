@@ -33,7 +33,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from briefer.logging_utils import get_logger
 from briefer.schemas import StepMetric
+
+log = get_logger("costs")
 
 # Estimación a verificar (≈ 0,86 €/$ en oct-2026).
 USD_TO_EUR = 0.86
@@ -156,15 +159,50 @@ def estimate_tts_cost_eur(provider: str, n_chars: int) -> float:
     return round(usd * USD_TO_EUR, 6)
 
 
+#: Prefijo de los ids de modelo de cada proveedor de imagen de pago (para su tarifa por defecto).
+IMAGE_PROVIDER_MODEL_PREFIX: dict[str, str] = {"gemini": "gemini-"}
+
+#: ``(proveedor, modelo)`` sin tarifa conocida ya avisados en el log (un aviso por par).
+_warned_unknown_images: set[tuple[str, str]] = set()
+
+
+def _fallback_image_price_usd(provider: str) -> float:
+    """Tarifa conservadora de un proveedor de pago: la más alta conocida de sus modelos.
+
+    Mejor sobrestimar el coste que mostrar 0 € de algo que se cobra. Un proveedor sin ningún
+    modelo en la tabla (ni prefijo en ``IMAGE_PROVIDER_MODEL_PREFIX``) sigue a 0 (con aviso).
+    """
+    prefix = IMAGE_PROVIDER_MODEL_PREFIX.get(provider)
+    own = [p for k, p in IMAGE_GEN_PRICES_USD_PER_IMAGE.items() if prefix and k.startswith(prefix)]
+    return max(own, default=0.0)
+
+
 def image_price_usd(provider: str, model: str = "") -> float:
-    """Tarifa en USD por imagen: por id de modelo (admite sufijos como ``-preview``) o por proveedor."""
+    """Tarifa en USD por imagen: por id de modelo (admite sufijos como ``-preview``) o por proveedor.
+
+    Un modelo desconocido de un proveedor de pago (p. ej. un Gemini nuevo) usa
+    ``_fallback_image_price_usd`` (la más alta conocida de ese proveedor) y deja un aviso en el log
+    (una vez por proveedor/modelo); los proveedores locales y mocks (``LOCAL_PROVIDERS``) siguen a 0.
+    """
     table = IMAGE_GEN_PRICES_USD_PER_IMAGE
     if model in table:
         return table[model]
     matches = [k for k in table if model and model.startswith(k)]
     if matches:
         return table[max(matches, key=len)]
-    return table.get(provider, 0.0)
+    if provider in table:
+        return table[provider]
+    if provider in LOCAL_PROVIDERS:
+        return 0.0
+    price = _fallback_image_price_usd(provider)
+    if (provider, model) not in _warned_unknown_images:
+        _warned_unknown_images.add((provider, model))
+        log.warning(
+            "Sin tarifa de imagen para %s/%s: se estima con la más alta conocida del proveedor "
+            "(%.4f $/imagen); añádela a IMAGE_GEN_PRICES_USD_PER_IMAGE",
+            provider, model or "-", price,
+        )
+    return price
 
 
 def estimate_image_cost_eur(provider: str, n_images: int = 1, model: str = "") -> float:

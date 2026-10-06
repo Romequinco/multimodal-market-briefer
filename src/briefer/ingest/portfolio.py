@@ -228,6 +228,11 @@ _NO_POSITIONS_MSG = (
     "pantalla de posiciones de tu broker (con el nombre o ticker de cada valor y sus títulos, valor o "
     "peso), o carga tu cartera con un CSV."
 )
+#: Salida estructurada inválida del LLM: mensaje genérico, sin nada de la captura.
+_UNREADABLE_MSG = (
+    "No se ha podido interpretar la tabla de posiciones de la captura. Inténtalo de nuevo con una "
+    "captura más nítida o carga tu cartera con un CSV."
+)
 
 
 class ScreenshotHolding(BaseModel):
@@ -339,9 +344,14 @@ def portfolio_from_image(
 
     Después, sin IA: tickers con ``normalize_ticker``/``TICKER_UNIVERSE`` (nombres como «Banco
     Santander» -> ``SAN.MC``; un ticker fuera del universo solo si aparece literalmente en la
-    transcripción), duplicados fusionados y pesos normalizados a 1 con la base que cubra más
-    posiciones: valor de mercado (o títulos × precio) y, si no, el peso en % de la captura. Si solo
-    hay títulos, la posición se queda con ``quantity`` y sin peso (como en el CSV).
+    transcripción) y duplicados fusionados.
+
+    Regla de pesos (normalizados a 1): se usa una base solo si cubre **todas** las posiciones,
+    primero el valor de mercado (o títulos × precio) y, si no, el peso en % de la captura. Si
+    ninguna las cubre todas (p. ej. unas filas con valor y otras solo con títulos), ninguna
+    posición lleva peso: todas se quedan con sus ``quantity`` (como un CSV sin pesos) y
+    ``stats_out["weight_note"]`` lo explica. Mejor solo tickers que pesos que suman 1 sobre un
+    subconjunto de la cartera (sesgados).
 
     En modo mock (``provider_name == "mock"``) ``MockVision`` no lee la imagen, así que se usa
     ``MOCK_SCREENSHOT_TRANSCRIPTION`` (la de la captura de ejemplo), y con ``MockLLM`` la tabla se
@@ -353,7 +363,8 @@ def portfolio_from_image(
     Args:
         stats_out: si se pasa, se rellena con ``rows`` (filas leídas), ``discarded`` (lista de
             ``{"row", "reason"}`` de filas descartadas, para avisar en la UI), ``weight_basis``
-            (``"value"``, ``"weight_pct"`` o ``"none"``) y ``transcription_chars``.
+            (``"value"``, ``"weight_pct"`` o ``"none"``), ``transcription_chars`` y, si los pesos
+            de la captura están incompletos, ``weight_note`` (aviso para la UI).
 
     Raises:
         ValueError: imagen vacía, dañada o en formato no soportado, o ninguna posición válida
@@ -362,6 +373,7 @@ def portfolio_from_image(
     validate_image(image)
     stats: dict = stats_out if stats_out is not None else {}
     stats.update(rows=0, discarded=[], weight_basis="none", transcription_chars=0)
+    stats.pop("weight_note", None)
 
     transcription = vision.describe(image, SCREENSHOT_PROMPT).strip()
     if vision.provider_name == "mock":
@@ -373,11 +385,17 @@ def portfolio_from_image(
     if llm.provider_name == "mock":
         extracted = parse_screenshot_table(transcription)
     else:
-        result = llm.complete(
-            SCREENSHOT_STRUCTURE_SYSTEM,
-            [{"role": "user", "content": f"<transcripcion>\n{transcription}\n</transcripcion>"}],
-            response_model=ScreenshotHoldings,
-        )
+        try:
+            result = llm.complete(
+                SCREENSHOT_STRUCTURE_SYSTEM,
+                [{"role": "user", "content": f"<transcripcion>\n{transcription}\n</transcripcion>"}],
+                response_model=ScreenshotHoldings,
+            )
+        except ValueError:
+            # ValidationError / StructuredOutputError copian la salida del LLM (``input_value``:
+            # nombres e importes de la cartera). Se relanza sin contenido y ``from None`` para que
+            # no llegue al log, a ``StepMetric.error`` ni al traceback (ADR-005).
+            raise ValueError(_UNREADABLE_MSG) from None
         if not isinstance(result, ScreenshotHoldings):  # contrato: complete() devuelve el modelo pedido
             raise TypeError("El LLM no devolvió las posiciones de la captura")
         extracted = result
@@ -410,17 +428,27 @@ def portfolio_from_image(
     if not merged:
         raise ValueError(_NO_POSITIONS_MSG)
 
-    # Base de pesos: la que cubra más posiciones (a igualdad, el valor de mercado, más preciso).
-    coverage = {b: sum(1 for v in merged.values() if v[b]) for b in ("value", "weight_pct")}
-    basis = max(coverage, key=lambda b: (coverage[b], b == "value"))
-    total = sum(v[basis] or 0.0 for v in merged.values())
-    if coverage[basis] == 0 or total <= 0:
+    # Base de pesos: solo una que cubra TODAS las posiciones (primero el valor de mercado, más
+    # preciso; si no, el peso % de la captura). Mezclar bases o normalizar sobre un subconjunto
+    # daría pesos sesgados (las posiciones sin dato quedarían fuera y el resto sumaría 1).
+    basis = "none"
+    for candidate in ("value", "weight_pct"):
+        if all(v[candidate] for v in merged.values()):
+            basis = candidate
+            break
+    if basis == "none" and any(v["value"] or v["weight_pct"] for v in merged.values()):
+        stats["weight_note"] = (
+            "La captura no trae valor ni peso de todas las posiciones: se usan solo los tickers "
+            "y los títulos, sin pesos."
+        )
+    total = sum(v[basis] or 0.0 for v in merged.values()) if basis != "none" else 0.0
+    if total <= 0:
         basis = "none"
     stats["weight_basis"] = basis
     positions = [
         Position(
             ticker=ticker,
-            weight=round((v[basis] or 0.0) / total, 6) if basis != "none" and v[basis] else None,
+            weight=round((v[basis] or 0.0) / total, 6) if basis != "none" else None,
             quantity=v["quantity"],
         )
         for ticker, v in merged.items()
@@ -435,4 +463,6 @@ def format_screenshot_stats(stats: dict) -> str:
     if stats.get("discarded"):
         parts.append(f"{len(stats['discarded'])} descartadas")
     parts.append(basis.get(str(stats.get("weight_basis")), "sin pesos"))
+    if stats.get("weight_note"):
+        parts[-1] += " (pesos incompletos en la captura)"
     return ", ".join(parts)

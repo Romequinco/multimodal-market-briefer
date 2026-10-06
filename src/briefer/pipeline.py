@@ -65,7 +65,7 @@ from datetime import date
 from pathlib import Path
 from typing import Literal, TypeVar, cast, get_args
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from briefer import costs, storage
 from briefer.agents import analyst, qa, scriptwriter
@@ -383,6 +383,31 @@ class _MeteredVision(VisionProvider):
         return self.meter.cost_eur(self.provider_name, self.model)
 
 
+class _MeteredImageGen(ImageGenProvider):
+    """Envoltorio de un ``ImageGenProvider`` que cuenta las imágenes generadas (las que se cobran).
+
+    El coste se anota aunque un paso posterior falle (p. ej. ``cover.overlay_title``): la imagen
+    ya está facturada. Un ``generate`` que lanza no cuenta (no hubo imagen).
+    """
+
+    def __init__(self, inner: ImageGenProvider) -> None:
+        super().__init__()
+        self.inner = inner
+        self.provider_name = inner.provider_name
+        self.model = inner.model
+        self.images = 0
+
+    def generate(self, prompt: str, out_path: Path) -> Path:
+        path = self.inner.generate(prompt, out_path)
+        self.images += 1
+        return path
+
+    def cost_eur(self) -> float:
+        if not self.images:
+            return 0.0
+        return costs.estimate_cost_eur(self.provider_name, self.model, n_images=self.images)
+
+
 def _llm_cost(llm: LLMProvider) -> float:
     """Coste de la última llamada de ``llm`` (o de todas, si es un ``_MeteredLLM``)."""
     if isinstance(llm, _MeteredLLM):
@@ -673,10 +698,8 @@ def process_upload(
                 if route is not None and route.is_portfolio:
                     # Los tickers del briefing ya están fijados cuando llegan las subidas: una
                     # cartera leída aquí no tendría noticias ni precios. Se desvía sin gastar visión.
-                    raise ValueError(
-                        "La imagen parece una captura de cartera: súbela en «Mi cartera» para usar "
-                        "sus posiciones en el briefing."
-                    )
+                    # Sin router, la propia visión la clasifica y read_chart la desvía (ADR-005).
+                    raise ValueError(chart_reader.PORTFOLIO_REDIRECT_MSG)
                 insight = chart_reader.read_chart(
                     image, source_name=path.name, vision=vision, llm=llm, route=route, stats_out=route_stats
                 )
@@ -710,7 +733,9 @@ def portfolio_from_screenshot(
     no lleva nombres ni cifras. ``stats_out`` recibe las filas descartadas.
 
     Raises:
-        ValueError: imagen no válida o sin posiciones reconocibles (mensaje apto para la UI).
+        ValueError: imagen no válida, sin posiciones reconocibles o salida del LLM inválida
+            (mensaje apto para la UI y **sin contenido de la captura**: ni el log ni
+            ``StepMetric.error`` llevan nombres ni importes).
     """
     s = settings or get_settings()
     force_mock = resolve_mode(mode, use_mock) != "real"
@@ -720,6 +745,11 @@ def portfolio_from_screenshot(
     with track_step("ingest.portfolio_image", vision.provider_name, vision.model) as step:
         try:
             portfolio = portfolio_mod.portfolio_from_image(image, vision=vision, llm=llm, name=name, stats_out=stats)
+        except ValidationError:
+            # Red de seguridad (ADR-005): un ValidationError lleva ``input_value`` (nombres,
+            # importes). Se registra solo un mensaje genérico; ``from None`` lo quita también del
+            # traceback. Los ValueError propios de portfolio.py ya son aptos para la UI y pasan.
+            raise ValueError("No se ha podido interpretar la captura de la cartera.") from None
         finally:
             step.detail = portfolio_mod.format_screenshot_stats(stats)
             step.est_cost_eur = round(llm.cost_eur() + vision.cost_eur(), 6)
@@ -1094,11 +1124,11 @@ def _run_briefing(
         assert image_gen is not None
 
         def _cover(step: StepHandle) -> Path | None:
-            path = cover_mod.make_cover(analysis, image_gen, out_dir)
-            step.est_cost_eur = costs.estimate_cost_eur(
-                image_gen.provider_name, image_gen.model, n_images=1
-            )
-            return path
+            metered = _MeteredImageGen(image_gen)
+            try:
+                return cover_mod.make_cover(analysis, metered, out_dir)
+            finally:  # la imagen generada se cobra aunque falle el título superpuesto
+                step.est_cost_eur = metered.cost_eur()
 
         cover_path = _optional_step(
             "media.cover", image_gen.provider_name, image_gen.model, metrics, _cover

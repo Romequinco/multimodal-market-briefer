@@ -107,6 +107,8 @@ def _load_image(image: bytes, name: str) -> None:
             portfolio, _metric = portfolio_from_screenshot(image, name=name, mode=mode, stats_out=stats)
         st.session_state["portfolio"] = portfolio
         st.session_state[DISCARDED_KEY] = list(stats.get("discarded") or [])
+        if stats.get("weight_note"):
+            st.warning(stats["weight_note"], icon=":material/warning:")
         if mode == "real":
             st.success(f"Cartera «{name}» leída de la captura: {len(portfolio.positions)} posiciones.")
         else:

@@ -62,3 +62,31 @@ def test_format_cost_summary_is_readable() -> None:
     assert "agents.analyst 0,0248 € (59 %)" in text and "media.podcast" not in text
     assert costs.cost_breakdown(metrics)[0][0] == "agents.analyst"
     assert "0 €" in costs.format_cost_summary(metrics[2:])
+
+
+# ── Imagen: modelo desconocido de un proveedor de pago ────────────────────────────
+
+
+def test_unknown_paid_image_model_uses_highest_provider_price(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(costs, "_warned_unknown_images", set())
+    gemini_max = max(p for k, p in costs.IMAGE_GEN_PRICES_USD_PER_IMAGE.items() if k.startswith("gemini-"))
+    with caplog.at_level("WARNING", logger="briefer.costs"):
+        assert costs.image_price_usd("gemini", "gemini-9-ultra-image") == gemini_max
+        assert costs.image_price_usd("gemini", "gemini-9-ultra-image") == gemini_max
+    warnings = [r for r in caplog.records if "Sin tarifa de imagen" in r.getMessage()]
+    assert len(warnings) == 1  # un aviso por modelo, no uno por llamada
+    assert costs.estimate_cost_eur("gemini", "gemini-9-ultra-image", n_images=1) > 0
+    # Proveedor sin ningún modelo conocido: sigue a 0, pero avisa.
+    with caplog.at_level("WARNING", logger="briefer.costs"):
+        assert costs.image_price_usd("otro", "x") == 0.0
+    assert any("otro/x" in r.getMessage() for r in caplog.records)
+
+
+def test_known_and_local_image_prices_unchanged() -> None:
+    assert costs.image_price_usd("gemini", "gemini-3.1-flash-lite-image") == 0.0336
+    assert costs.image_price_usd("gemini", "gemini-3-pro-image-preview") == 0.134
+    assert costs.image_price_usd("sdxl_turbo", "stabilityai/sdxl-turbo") == 0.0
+    assert costs.image_price_usd("mock", "mock-image") == 0.0
+    assert costs.estimate_cost_eur("mock", "otro-modelo", n_images=3) == 0.0
