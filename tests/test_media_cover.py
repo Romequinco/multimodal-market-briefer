@@ -123,3 +123,27 @@ def test_make_cover_with_mock_image_gen(tmp_path: Path) -> None:
 def test_make_cover_without_provider_returns_none(tmp_path: Path) -> None:
     assert cover.make_cover(_analysis("neutral"), None, tmp_path) is None
     assert not any(tmp_path.iterdir())
+
+
+def test_local_diffusion_gets_short_prompt(tmp_path) -> None:
+    """Los modelos locales (CLIP corta en 77 tokens) reciben el prompt corto con el matiz del día."""
+    from briefer import storage
+    from briefer.media import cover
+
+    analysis = storage.load_demo_briefing().analysis
+    prompts: list[str] = []
+
+    class FakeLocal:
+        provider_name = "sdxl_turbo"
+        model = "fake"
+
+        def generate(self, prompt, out_path):
+            from PIL import Image
+
+            prompts.append(prompt)
+            Image.new("RGB", (768, 432), "navy").save(out_path)
+            return out_path
+
+    cover.make_cover(analysis, FakeLocal(), tmp_path)
+    assert prompts == [cover.build_cover_prompt_local(analysis)]
+    assert len(prompts[0].split()) < 70 and not any(ch.isdigit() for ch in prompts[0])

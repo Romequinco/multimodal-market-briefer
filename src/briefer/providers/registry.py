@@ -60,7 +60,8 @@ TTS_IMPLS: dict[str, _Spec] = {
 }
 IMAGE_GEN_IMPLS: dict[str, _Spec] = {
     "gemini": ("briefer.providers.image.gemini_image", "GeminiImage", "gemini_api_key"),
-    "sdxl_turbo": ("briefer.providers.image.sdxl_turbo", "SDXLTurbo", None),
+    "local": ("briefer.providers.image.sdxl_turbo", "SDXLTurbo", None),
+    "sdxl_turbo": ("briefer.providers.image.sdxl_turbo", "SDXLTurbo", None),  # alias antiguo
 }
 IMAGE_CLASSIFIER_IMPLS: dict[str, _Spec] = {
     "clip": ("briefer.providers.image.clip_classifier", "CLIPClassifier", None),

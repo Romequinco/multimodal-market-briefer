@@ -31,7 +31,7 @@ LLMProviderName = Literal["anthropic", "gemini", "openai", "mock"]
 VisionProviderName = Literal["claude", "qwen_local", "mock"]
 STTProviderName = Literal["whisper_api", "whisper_local", "mock"]
 TTSProviderName = Literal["edge", "gemini", "elevenlabs", "mock"]
-ImageGenProviderName = Literal["gemini", "sdxl_turbo", "none", "mock"]
+ImageGenProviderName = Literal["gemini", "local", "sdxl_turbo", "none", "mock"]
 ImageClassifierName = Literal["clip", "none", "mock"]
 
 
@@ -88,7 +88,10 @@ class Settings(BaseSettings):
     briefer_qwen_vl_model: str = "Qwen/Qwen2.5-VL-3B-Instruct"
     briefer_whisper_api_model: str = "gpt-4o-mini-transcribe"
     briefer_whisper_local_model: str = "base"
-    briefer_sdxl_model: str = "stabilityai/sdxl-turbo"
+    # Portada local y gratuita (BRIEFER_IMAGE_GEN_PROVIDER=local; «sdxl_turbo» es el alias antiguo):
+    # modelo de Hugging Face para diffusers en CPU (SDXS, OpenRAIL++, 1 paso, ~1,8 GB). 0 = pasos del preset.
+    briefer_sdxl_model: str = "IDKiro/sdxs-512-dreamshaper"
+    briefer_sdxl_steps: int = 0
     # Portada con Gemini (BRIEFER_IMAGE_GEN_PROVIDER=gemini): el modelo de imagen más barato de la
     # API de Gemini (0,0336 $ por imagen 1K, precios oficiales consultados el 06-oct-2026).
     briefer_gemini_image_model: str = "gemini-3.1-flash-lite-image"
