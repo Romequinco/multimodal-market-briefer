@@ -179,6 +179,9 @@ def test_answer_question_falls_back_to_mock(
     assert isinstance(answer, QAAnswer) and answer.answer_text
     qa_m = answer.metrics[0]
     assert qa_m.step == "agents.qa" and qa_m.provider == "mock" and step_fell_back(qa_m)
+    assert answer.response_kind == "demo_excerpt"
+    assert sample_briefing.analysis.key_points[0].explanation in answer.answer_text
+    assert "Pregunta recibida" not in answer.answer_text
 
 
 def test_mock_mode_never_falls_back(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:

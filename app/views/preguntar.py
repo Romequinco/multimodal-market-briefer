@@ -118,8 +118,12 @@ with st.container(key="mb-qa"):
     st.html(qa_view.page_title_html())
     if mode != "real":
         st.info("Demo guiada: consulta el resumen, las empresas, sus precios y variaciones del briefing. "
-                "Usa las sugerencias para probarla. La conversación libre y el micrófono están en modo Real.",
+                "Usa las sugerencias o abre el ejemplo completo con respuestas y audio. "
+                "La conversación libre y el micrófono están en modo Real.",
                 icon=":material/info:")
+        st.button("Ver ejemplo completo", key="qa_recorded_example", icon=":material/play_circle:",
+                  on_click=qa_view.recorded_example,
+                  help="Tres preguntas con sus respuestas, fuentes y voz, ya incluidas en el proyecto.")
     if briefing is not None:
         with st.container(key="mb-qa-context", horizontal=True, vertical_alignment="center", gap="small"):
             st.html(qa_view.context_html(briefing), width="content")

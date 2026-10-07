@@ -156,6 +156,30 @@ def render_bot_text(text: str) -> None:
         st.markdown(text)
 
 
+@st.dialog("Ejemplo completo de Preguntar", width="large")
+def recorded_example() -> None:
+    """Muestra una conversación preparada sin alterar el chat ni el briefing activo."""
+    from briefer.qa_examples import load_qa_example
+
+    try:
+        example = load_qa_example()
+    except (ValueError, OSError):
+        example = None
+    if example is None:
+        st.info("El ejemplo completo no está incluido en esta copia del proyecto.")
+        return
+    st.caption(f"Ejemplo preparado · briefing del {example.briefing.analysis.date:%d/%m/%Y} · Santander y Apple")
+    st.info("Así se presenta una conversación: respuesta, fuentes y voz. Estas respuestas están "
+            "preparadas y los audios ya vienen incluidos; no necesitas claves ni conexión para escucharlos. "
+            "En modo Real, la IA responde a tu pregunta con el briefing que tengas abierto.")
+    for index, answer in enumerate(example.answers):
+        render_user_turn(answer.question, key=f"example-{index}")
+        with st.chat_message("assistant", avatar=BOT_AVATAR):
+            render_answer_body(answer, example.briefing, key=f"example-{index}", trace=False)
+            if answer.audio_path is None:
+                st.caption("El audio de este ejemplo no está disponible en esta copia.")
+
+
 def _request_audio(index: int) -> None:
     st.session_state["_qa_audio_request"] = index
 

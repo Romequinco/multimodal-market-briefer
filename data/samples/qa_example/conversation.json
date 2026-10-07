@@ -1,0 +1,302 @@
+{
+  "briefing": {
+    "id": "qa-example-20261006",
+    "created_at": "2026-10-06T16:00:31",
+    "context": {
+      "date": "2026-10-06",
+      "tickers": [
+        "SAN.MC",
+        "AAPL"
+      ],
+      "news": [
+        {
+          "id": "n-da93dc43d1decf1c",
+          "title": "Santander dispara su acción un 4,52% y arrastra al Ibex 35 hasta 19.299 puntos",
+          "summary": "El Ibex 35 sube un 1,12% el 5-10-2026 impulsado por Santander tras la victoria de Bolsonaro en Brasil",
+          "source": "El blog del Euríbor",
+          "url": "https://www.euribor.com.es/2026/10/06/santander-dispara-su-accion-un-452-y-arrastra-al-ibex-35-hasta/",
+          "published_at": "2026-10-06T07:05:52Z",
+          "tickers": [
+            "SAN.MC",
+            "^IBEX"
+          ],
+          "language": "es"
+        },
+        {
+          "id": "n-fcf1ab10f2fef7cd",
+          "title": "Banco Santander ante el duelo Lula-Bolsonaro: ¿qué escenario favorece más al banco?",
+          "summary": "Banco Santander se la juega en el cara a cara entre Lula y Bolsonaro en la segunda vuelta de las elecciones del 25 de octubre. El banco español obtuvo un 16% de su beneficio en el país el año pasado.",
+          "source": "Estrategias de Inversión",
+          "url": "https://www.estrategiasdeinversion.com/actualidad/noticias/bolsa-espana/banco-santander-ante-el-duelo-lula-bolsonaro-que-n-957101",
+          "published_at": "2026-10-06T04:10:00Z",
+          "tickers": [
+            "SAN.MC"
+          ],
+          "language": "es"
+        },
+        {
+          "id": "n-0d6d364805d97252",
+          "title": "Apple planea un octubre lleno de lanzamientos de nuevos dispositivos",
+          "summary": "Apple no solo presentará novedades el 13 de octubre; será un mes completamente lleno de lanzamientos ...",
+          "source": "El Nacional",
+          "url": "https://www.msn.com/es-es/noticias/otras/apple-planea-un-octubre-lleno-de-lanzamientos-de-nuevos-dispositivos/ar-AA2dEL5H",
+          "published_at": "2026-10-05T23:31:33Z",
+          "tickers": [
+            "AAPL"
+          ],
+          "language": "es"
+        }
+      ],
+      "prices": [
+        {
+          "ticker": "SAN.MC",
+          "last": 12.504,
+          "change_pct": 5.89,
+          "currency": "EUR",
+          "history": [
+            [
+              "2026-09-07",
+              12.886
+            ],
+            [
+              "2026-09-08",
+              12.932
+            ],
+            [
+              "2026-09-09",
+              12.696
+            ],
+            [
+              "2026-09-10",
+              12.642
+            ],
+            [
+              "2026-09-11",
+              12.886
+            ],
+            [
+              "2026-09-14",
+              12.772
+            ],
+            [
+              "2026-09-15",
+              12.666
+            ],
+            [
+              "2026-09-16",
+              12.69
+            ],
+            [
+              "2026-09-17",
+              12.952
+            ],
+            [
+              "2026-09-18",
+              12.524
+            ],
+            [
+              "2026-09-21",
+              12.74
+            ],
+            [
+              "2026-09-22",
+              12.698
+            ],
+            [
+              "2026-09-23",
+              12.61
+            ],
+            [
+              "2026-09-24",
+              12.528
+            ],
+            [
+              "2026-09-25",
+              12.572
+            ],
+            [
+              "2026-09-28",
+              12.502
+            ],
+            [
+              "2026-09-29",
+              12.51
+            ],
+            [
+              "2026-09-30",
+              12.328
+            ],
+            [
+              "2026-10-01",
+              11.812
+            ],
+            [
+              "2026-10-02",
+              11.808
+            ],
+            [
+              "2026-10-06",
+              12.504
+            ]
+          ]
+        },
+        {
+          "ticker": "AAPL",
+          "last": 332.89,
+          "change_pct": -0.24,
+          "currency": "USD",
+          "history": [
+            [
+              "2026-09-08",
+              316.22
+            ],
+            [
+              "2026-09-09",
+              315.34
+            ],
+            [
+              "2026-09-10",
+              326.57
+            ],
+            [
+              "2026-09-11",
+              332.27
+            ],
+            [
+              "2026-09-14",
+              333.08
+            ],
+            [
+              "2026-09-15",
+              331.34
+            ],
+            [
+              "2026-09-16",
+              332.41
+            ],
+            [
+              "2026-09-17",
+              337.0
+            ],
+            [
+              "2026-09-18",
+              336.13
+            ],
+            [
+              "2026-09-21",
+              338.98
+            ],
+            [
+              "2026-09-22",
+              339.75
+            ],
+            [
+              "2026-09-23",
+              337.02
+            ],
+            [
+              "2026-09-24",
+              335.92
+            ],
+            [
+              "2026-09-25",
+              341.07
+            ],
+            [
+              "2026-09-28",
+              338.4
+            ],
+            [
+              "2026-09-29",
+              329.4
+            ],
+            [
+              "2026-09-30",
+              333.02
+            ],
+            [
+              "2026-10-01",
+              330.32
+            ],
+            [
+              "2026-10-02",
+              333.69
+            ],
+            [
+              "2026-10-05",
+              332.89
+            ]
+          ]
+        }
+      ]
+    },
+    "analysis": {
+      "date": "2026-10-06",
+      "headline": "Ejemplo preparado: Santander y Apple",
+      "market_mood": "Comparación del briefing guardado, sin datos en directo.",
+      "key_points": [
+        {
+          "title": "Santander se dispara, con Brasil de fondo",
+          "explanation": "Banco Santander sube un 5,89 % a esta hora de la sesión y cotiza en 12,50 EUR, aunque sigue un 2,96 % por debajo de hace un mes. Según El blog del Euríbor, el avance se relaciona con la victoria de Bolsonaro en Brasil, aunque esa noticia habla de una subida del 4,52 % en la jornada anterior. Otra noticia recuerda que el banco obtuvo un 16 % de su beneficio en Brasil el año pasado y que la segunda vuelta electoral es el 25 de octubre, por lo que el país pesa en su evolución.",
+          "tickers": [
+            "SAN.MC"
+          ],
+          "sentiment": "positivo",
+          "sources": [
+            "n-da93dc43d1decf1c",
+            "n-fcf1ab10f2fef7cd"
+          ]
+        },
+        {
+          "title": "Apple apenas se mueve",
+          "explanation": "Apple cede un 0,24 % hasta 332,89 USD, aunque sube un 5,27 % en el último mes. Según El Nacional, prepara un octubre con muchos lanzamientos, con novedades el 13 de octubre. Investing.com México titula que Tim Cook vende acciones por 63,8 mil millones de dólares, pero la noticia no aporta más detalle en el contexto.",
+          "tickers": [
+            "AAPL"
+          ],
+          "sentiment": "neutral",
+          "sources": [
+            "n-0d6d364805d97252",
+            "n-e160dc456cbc685a"
+          ]
+        }
+      ]
+    },
+    "script": {
+      "title": "Contexto de la conversación de ejemplo",
+      "lines": []
+    }
+  },
+  "answers": [
+    {
+      "question": "¿Por qué subió Santander en este briefing?",
+      "answer_text": "En el briefing del 6 de octubre, Santander registra una subida del 5,89 % y un precio de 12,50 EUR.\n\nSegún las noticias guardadas, el avance se relaciona con el contexto electoral de Brasil, un mercado relevante para el banco. Es una explicación atribuida a esas fuentes, no una causa que podamos demostrar solo con la cotización.\n\nHay un matiz: uno de los titulares habla de una subida del 4,52 % en la jornada anterior. Ese porcentaje y el 5,89 % del briefing corresponden a momentos distintos; no conviene mezclarlos.\n\nLa lectura es que el banco destaca en esa sesión, con Brasil como tema de las noticias. Estos son datos guardados de ese día, no una cotización actual.",
+      "sources": [
+        "n-da93dc43d1decf1c",
+        "n-fcf1ab10f2fef7cd"
+      ],
+      "audio_path": "01_santander.mp3",
+      "response_kind": "demo_excerpt"
+    },
+    {
+      "question": "Explícamelo más fácil: ¿la noticia demuestra la causa de la subida?",
+      "answer_text": "No. El briefing muestra dos cosas: la acción sube y las noticias relacionan ese movimiento con Brasil. Eso permite contar una posible explicación, pero no demostrar que toda la subida se deba a ese motivo.\n\nPiensa en la diferencia entre «la acción subió por esto» y «según estas noticias, esto pudo influir en la subida». La segunda frase refleja mejor la información que tenemos.\n\nTampoco estamos diciendo que vaya a seguir subiendo. Para afirmar eso haría falta información que este briefing no contiene.",
+      "sources": [
+        "n-da93dc43d1decf1c",
+        "n-fcf1ab10f2fef7cd"
+      ],
+      "audio_path": "02_explicacion.mp3",
+      "response_kind": "demo_excerpt"
+    },
+    {
+      "question": "¿Y cómo se compara con Apple?",
+      "answer_text": "En la foto diaria de este briefing, Santander sube un 5,89 %, mientras que Apple cae un 0,24 %. Por variación porcentual, Santander tiene el movimiento más favorable en esa sesión.\n\nAl ampliar el periodo cambia la comparación: el briefing recoge que Santander está un 2,96 % por debajo de hace un mes y Apple un 5,27 % por encima. Una buena sesión no equivale a un buen mes.\n\nLas noticias también tratan temas distintos: Brasil en el caso de Santander y próximos lanzamientos en el de Apple. No compararía directamente sus precios, porque corresponden a acciones diferentes y están expresados en euros y dólares.\n\nEsta comparación describe los datos del briefing; no determina cuál conviene comprar.",
+      "sources": [
+        "n-da93dc43d1decf1c",
+        "n-fcf1ab10f2fef7cd",
+        "n-0d6d364805d97252"
+      ],
+      "audio_path": "03_comparacion.mp3",
+      "response_kind": "demo_excerpt"
+    }
+  ]
+}

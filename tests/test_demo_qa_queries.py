@@ -59,6 +59,14 @@ def test_followup_uses_previous_company(sample_briefing):
     assert answer.response_kind == "demo_excerpt" and "EUR" in answer.answer_text
 
 
+def test_real_mode_with_mock_provider_uses_guided_answer(settings, sample_briefing):
+    answer = pipeline.answer_question("¿Qué ha pasado?", sample_briefing,
+                                      settings=settings, mode="real", speak=False)
+    assert answer.response_kind == "demo_excerpt"
+    assert sample_briefing.analysis.key_points[0].explanation in answer.answer_text
+    assert "Pregunta recibida" not in answer.answer_text
+
+
 def test_unmatched_query_never_calls_tts(settings, sample_briefing, monkeypatch):
     monkeypatch.setattr(pipeline, "_speak", lambda *a, **k: (_ for _ in ()).throw(AssertionError("TTS")))
     # La ruta de voz tardía se corta antes de resolver proveedores de audio.

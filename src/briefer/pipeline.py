@@ -1344,7 +1344,16 @@ def answer_question(
         if not question_text.strip():
             raise ValueError("La pregunta está vacía (o no se ha entendido el audio).")
 
+        def _demo(step: StepHandle) -> QAAnswer:
+            answer = qa.demo_answer(question_text, briefing, history=history)
+            step.detail = ("Demo guiada por reglas, sin llamada a un LLM; "
+                           f"fuentes citadas: {len(answer.sources)}")
+            return answer
+
         def _qa_with(inner: LLMProvider) -> Callable[[StepHandle], QAAnswer]:
+            if inner.provider_name == "mock":
+                return _demo
+
             def run(step: StepHandle) -> QAAnswer:
                 metered = _MeteredLLM(inner)
                 trace: list[str] = []
@@ -1358,12 +1367,6 @@ def answer_question(
 
         llm_cheap = providers.llm_cheap
         if run_mode != "real":
-            def _demo(step: StepHandle) -> QAAnswer:
-                answer = qa.demo_answer(question_text, briefing, history=history)
-                step.detail = ("Demo guiada por reglas, sin llamada a un LLM; "
-                               f"fuentes citadas: {len(answer.sources)}")
-                return answer
-
             result = _run_core("agents.qa", "mock", "demo-qa", metrics, _demo)
         else:
             result = _run_core(
