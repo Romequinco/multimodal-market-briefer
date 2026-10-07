@@ -4,9 +4,9 @@
 > como hecho lo que alguien del equipo ha ejecutado y visto funcionar; lo no comprobado se marca **NO
 > VERIFICADO**. Las cifras de coste y latencia que no salgan de un `StepMetric` real se marcan **NO MEDIDO**.
 
-**Fecha:** mié 7-oct-2026 (mañana), **rediseño de la UI** sobre el estado final del 6-oct (rama `fase1`): fases 0-3
-cerradas y entregables documentales hechos (README final con capturas, pitch PDF, guion de la demo) · **Siguiente:** demo
-grabada, pregenerado final y subir la rama · **Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) ·
+**Fecha:** mié 7-oct-2026 (noche), **entrega `v1.0`**: app desplegada en <https://multimodal-market-briefer-production.up.railway.app/> (Railway, rama
+`entrega-v1`), UI rediseñada, README y pitch finales con la URL · **Siguiente:** solo `run.sh` de punta a punta en
+Linux/macOS · **Entrega:** jue 8-oct-2026, 18:00 (objetivo interno 16:30) ·
 **Contratos:** v0.3.9 ([03](03_contratos_modulos.md)) · **Plan:** [05](05_roadmap_TODO.md)
 
 ## Listo para entregar
@@ -20,19 +20,19 @@ limpio en Windows con `run.ps1`, **1225 tests sin red** + 13 `live` con ruff + m
 | --- | --- |
 | README final | **Hecho**: captura y enlaces arriba (demo, pitch PDF, insignia de CI), «Arranca en 2 comandos», 8 capturas, modalidades con «Activo en la demo», diagramas de flujo multimodal y de orquestación, arquitectura, mediciones, viabilidad y compliance resumidos, configuración en anexos |
 | Capturas | **Hecho**: 8 capturas reales en `docs/assets/capturas/` (1440×900, tema oscuro); **rehechas el 07-oct** con los mismos nombres tras el rediseño de la UI (Hoy, puntos clave, vídeo, Preguntar, «Nuevo briefing» con subidas y con cartera, Archivo, Quiénes somos) |
-| Pitch | **Hecho (borrador final)**: `pitch/pitch_briefly.pdf` (12 diapositivas), fuente `pitch/pitch_briefly.html`, `python scripts/build_pitch.py` |
-| Guion de la demo | **Hecho**: `pitch/demo_guion.md` (3:30-4:00 min) |
+| Pitch | **Hecho (final)**: `pitch/pitch_briefly.pdf` (12 diapositivas, URL de la app en la 10 y la 12), fuente `pitch/pitch_briefly.html`, `python scripts/build_pitch.py` |
+| Demo | **Hecho**: la app desplegada en <https://multimodal-market-briefer-production.up.railway.app/> (sustituye a la demo grabada); guion para presentarla en vivo en `pitch/demo_guion.md` (3:30-4:00 min) |
 
 **Queda antes de entregar:**
 
-1. **Demo grabada** (3-4 min) con `pitch/demo_guion.md` y su enlace en el README (marcador «Enlace a la demo:
-   (pendiente de grabar…)», arriba del todo) y en el pitch (`[enlace a la demo]`, diapositiva 10).
+1. *(Hecho el 07-oct)* ~~Demo grabada~~: sustituida por la **app desplegada** en Railway; la URL está en el README
+   y en el pitch.
 2. *(Hecho)* **Equipo** completo en el README y el pitch: Óscar Romero Quincoces, Daniel García López y Fernando Dapena Tauste.
 3. *(Hecho)* **Pregenerado final** `20261006-160031-1665f6` (06-oct, 16:00; con portada SDXS, vídeo, voz Gemini, FinBERT,
    PDF + gráfico; 0,141 €, 177 s, WER 0,5 %). Opcional: regenerarlo tras el cierre (17:35) para que diga «Buenas noches… cierre».
-4. **Subir la rama** `fase1` a `main` y comprobar la **CI en GitHub** (3.11 y 3.13; simulada en local en verde).
+4. *(Hecho)* Rama subida y **CI en verde en GitHub** (3.11 y 3.13).
 5. **`run.sh` completo** en Linux/macOS con buena red (la prueba se cortó por red lenta).
-6. Higiene del repo (sin `.env`, `data/outputs/` ni `docs/raw/` en git) y etiqueta `v1.0`.
+6. *(Hecho)* Higiene del repo (sin `.env`, `data/outputs/` ni `docs/raw/` en git) y etiqueta `v1.0` (rama `entrega-v1`).
 
 ## Resumen
 
@@ -247,3 +247,4 @@ Detalle y método en [04](04_viabilidad_costes_latencia_compliance.md#método-de
 | 07-oct-2026 (despliegue en Railway) | Repo listo para Railway: `railway.json` (build con el `Dockerfile`, *healthcheck* `/_stcore/health`), el `Dockerfile` escucha en `$PORT` (8501 por defecto; comprobado en local con `PORT=8599`: *health* 200) y nueva variable `BRIEFER_REAL_MODE_PASSWORD`: en una URL pública el modo Real pide contraseña (comparación en tiempo constante, 5 intentos por sesión; los modos demo siguen abiertos). Guía paso a paso para quien no ha desplegado nunca en [09](09_despliegue_railway.md) (opción A solo demo, 0 € de APIs; opción B con claves, contraseña y límite de gasto; volumen opcional para el Archivo). Sin desplegar todavía: falta crear el servicio en la cuenta de Railway. Tests nuevos en `tests/test_app_shell.py` |
 | 07-oct-2026 (portada local variada) | La portada local (SDXS) fija la semilla a partir del prompt y el prompt solo dependía del tono del día: dos días con el mismo tono daban **la misma imagen** (visto en Railway). Ahora `media.cover.build_cover_prompt_local` añade un encuadre (`local_cover_view`, 8 variantes) elegido con el titular y la fecha: estable para un briefing y distinto entre briefings. Test en `tests/test_media_cover.py`. Sin cambios de contratos |
 | 07-oct-2026 (buscador de activos) | El buscador del diálogo «Nuevo briefing» solo ofrecía los 19 valores del universo curado. Ahora usa un **catálogo de 169 activos** validados con yfinance (`ingest/tickers_catalogo.csv`: IBEX 35 vigente —sin cambios desde jul-2024, confirmado por el comité de jun y sep-2026—, 35 europeos, 75 de EE. UU., 11 índices, materias primas, cripto y divisas) y, para lo demás, **«¿No está en la lista? Buscar en Yahoo Finance»** (gratis, sin IA ni clave; desactivado en demo offline): el activo elegido se registra con su nombre para que Google News lo busque bien. `TICKER_UNIVERSE` (etiquetado de noticias) no crece. Probado en la app: «Ryanair» → `RYA.IR` añadido a la selección. Contratos v0.3.10 (aditivo) |
+| 07-oct-2026 (entrega v1.0) | **App desplegada en Railway**: <https://multimodal-market-briefer-production.up.railway.app/> (rama `entrega-v1`, versión entregada con la etiqueta `v1.0`). Abre en modo demo sin claves con el briefing real pregenerado; el modo Real pide la contraseña que el equipo da aparte (`BRIEFER_REAL_MODE_PASSWORD`, [09](09_despliegue_railway.md)). La app desplegada **sustituye a la demo grabada**: `pitch/demo_guion.md` pasa a ser el guion para presentarla en vivo (dos pestañas: una genera mientras la otra enseña Preguntar y la cartera; plan B en local). Pitch final con la URL (diapositivas 10 y 12), el buscador de activos y el despliegue; «Pendiente» de la 11 reducido a `run.sh` en Linux/macOS y prueba con usuarios; PDF regenerado. Checklist de `docs/00` (R10, R11, R12, R15, R17) y `docs/05` al día. CI en verde en GitHub. Sin cambios de código ni de contratos |

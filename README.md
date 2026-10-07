@@ -3,778 +3,609 @@
 # Briefly
 
 [![tests](https://github.com/Romequinco/multimodal-market-briefer/actions/workflows/tests.yml/badge.svg)](https://github.com/Romequinco/multimodal-market-briefer/actions/workflows/tests.yml)
+[![versión](https://img.shields.io/badge/versi%C3%B3n-v1.0-C0502A)](https://github.com/Romequinco/multimodal-market-briefer/tree/v1.0)
+[![python](https://img.shields.io/badge/python-3.11%20%7C%203.13-3776AB)](pyproject.toml)
+[![streamlit](https://img.shields.io/badge/streamlit-%E2%89%A51.50-FF4B4B)](requirements.txt)
+[![demo](https://img.shields.io/badge/demo-Railway-12151B)](https://multimodal-market-briefer-production.up.railway.app/)
 
-**Lo que ha movido tu cartera hoy, contado a dos voces en unos cuatro minutos: noticias, PDFs y gráficos
-convertidos en un podcast, un vídeo y un agente al que se le pregunta hablando.**
+**El cierre del día, mientras vuelves a casa.**
 
-- **Enlace a la demo:** (pendiente de grabar; guion en [pitch/demo_guion.md](pitch/demo_guion.md))
-- **Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf) (12 diapositivas)
-- **Arranque:** [en 2 comandos](#arranca-en-2-comandos), sin claves (modo demo) o con claves (modo real)
+Briefly recoge al cierre las noticias de los valores que sigues, las interpreta y te las cuenta en un podcast de
+unos cuatro minutos a dos voces, Toro y Osa (voces sintéticas). Lee también tus PDFs de resultados, tus
+capturas de gráficos y la captura de tu broker, y responde a lo que le preguntes hablando. Es el MVP de una
+startup FinTech de IA multimodal: práctica MIAX, taller B5-T4.
 
-![Vista «Hoy» de Briefly: el briefing del día con su portada y su reproductor](docs/assets/capturas/01_portada.png)
+> ### Pruébalo ahora
+>
+> **https://multimodal-market-briefer-production.up.railway.app/**
+>
+> - Abre en **Demo · voces reales**: no hacen falta claves. «Hoy» enseña un briefing real ya generado (podcast,
+>   vídeo, portada, transcripción, gráficos y traza) y puedes generar briefings de demostración y preguntar.
+> - El modo **Real** (noticias de hoy, modelos de pago) pide contraseña (`BRIEFER_REAL_MODE_PASSWORD`). El
+>   equipo se la facilita al profesor aparte.
+> - Desplegado en Railway desde la rama `entrega-v1`. La versión entregada es la etiqueta `v1.0`.
 
-Briefly es el MVP de una startup FinTech de IA multimodal (práctica MIAX, taller B5-T4). Cada tarde, al cierre
-de la sesión, recoge las noticias de mercado relevantes para los valores que sigue el usuario, las interpreta y
-genera un **podcast explicativo a dos voces** (Toro y Osa, voces sintéticas) con su transcripción, los gráficos
-del día, un **vídeo corto** vertical y una **portada** generada con IA, y lo envía por **Telegram**. El usuario
-puede además subir una captura de gráfico o un PDF de resultados para que entren en el análisis, cargar su
-cartera desde una **captura de su broker** y **preguntar por voz** sobre el briefing a un agente que le responde
-también por voz. Detrás hay una cadena de modelos especializados (Claude Sonnet y Haiku, visión, voz a texto,
-texto a voz, CLIP, FinBERT, SDXS) con contratos tipados entre cada paso.
-
-> **Estado (listo para entregar; entrega el jue 8-oct-2026).** Fases 0-3 cerradas: núcleo real de punta a punta (noticias →
-> Analista → Guionista → podcast → SRT → gráficos), todas las modalidades de la tabla verificadas en real (vídeo,
-> CLIP, cartera desde captura, portada local y Telegram incluidos), **Docker verificado**,
-> clon limpio en Windows con `run.ps1`, **1225 tests sin red** (+ 13 «live») con ruff + mypy, y evaluación de
-> **6 briefings reales** (p50 52,7 s y 0,034 €; 0 recomendaciones; 232/232 cifras trazables). Quedan la demo
-> grabada y subir la rama (CI en GitHub). Detalle y registro de jornadas en
-> [docs/06_estado_actual.md](docs/06_estado_actual.md).
-
-> **Aviso legal.** Briefly genera **información financiera genérica con fines educativos**. No es asesoramiento
-> en materia de inversión en el sentido de MiFID II, no tiene en cuenta la situación personal del usuario y **no
-> emite recomendaciones de compra o venta**. Las voces del podcast son **sintéticas**, generadas por IA. Ver
-> [Compliance y privacidad](#compliance-y-privacidad).
-
-> **Nombres internos.** La marca visible es **Briefly**; el código conserva su nombre técnico: paquete
-> `briefer`, repositorio `multimodal-market-briefer`, variables `BRIEFER_*` y servicio de Docker.
+Pitch técnico: [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf) · Arranque local: [2 comandos](#arranque) ·
+Estado y registro de jornadas: [docs/06](docs/06_estado_actual.md)
 
 ---
 
 ## Índice
 
-1. [Arranca en 2 comandos](#arranca-en-2-comandos)
+1. [Qué resuelve](#qué-resuelve)
 2. [Capturas](#capturas)
-3. [Problema y propuesta de valor](#problema-y-propuesta-de-valor)
-4. [Flujo de datos multimodal](#flujo-de-datos-multimodal)
-5. [Orquestación de modelos](#orquestación-de-modelos)
-6. [Modalidades y modelos](#modalidades-y-modelos)
-7. [Arquitectura por capas](#arquitectura-por-capas)
-8. [Estructura del repositorio](#estructura-del-repositorio)
-9. [Mediciones](#mediciones)
-10. [Viabilidad y monetización](#viabilidad-y-monetización)
-11. [Compliance y privacidad](#compliance-y-privacidad)
-12. [Identidad](#identidad)
-13. [Demo y pitch](#demo-y-pitch)
-14. [Documentación](#documentación)
-15. [Equipo](#equipo)
-16. [Anexo A · Arranque en detalle, modos y CLI](#anexo-a--arranque-en-detalle-modos-y-cli)
-17. [Anexo B · Configuración](#anexo-b--configuración)
-18. [Anexo C · Telegram](#anexo-c--telegram)
+3. [Cómo se usa en 1 minuto](#cómo-se-usa-en-1-minuto)
+4. [Modalidades y cadena de modelos](#modalidades-y-cadena-de-modelos)
+5. [Arquitectura](#arquitectura)
+6. [Comparativas y mediciones](#comparativas-y-mediciones)
+7. [Viabilidad y monetización](#viabilidad-y-monetización)
+8. [Compliance y privacidad](#compliance-y-privacidad)
+9. [Arranque](#arranque)
+10. [Estructura del repositorio](#estructura-del-repositorio)
+11. [Documentación y pitch](#documentación-y-pitch)
+12. [Checklist del enunciado](#checklist-del-enunciado)
+13. [Equipo y aviso legal](#equipo)
 
 ---
 
-## Arranca en 2 comandos
+## Qué resuelve
 
-Requisitos: **Python 3.11+** (o solo Docker). ffmpeg no hace falta instalarlo: lo trae `imageio-ffmpeg`.
+| | |
+| --- | --- |
+| **Problema** | El inversor minorista recibe la información de mercado dispersa y en formatos distintos: titulares, PDFs de resultados de 40 páginas, gráficos de velas. No da tiempo a leerlo todo cada día y los resúmenes genéricos no hablan de *su* cartera. |
+| **Público** | **B2C**: inversor minorista hispanohablante con cartera propia (acciones y ETFs) que escucha el resumen de vuelta a casa. **B2B2C** (el negocio): neobancos, brokers y newsletters que lo ofrecen con su marca. |
+| **Propuesta** | Un briefing diario filtrado por tu cartera, al cierre, que se **escucha** (podcast), se **lee** (transcripción), se **ve** (gráficos, vídeo 9:16, portada), llega por **Telegram** y se **pregunta por voz**. |
+| **Por qué multimodal** | Las fuentes ya llegan en varios formatos (texto, PDF, imagen, captura del broker, voz) y el consumo también (audio, vídeo, texto). Un solo modelo de chat no cubre ese ciclo; una cadena de modelos especializados sí, y cada uno hace lo que mejor hace al menor coste. |
 
-```bash
-git clone https://github.com/Romequinco/multimodal-market-briefer.git && cd multimodal-market-briefer
-```
-
-y después, según el sistema:
-
-| Sistema | Comando | Abre |
-| --- | --- | --- |
-| **Windows** (PowerShell) | `powershell -ExecutionPolicy Bypass -File scripts\run.ps1` | http://localhost:8501 |
-| **Linux / macOS** | `bash scripts/run.sh` | http://localhost:8501 |
-| **Docker** (Compose ≥ 2.24) | `docker compose up --build` | http://localhost:8501 |
-
-Los scripts crean `.venv`, instalan dependencias (solo si han cambiado), copian `.env.example` a `.env` y lanzan
-Streamlit. Añade `-Local` / `--local` para los modelos locales (CLIP, FinBERT, portada SDXS); la imagen de Docker
-ya los trae.
-
-- **Sin claves = modo demo.** La app abre con un **briefing real pregenerado** (podcast, vídeo, transcripción,
-  gráficos y traza) que se ve y se escucha sin red, y deja generar briefings de demostración: con red, el podcast
-  suena con voces reales (edge-tts, gratis); sin red, todo simulado.
-- **Con claves = modo real.** Pon `ANTHROPIC_API_KEY` en `.env` (y `OPENAI_API_KEY` para preguntar por voz) y
-  elige «Real (APIs de .env)» en el chip del modo (arriba a la derecha). Un briefing real cuesta unos 3-7 céntimos.
-
-Opciones, modos de ejecución, CLI y detalles de Docker en el [Anexo A](#anexo-a--arranque-en-detalle-modos-y-cli);
-variables de entorno en el [Anexo B](#anexo-b--configuración).
+Detalle de producto en [docs/01](docs/01_producto_y_propuesta_valor.md).
 
 ---
 
 ## Capturas
 
-Capturas reales de la app (1440 × 900, tema oscuro «Noticiero nocturno»).
+Capturas reales de la app tras el rediseño del 07-oct (1440 × 900, tema oscuro «Noticiero nocturno»).
 
 | | |
 | --- | --- |
-| **Hoy** · el briefing del día sin pulsar nada: portada, titular, reproductor, locutores y cinta de cotizaciones; barra superior con las tres pestañas y el chip del modo | **Puntos clave** · cada noticia con su fuente enlazada e «impacto de la noticia» (FinBERT); pestañas de transcripción, gráficos, vídeo y «Cómo se hizo» |
-| ![Hoy](docs/assets/capturas/01_portada.png) | ![Puntos clave del briefing](docs/assets/capturas/02_briefing.png) |
-| **Vídeo corto 9:16** · diapositivas alineadas con el audio, subtítulos por locutor y rótulo de voz sintética | **Preguntar** · chat con Toro y Osa en una sola barra (texto o voz); respuesta con fuentes y leída con voz sintética |
+| ![Hoy](docs/assets/capturas/01_portada.png) | ![Puntos clave](docs/assets/capturas/02_briefing.png) |
+| **Hoy.** El briefing del día sin pulsar nada: portada, titular, reproductor, locutores y cinta de cotizaciones. Arriba, las tres vistas y el chip del modo. | **Puntos clave.** Cada noticia con su fuente enlazada y el tono de la noticia (FinBERT). Pestañas de transcripción, gráficos, vídeo y «Cómo se hizo». |
 | ![Vídeo corto](docs/assets/capturas/03_video.png) | ![Preguntar](docs/assets/capturas/04_preguntar.png) |
-| **Nuevo briefing** · diálogo con valores (búsqueda y atajos), cartera, documentos (PDF y gráfico subidos, con el tipo detectado) y opciones de vídeo, portada y Telegram | **Tu cartera** · en el mismo diálogo: CSV, captura del broker o ejemplo; solo vive en la sesión, no se guarda en disco |
-| ![Nuevo briefing con PDF y gráfico](docs/assets/capturas/05_subidas.png) | ![Cartera en el diálogo Nuevo briefing](docs/assets/capturas/06_cartera.png) |
-| **Archivo** · briefings guardados con búsqueda y filtros (todos, con audio, demo) para reabrir o borrar; «Privacidad y datos» (RGPD) | **Quiénes somos** · diálogo desde el menú ⚙: la historia (ficticia) de la startup y sus locutores |
+| **Vídeo 9:16.** Diapositivas alineadas con el audio, subtítulos por locutor y rótulo de voces sintéticas. | **Preguntar.** Chat con Toro y Osa; voz y texto en la misma barra. La respuesta cita fuentes y se lee en voz alta. |
+| ![Nuevo briefing](docs/assets/capturas/05_subidas.png) | ![Tu cartera](docs/assets/capturas/06_cartera.png) |
+| **Nuevo briefing.** Valores (buscador de 169 activos y búsqueda en Yahoo Finance), documentos con su tipo detectado y opciones de vídeo, portada y Telegram. | **Tu cartera.** CSV, captura del broker o ejemplo. Vive solo en la sesión: no se escribe en disco. |
 | ![Archivo](docs/assets/capturas/07_historico.png) | ![Quiénes somos](docs/assets/capturas/08_quienes_somos.png) |
+| **Archivo.** Briefings guardados con búsqueda y filtros; abrir, borrar y «Privacidad y datos» (RGPD). | **Quiénes somos.** Diálogo del menú ⚙ con la historia (ficticia) de la startup y sus locutores. |
 
 ---
 
-## Problema y propuesta de valor
+## Cómo se usa en 1 minuto
 
-| | |
+La app tiene tres vistas en la barra superior. El chip de arriba a la derecha cambia el modo.
+
+| Vista | Qué haces |
 | --- | --- |
-| **Problema** | El inversor minorista recibe la información de mercado dispersa y en formatos heterogéneos: titulares, notas de prensa, PDFs de resultados de 40 páginas, gráficos de velas. Leerlo todo cada día no es realista, y los resúmenes genéricos no hablan de *su* cartera. |
-| **Público** | **B2C (cara visible):** inversor minorista hispanohablante con cartera propia (acciones y ETFs) que escucha el resumen en el trayecto de vuelta. **B2B2C (negocio):** neobancos, brokers y newsletters financieras que quieren ofrecer el briefing con su marca (marca blanca). |
-| **Propuesta** | Un briefing diario **personalizado por cartera**, en **edición de noche** (al cierre), que se **escucha** (de vuelta a casa), se **lee** (transcripción), se **ve** (gráficos y vídeo corto), llega por **Telegram** y se **interroga por voz**. La edición de mañana, antes de la apertura, queda en el roadmap. |
-| **Por qué multimodal** | Las fuentes ya son multimodales (texto, PDF, imagen de gráfico, captura del broker, voz del usuario) y el consumo también (audio, vídeo, texto, gráficos). Un solo modelo de chat no cubre ese ciclo; una cadena de modelos especializados sí. |
+| **Hoy** | Escuchas el último briefing (o el pregenerado). Pestañas: Puntos clave · Transcripción · Gráficos · Vídeo · Cómo se hizo. **Nuevo briefing** abre un diálogo con cuatro secciones: *valores* (buscador de 169 activos validados del IBEX 35, Europa, EE. UU., índices, materias primas, cripto y divisas, más búsqueda libre en Yahoo Finance), *tu cartera* (CSV, captura del broker o ejemplo), *documentos* (PDF, gráficos, notas de voz) y *opciones* (vídeo, portada con IA, Telegram). |
+| **Preguntar** | Escribes o grabas una pregunta sobre el briefing. El Agente Q&A responde con fuentes y Osa la lee en voz alta. |
+| **Archivo** | Buscas, filtras (todos, con audio, demo), abres o borras briefings. «Privacidad y datos» borra todo lo guardado. |
 
-Detalle en [docs/01_producto_y_propuesta_valor.md](docs/01_producto_y_propuesta_valor.md).
+### Tres modos
+
+| | **Real** | **Demo · voces reales** (por defecto) | **Demo offline** |
+| --- | --- | --- | --- |
+| Datos | Noticias (RSS + yfinance) y precios del día, con caché diaria | Noticias de ejemplo y precios sintéticos | Ídem |
+| IA | Claude Sonnet 5.5 / Haiku 4.5, visión, STT de OpenAI, modelos locales | Simulada (mock) | Simulada (mock) |
+| Voces | edge-tts o Gemini TTS | edge-tts real | WAV mudo |
+| Coste | p50 0,034 € por briefing; ≈ 0,0014-0,005 € por pregunta | 0 € | 0 € |
+| Necesita | `ANTHROPIC_API_KEY` (+ `OPENAI_API_KEY` para la voz) y red; en Railway, contraseña | Red | Nada |
+| CLI | `python scripts/demo.py` | `python scripts/demo.py --demo-voices` | `python scripts/demo.py --mock` |
+
+Si un proveedor real falla en un paso núcleo, el briefing termina con un sustituto **marcado** en la UI y en la
+traza (nodo naranja en «Cómo se hizo»). Los pasos opcionales que fallan se omiten.
 
 ---
 
-## Flujo de datos multimodal
+## Modalidades y cadena de modelos
 
-![Arquitectura del MVP](docs/assets/arquitectura_mvp_podcast_financiero.png)
+«Activo en la demo»: **real** = con claves (modo Real) · **demo** = Demo · voces reales, sin claves ·
+**offline** = todo mock. Todas las filas están verificadas en real ([docs/06](docs/06_estado_actual.md#qué-funciona)).
 
-El mismo flujo en Mermaid, con el módulo del repo que implementa cada caja:
+| # | Modalidad | Uso | Modelo / herramienta | Activo en la demo |
+| --- | --- | --- | --- | --- |
+| 1 | Texto → texto | Noticias filtradas → análisis (Agente Analista) con puerta de *grounding* de cifras | Claude Sonnet 5.5 | real |
+| 2 | Texto → texto | Análisis → diálogo Toro/Osa (Agente Guionista) con puertas de cifras, cobertura, duración y gramática | Claude Haiku 4.5 | real |
+| 3 | Texto → texto | Preguntas sobre el briefing (Agente Q&A) | Claude Haiku 4.5 | real |
+| 4 | Imagen → texto | Captura de gráfico → descripción y cifras | Sonnet 5.5 visión → Haiku (estructura) | real |
+| 5 | Imagen → datos | Captura del broker → tickers y pesos, solo en memoria | Sonnet 5.5 visión → Haiku → mapeo determinista | real (botón «Usar captura de ejemplo») |
+| 6 | Documento → texto | PDF de resultados → cifras clave | `pypdf` + visión en páginas con poco texto + Haiku | real |
+| 7 | Imagen → etiqueta | Router de imágenes: gráfico/tabla → visión; no financiera → rechazada sin pagar visión; cartera → desviada | CLIP `clip-vit-base-patch32` local, CPU | real (con `clip`) |
+| 8 | Audio → texto | Pregunta por voz y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` | real; marcada `[MOCK]` en demo |
+| 9 | Texto → audio | Podcast a dos voces y respuesta hablada | edge-tts (gratis) · Gemini 3.8 TTS multi-locutor (premium) | real y demo |
+| 10 | Texto → etiqueta | Tono de cada noticia (▲ ▼ ●), nunca agregado por valor | Haiku traduce → FinBERT local | real (en el pregenerado) |
+| 11 | Datos → imagen | Gráficos del día (variación, cotización por valor, cartera solo en sesión) | matplotlib | real, demo y offline |
+| 12 | Audio → texto | Transcripción y SRT; control de calidad: el STT escucha el podcast y mide el WER | tiempos del TTS · STT de OpenAI | real (WER); SRT en todos |
+| 13 | Texto → imagen | Portada del episodio según el tono del día, sin cifras ni empresas, placa «Imagen generada por IA» | SDXS `IDKiro/sdxs-512-dreamshaper` local · Gemini imagen (de pago) | real (con `local`) |
+| 14 | Imagen + audio → vídeo | Vídeo 9:16 del episodio con subtítulos por locutor | Pillow + ffmpeg (`imageio-ffmpeg`) | real, demo y offline |
+| 15 | Briefing → mensajería | Resumen HTML con fuentes y aviso legal + audio + portada + vídeo | Telegram Bot API | real |
+
+### Flujo de datos multimodal
+
+![Esquema del MVP: entradas, procesado, agentes, salidas y entrega](docs/assets/arquitectura_mvp_podcast_financiero.png)
+
+El mismo flujo con el módulo que implementa cada caja:
 
 ```mermaid
 flowchart LR
     subgraph E["1 · Entradas"]
-        N["Noticias de mercado<br/>(RSS + yfinance)"]
-        G["Captura de gráfico<br/>(PNG/JPG)"]
-        C["Cartera del usuario<br/>(CSV o captura del broker)"]
+        N["Noticias de mercado<br/>RSS + yfinance"]
+        G["Captura de gráfico"]
+        C["Cartera<br/>CSV o captura del broker"]
         P["PDF de resultados"]
-        V["Pregunta por voz<br/>(audio)"]
+        V["Pregunta por voz"]
     end
 
     subgraph PR["2 · Procesado"]
         FT["Filtro por tickers<br/>ingest/tickers.py"]
-        RI["Router de imágenes (CLIP local)<br/>gráfico · tabla · cartera · no financiera"]
-        LI["Lectura de imagen<br/>ingest/chart_reader.py"]
-        LC["Cartera desde captura<br/>visión → Haiku · ingest/portfolio.py"]
+        RI["Router CLIP local<br/>gráfico · tabla · cartera · otra"]
+        LI["Lectura de gráfico<br/>ingest/chart_reader.py"]
+        LC["Cartera desde captura<br/>ingest/portfolio.py"]
         LP["Lectura de PDF<br/>ingest/pdf_reader.py"]
         VT["Voz a texto<br/>ingest/voice.py"]
-        IM["Impacto de la noticia (opcional)<br/>Haiku → FinBERT · ingest/sentiment.py"]
+        IM["Tono de la noticia<br/>ingest/sentiment.py"]
     end
 
-    subgraph AG["3 · Agentes IA"]
-        AN["Agente Analista<br/>resume e interpreta"]
-        GU["Agente Guionista<br/>crea el diálogo Toro/Osa"]
-        QA["Agente Q&A<br/>responde preguntas"]
+    subgraph AG["3 · Agentes"]
+        AN["Analista"]
+        GU["Guionista"]
+        QA["Q&A"]
     end
 
     subgraph S["4 · Salidas"]
-        GD["Gráficos del día<br/>media/charts.py"]
-        AU["Audio podcast<br/>2 voces · media/podcast.py"]
+        GD["Gráficos<br/>media/charts.py"]
+        AU["Podcast 2 voces<br/>media/podcast.py"]
         TR["Transcripción + SRT<br/>media/transcript.py"]
-        VF["Verificación del podcast<br/>STT → WER (opcional)"]
-        VI["Vídeo corto 9:16<br/>Pillow + ffmpeg · media/video.py"]
-        PO["Portada (opcional)<br/>SDXS local · media/cover.py"]
+        PO["Portada<br/>media/cover.py"]
+        VI["Vídeo 9:16<br/>media/video.py"]
     end
 
     subgraph D["5 · Entrega"]
-        W["App web<br/>(Streamlit)"]
-        TG["Telegram<br/>delivery/telegram_sender.py"]
+        W["App web<br/>Streamlit"]
+        TG["Telegram<br/>delivery/"]
     end
 
     N --> FT
-    FT -. noticias .-> IM
+    FT -.-> IM
     G --> RI
     RI -- "gráfico / tabla" --> LI
-    RI -. "no financiera" .-> RX["Rechazada<br/>sin llamar a visión"]
-    C -- "captura del broker" --> LC
+    RI -. "no financiera" .-> RX["Rechazada<br/>0 €"]
+    C -- captura --> LC
     LC -. tickers .-> FT
-    C -. "CSV: tickers" .-> FT
+    C -. CSV .-> FT
     P --> LP
     V --> VT
-
     FT --> AN
     LI --> AN
     LP --> AN
     VT --> QA
-    AN -. "briefing como contexto" .-> QA
-
+    AN -. contexto .-> QA
     AN --> GU
     AN --> GD
+    AN --> PO
     GU --> AU
     GU --> TR
-    AU -. STT .-> VF
     QA --> AU
-
-    AN --> PO
     GD --> VI
     PO --> VI
     AU --> VI
     TR --> VI
     AU --> W
     VI --> W
-    IM -. tono por noticia .-> W
+    IM -.-> W
     AU --> TG
     VI --> TG
     PO --> TG
 ```
 
-> La cartera puede entrar por **imagen** (captura de la pantalla de posiciones del broker, sección «Tu cartera» del diálogo «Nuevo briefing»:
-> visión transcribe, Haiku estructura y un mapeo determinista da los tickers) o como CSV; en ambos casos sus
-> tickers alimentan el filtro de noticias. Si la captura de cartera se sube junto a las de gráficos en «Documentos»,
-> el router CLIP la desvía (sin gastar en visión) con el aviso de subirla en «Tu cartera»; sin CLIP, el
-> propio prompt de visión la reconoce y se desvía igual, sin estructurarla ni guardar nada. El agente Q&A usa
-> como contexto el briefing ya generado. La entrega es por **web y Telegram** (el email se retiró).
+### Cadena de modelos en un briefing
 
-Arquitectura completa, diagramas de secuencia y mapeo caja → módulo en
-[docs/02_arquitectura_y_flujo_datos.md](docs/02_arquitectura_y_flujo_datos.md).
-
----
-
-## Orquestación de modelos
-
-Lo que hace `pipeline.run_briefing()` en cada ejecución, con sus ramas y decisiones. Cada paso deja un
-`StepMetric` (proveedor, modelo, latencia, coste estimado, detalle de las puertas) que la app enseña en la
-pestaña «Cómo se hizo». Pasos **núcleo** (si el proveedor real falla, se repite con un sustituto marcado) y
-**opcionales** (si fallan, se omiten y el briefing sigue).
+Lo que ejecuta `pipeline.run_briefing()`. Cada paso deja un `StepMetric` (proveedor, modelo, latencia, coste,
+decisión de las puertas) que la app pinta en «Cómo se hizo».
 
 ```mermaid
 flowchart TB
     START(["run_briefing(): valores, cartera, subidas, opciones"])
-
-    subgraph ING["Ingesta en paralelo"]
-        NEWS["ingest.news · RSS + yfinance<br/>núcleo, caché diaria"]
-        PRICES["ingest.prices · yfinance<br/>núcleo, caché diaria"]
-        UP["Subidas: PDF · imagen · audio<br/>opcional, una por fichero"]
-    end
-
-    START --> NEWS & PRICES & UP
-    UP --> RT{"¿Imagen?<br/>router CLIP local"}
-    RT -- "gráfico / tabla" --> VIS["Claude visión → Haiku<br/>DocumentInsight"]
+    START --> NEWS["Noticias + precios<br/>RSS + yfinance · caché diaria"]
+    START --> UP["Subidas en paralelo"]
+    UP --> RT{"Router CLIP<br/>local · 70-85 ms"}
+    RT -- "gráfico / tabla" --> VIS["Sonnet 5.5 visión → Haiku 4.5"]
     RT -- "no financiera" --> REJ["Rechazada · 0 €"]
     RT -- "captura de cartera" --> DES["Desviada a «Tu cartera» · 0 €"]
-    UP -- "PDF" --> PDF["pypdf + visión en páginas pobres → Haiku"]
-    UP -- "audio" --> STT1["STT gpt-4o-mini-transcribe"]
+    UP -- PDF --> PDF["pypdf + visión en páginas pobres → Haiku"]
+    UP -- audio --> STT["gpt-4o-mini-transcribe"]
+    NEWS --> FILT["Filtro por tickers y relevancia"]
+    FILT & VIS & PDF & STT --> AN["Analista · Sonnet 5.5<br/>puertas: cifras trazables, sin recomendación,<br/>causas con fuente, tono · 1 reintento"]
+    FILT -. opcional .-> FB["Haiku traduce → FinBERT<br/>en paralelo con el Analista"]
+    AN --> SW["Guionista · Haiku 4.5<br/>puertas: cifras, cobertura, duración, gramática"]
+    SW --> TTS["edge-tts o Gemini TTS<br/>(Gemini cae a edge-tts)"]
+    TTS --> SRT["SRT"]
+    SRT -. "solo real" .-> WER["STT → WER del podcast"]
+    SRT --> CH["Gráficos · matplotlib"]
+    CH --> COV["Portada · SDXS local"]
+    COV --> VID["Vídeo · Pillow + ffmpeg"]
+    VID --> TG["Telegram"]
+    TG --> SAVE["briefing.json sin cartera"]
+    AN -. "si falla el proveedor" .-> SUB["Sustituto marcado<br/>nodo naranja en la traza"]
 
-    NEWS --> FILT["ingest.tickers · filtro y relevancia"]
-    FILT & PRICES & VIS & PDF & STT1 --> CTX["MarketContext"]
-    CTX --> AN["agents.analyst · Claude Sonnet 5.5<br/>puertas: grounding de cifras, recomendación,<br/>causas sin fuente, tono · 1 reintento"]
-    FILT -. "BRIEFER_FINBERT" .-> IMP["ingest.impact · Haiku traduce → FinBERT<br/>en paralelo con el Analista"]
-    AN --> SW["agents.scriptwriter · Claude Haiku 4.5<br/>puertas: cifras, cobertura, duración, gramática"]
-    SW --> TTS["media.podcast · edge-tts o Gemini TTS<br/>(Gemini cae a edge-tts si falla)"]
-    TTS --> TRS["media.transcript · SRT"]
-    TRS -. "solo modo real" .-> VER["media.verify · STT → WER<br/>en paralelo"]
-    TRS --> CH["media.charts · matplotlib"]
-    CH --> QC{"¿Portada?"}
-    QC -- sí --> COV["media.cover · SDXS local en CPU<br/>+ placa «Imagen generada por IA»"]
-    QC -- no --> QV
-    COV --> QV{"¿Vídeo?"}
-    QV -- sí --> VID["media.video · Pillow + ffmpeg 9:16"]
-    QV -- no --> QT
-    VID --> QT{"¿Telegram?"}
-    QT -- sí --> TG["delivery.telegram"]
-    QT -- no --> SAVE
-    TG --> SAVE["storage.save · briefing.json sin cartera"]
-
-    AN -. "falla el proveedor real" .-> SUB["Sustituto marcado<br/>(mock o datos de ejemplo)<br/>nodo naranja en «Cómo se hizo»"]
-
-    subgraph QAF["answer_question(): pregunta por voz"]
-        Q1["Audio"] --> Q2["qa.stt · gpt-4o-mini-transcribe<br/>con pista de vocabulario"] --> Q3["agents.qa · Claude Haiku 4.5<br/>contexto del briefing como dato"] --> Q4["qa.tts · edge-tts (Osa)"]
+    subgraph QAF["answer_question(): pregunta por voz, p50 6,4 s"]
+        Q1["Audio"] --> Q2["gpt-4o-mini-transcribe<br/>con pista de vocabulario"] --> Q3["Q&A · Haiku 4.5<br/>briefing como dato, caché de prompt"] --> Q4["edge-tts (Osa)"]
     end
 ```
 
-La gracia no está en cada modelo por separado sino en **encadenarlos**: imagen/PDF/voz → texto estructurado →
-análisis → guion → audio → vídeo, con contratos Pydantic entre cada paso
-([docs/03](docs/03_contratos_modulos.md)). El router CLIP muestra la idea también en la entrada: un modelo local
-y gratis decide antes si merece la pena llamar al de visión, que es de pago. La elección de modelo por agente se
-decidió con evidencia ([ADR-006](docs/decisiones/ADR-006-guionista-haiku-puertas-deterministas.md),
-[ADR-007](docs/decisiones/ADR-007-modelos-por-agente.md)). El cuaderno
+Portada, vídeo y Telegram son opcionales: se activan en «Opciones» del diálogo. El valor está en el
+encadenamiento: imagen, PDF y voz pasan a texto estructurado, luego a análisis, guion, audio y vídeo, con
+contratos Pydantic entre cada paso ([docs/03](docs/03_contratos_modulos.md)). El router CLIP aplica la misma idea
+en la entrada: un modelo local y gratis decide si merece la pena llamar al de pago. El cuaderno
 [00 · recorrido del pipeline](notebooks/00_recorrido_pipeline.ipynb) ejecuta los 15 pasos uno a uno, sin red ni
-claves.
+claves (13 s).
 
 ---
 
-## Modalidades y modelos
-
-La columna **«Activo en la demo»** dice qué se ve funcionar y en qué modo: **real** = con claves y red ·
-**sin claves** = demo con voces reales · **offline** = todo mock. Todas las filas están verificadas en real.
-
-| # | Modalidad | Dirección | Uso en la app | Modelo / herramienta por defecto | Alternativas (por config) | Activo en la demo |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | Texto → texto | Entrada → razonamiento | Noticias filtradas → análisis (Agente Analista) con puerta de *grounding* de cifras | Claude Sonnet 5.5 (`BRIEFER_LLM_MODEL`) | Gemini, `mock` | **Sí** (real); simulado en sin claves/offline |
-| 2 | Texto → texto | Razonamiento → guion | Análisis → diálogo a dos voces (Agente Guionista) con puertas de cifras, cobertura, duración y gramática | Claude Haiku 4.5 (`BRIEFER_LLM_MODEL_CHEAP`; `BRIEFER_SCRIPTWRITER_MODEL` para cambiarlo) | Sonnet 5.5, Gemini, `mock` | **Sí** (real); simulado en sin claves/offline |
-| 3 | Texto → texto | Conversación | Preguntas sobre el briefing (Agente Q&A) | Claude Haiku 4.5 | Gemini, `mock` | **Sí** (real, por texto y por voz); simulado en sin claves/offline |
-| 4 | Imagen → texto | Entrada | Captura de gráfico de cotización → descripción y cifras | Claude Sonnet 5.5 visión + Haiku (estructura) | `mock` | **Sí** (real) |
-| 4b | Imagen → datos | Entrada | **Cartera desde una captura del broker** (sección «Tu cartera» de «Nuevo briefing»): visión transcribe la tabla → Haiku la estructura → mapeo determinista a tickers y pesos; nada a disco | Claude Sonnet 5.5 visión + Claude Haiku 4.5 | `mock` | **Sí** (real: 5/5 posiciones de `data/samples/cartera_ejemplo.png`, 8,5 s, ≈ 0,005 €; botón «Usar captura de ejemplo») |
-| 5 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku | `mock` | **Sí** (real) |
-| 6 | Imagen → etiqueta | Enrutado | Router de las imágenes subidas (zero-shot): gráfico / tabla → visión con la etiqueta como pista; no financiera → rechazada **sin llamar a visión**; captura de cartera → desviada a «Tu cartera» (diálogo «Nuevo briefing») | CLIP `openai/clip-vit-base-patch32` local en CPU, 0 € | `none`, `mock` | **Sí** (con `clip`: 5/5 imágenes de prueba; 70-85 ms por imagen) |
-| 7 | Audio → texto | Entrada | Pregunta por voz y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` | `whisper-1`, `mock` | **Sí** (real, con `OPENAI_API_KEY`); simulada y marcada `[MOCK]` en sin claves/offline |
-| 8 | Texto → audio | Salida | Podcast a dos voces (Toro y Osa) y respuesta hablada del Q&A | `edge-tts` (gratis: Álvaro / Ximena a +10 %, pausas variables) + normalización para locución | **Gemini TTS multi-locutor** (`gemini-3.8-flash-tts`, de pago; cae a edge-tts si falla; el Q&A habla siempre con edge-tts), `mock` | **Sí** (real y sin claves); silencio en offline |
-| 8b | Texto → etiqueta | Enriquecimiento | «Impacto de la noticia»: tono de cada noticia (▲ positiva · ▼ negativa · ● neutral) junto a su fuente; nunca agregado por valor ni como recomendación | Claude Haiku 4.5 (traduce) → **FinBERT** (`ProsusAI/finbert`, local en CPU) | `BRIEFER_FINBERT=true` (desactivado por defecto) | **Sí** (real, en el pregenerado). Aportación de Daniel García (PR #1) |
-| 9 | Datos → imagen | Salida | Gráficos del día (variación con «Índices de referencia», cotización por valor, reparto de la cartera solo en la sesión) | matplotlib | — | **Sí** (todos los modos; «precios sintéticos (demo)» en la demo) |
-| 10 | Audio → texto (subtítulos) | Salida | Transcripción y SRT sincronizado | Guion + tiempos reales del TTS | — | **Sí** (todos los modos) |
-| 10b | Audio → texto (control de calidad) | Bucle | El STT escucha el podcast generado y mide el WER contra el guion | OpenAI `gpt-4o-mini-transcribe` / `whisper-1` | `BRIEFER_VERIFY_PODCAST=false` | **Sí** (real: WER 1,1 % con edge-tts y 1,4 % con Gemini) |
-| 11 | Texto → imagen | Salida | Portada del episodio según el tono del día (sin cifras ni empresas), con titular y placa «Imagen generada por IA» | SDXS local `IDKiro/sdxs-512-dreamshaper` en CPU (1 paso, OpenRAIL++ con uso comercial; 4-7 s, 0 €) | Gemini imagen (de pago, requiere facturación; sin prueba real), `none`, `mock` | **Sí** (con `local`) |
-| 12 | Imagen + audio → vídeo | Salida | Vídeo vertical 9:16 del episodio completo: una diapositiva por imagen (cada gráfico entra cuando el audio nombra su empresa), subtítulos quemados por locutor y rótulo «Voces sintéticas generadas con IA» | Pillow + ffmpeg (`imageio-ffmpeg`), 720×1280, 12 fps, 0 € | — | **Sí** (todos los modos; 6-9 s por episodio) |
-| 13 | Briefing → mensajería | Entrega | **Telegram**: resumen HTML con fuentes y aviso legal + audio + portada (o gráfico general) + vídeo | Bot API (`requests`) | — | **Sí** (real: mensaje, audio, imagen y vídeo en 8,5 s; ver [Anexo C](#anexo-c--telegram)) |
-
-Proveedores por defecto según `.env.example`; en el código, sin `.env`, todo es `mock`. Si un proveedor real
-falla durante un briefing, el paso se completa con un sustituto **marcado** en la UI y en la traza.
-
----
-
-## Arquitectura por capas
+## Arquitectura
 
 ```mermaid
 flowchart TB
-    UI["<b>UI</b> · app/ (Streamlit, 3 vistas sin barra lateral)<br/>Hoy (+ diálogo Nuevo briefing) · Preguntar · Archivo"]
-    PL["<b>Orquestación</b> · src/briefer/pipeline.py<br/>run_briefing() · answer_question() · portfolio_from_screenshot() · métricas por paso"]
-    subgraph BIZ["<b>Lógica de negocio</b> · src/briefer/"]
-        ING["ingest/<br/>noticias, precios, PDF,<br/>gráfico, cartera, voz, FinBERT"]
-        AGT["agents/<br/>analista, guionista, Q&A,<br/>guardarraíles + prompts/*.md"]
-        MED["media/<br/>gráficos, podcast,<br/>transcripción, vídeo, portada"]
-        DLV["delivery/<br/>Telegram"]
+    UI["<b>UI</b> · app/<br/>Hoy (+ diálogo Nuevo briefing) · Preguntar · Archivo"]
+    PL["<b>Orquestación</b> · src/briefer/pipeline.py<br/>run_briefing() · answer_question() · portfolio_from_screenshot()"]
+    subgraph BIZ["<b>Lógica</b> · src/briefer/"]
+        ING["ingest/"]
+        AGT["agents/"]
+        MED["media/"]
+        DLV["delivery/"]
     end
-    PRV["<b>Conexión con modelos IA</b> · src/briefer/providers/<br/>LLM · visión · STT · TTS · imagen · clasificador · mock (registry por config)"]
-    X["APIs externas / modelos locales<br/>Anthropic · OpenAI STT · Gemini (LLM, TTS) · edge-tts · HF local (CLIP, FinBERT, SDXS) · ffmpeg · Telegram Bot API"]
-
-    UI --> PL --> BIZ
-    ING --> PRV
-    AGT --> PRV
-    MED --> PRV
-    PRV --> X
+    PRV["<b>Proveedores IA</b> · src/briefer/providers/<br/>llm · vision · stt · tts · image · mock · registry"]
+    X["Anthropic · OpenAI STT · Gemini · edge-tts<br/>CLIP · FinBERT · SDXS (locales) · ffmpeg · Telegram"]
+    UI --> PL --> BIZ --> PRV --> X
 ```
 
-| Capa | Ubicación | Responsabilidad | No hace |
+| Capa | Carpeta | Hace | No hace |
 | --- | --- | --- | --- |
-| UI | `app/` | Formularios, reproductores, histórico, subida de ficheros | Llamar a modelos o APIs directamente |
-| Orquestación | `src/briefer/pipeline.py` | Resolver proveedores según el modo, encadenar pasos (ingesta y subidas en paralelo), medir latencia y coste, tolerar fallos (opcional → se omite; núcleo → sustituto marcado) | Lógica de prompts o de formato |
-| Negocio | `ingest/`, `agents/`, `media/`, `delivery/` | Transformar datos entre contratos (`schemas.py`); reciben el proveedor por parámetro | Conocer qué proveedor concreto hay detrás |
-| Proveedores | `providers/` | Hablar con cada API/modelo detrás de una interfaz común; todos tienen mock | Lógica de negocio |
+| UI | `app/` (`main.py`, `views/`, `components/`) | Vistas, diálogo «Nuevo briefing», reproductores, traza, CSS por área | Llamar a modelos: solo usa `briefer.pipeline` y `storage` |
+| Orquestación | `src/briefer/pipeline.py` | Resolver proveedores según el modo, paralelizar ingesta y subidas, medir latencia y coste, tolerar fallos | Prompts ni formato |
+| Lógica | `ingest/`, `agents/`, `media/`, `delivery/` | Transformar datos entre contratos de `schemas.py`; reciben el proveedor por parámetro | Saber qué proveedor hay detrás |
+| Proveedores | `providers/` | Una interfaz por familia (`base.py`), implementación real y **mock** para cada una, elegida por `.env` | Lógica de negocio |
 
-Contratos (schemas Pydantic e interfaces) en [docs/03_contratos_modulos.md](docs/03_contratos_modulos.md);
-decisiones de arquitectura en [docs/decisiones/](docs/decisiones/README.md) (ADR-001 a ADR-007).
+Por qué así, en decisiones registradas ([docs/decisiones/](docs/decisiones/README.md)):
+
+| ADR | Decisión |
+| --- | --- |
+| [001](docs/decisiones/ADR-001-stack-mvp.md) | Stack del MVP: Streamlit, Claude, OpenAI STT, edge-tts, matplotlib |
+| [002](docs/decisiones/ADR-002-proveedores-intercambiables.md) | Proveedores intercambiables por configuración y mock obligatorio: tests sin red y demo sin claves |
+| [003](docs/decisiones/ADR-003-tolerancia-fallos-y-contratos-v02.md) | Pasos núcleo (sustituto marcado) y opcionales (se omiten) |
+| [004](docs/decisiones/ADR-004-salida-estructurada-json-schema.md) | Salida estructurada con JSON Schema |
+| [005](docs/decisiones/ADR-005-privacidad-cartera-no-persistida.md) | La cartera no se escribe en disco |
+| [006](docs/decisiones/ADR-006-guionista-haiku-puertas-deterministas.md) | Guionista en Haiku con puertas deterministas |
+| [007](docs/decisiones/ADR-007-modelos-por-agente.md) | Modelo por agente elegido con juez ciego |
+
+Contratos e interfaces en [docs/03](docs/03_contratos_modulos.md); diagramas de secuencia en
+[docs/02](docs/02_arquitectura_y_flujo_datos.md).
+
+---
+
+## Comparativas y mediciones
+
+Todo lo que no lleva la marca *estimación* está medido: tokens reales de cada llamada por la tarifa pública de
+`costs.py` (1 $ ≈ 0,86 €), latencia con `perf_counter`. Método en
+[docs/04](docs/04_viabilidad_costes_latencia_compliance.md#método-de-medición).
+
+### Briefing y pregunta
+
+Evaluación de **N = 6 briefings reales** (06-oct; 3 carteras y 3 listas de valores, una con PDF + gráfico;
+edge-tts; [`notebooks/eval/resumen.md`](notebooks/eval/resumen.md)).
+
+| Métrica | p50 | p95 |
+| --- | --- | --- |
+| Latencia del briefing (pared) | **52,7 s** | **68,2 s** |
+| Coste del briefing | **0,034 €** | **0,062 €** (0,069 € con PDF + gráfico) |
+| Pregunta por voz de punta a punta (audio → STT → Haiku → voz), en frío | **6,4 s** (rango 5,7-14,4 s) | — |
+| Ídem, en caliente | **6,0 s** | — |
+| Coste por pregunta | ≈ 0,0014 € con caché de prompt · ≈ 0,0057 € sin ella | — |
+
+Calidad en los 6: 0 fallos, 0 sustitutos, **232/232** cifras trazables a una fuente, **0** frases con
+recomendación, 35/35 puntos clave con fuente, podcasts de 3,2-3,7 min. Juez Sonnet (1-5): fidelidad 3,3 ·
+claridad 4,0 · sin consejo 4,2 · utilidad 3,3. Lo que marcó el juez (causas demasiado firmes, tono valorativo)
+se corrigió después con puertas nuevas.
+
+<details>
+<summary><b>Coste y latencia por paso</b> (p50 de los 6 briefings y pasos opcionales medidos aparte)</summary>
+
+| Paso | Proveedor | Latencia | Coste |
+| --- | --- | --- | --- |
+| Noticias | yfinance + RSS | 5,6 s (p95 8,4 s) | 0 € |
+| Precios | yfinance | 1,8 s (p95 17,4 s) | 0 € |
+| Analista | Claude Sonnet 5.5 | 14,2 s | 0,0246 € |
+| Guionista | Claude Haiku 4.5 | 11,6 s | 0,0084 € |
+| Podcast | edge-tts | 17,1 s | 0 € |
+| Gráficos | matplotlib | 1,5 s | 0 € |
+| Lectura de PDF (si se sube) | Sonnet visión + Haiku | 18,4 s | 0,0197 € |
+| Lectura de gráfico (si se sube) | Sonnet visión + Haiku | 15,7 s | 0,0147 € |
+| Router de imágenes | CLIP local | 70-85 ms por imagen | 0 € (y ahorra ≈ 0,016 € por imagen descartada) |
+| Cartera desde captura | Sonnet visión + Haiku | 8,5 s (5/5 posiciones) | 0,0054 € |
+| Tono de las noticias | Haiku + FinBERT | 32,1 s, en paralelo con el Analista | 0,0082 € |
+| Verificación del podcast | `whisper-1` | en paralelo con gráficos | 0,0187 € (WER 0,5-1,4 %) |
+| Portada | SDXS local, CPU | 4-7 s (1.ª del proceso 23-36 s) | 0 € |
+| Vídeo 9:16 | Pillow + ffmpeg | 6-9 s por episodio | 0 € |
+| Telegram | Bot API | 8,5 s (mensaje, audio, imagen y vídeo) | 0 € |
+
+El Analista es el paso caro (≈ 70 % del coste de texto); visión, cuando hay subidas. Otros briefings medidos:
+dentro de Docker con gráfico, vídeo, portada y Telegram, 0,061 € y 114 s; el pregenerado de «Hoy» (PDF +
+gráfico, voz Gemini, FinBERT, verificación, portada y vídeo), 0,141 € y 177 s; con Gemini 2.5 Flash como LLM,
+0,021 € y 67,7 s.
+
+</details>
+
+### Modelo por agente
+
+Comparativa con juez ciego (Sonnet, salidas anónimas en dos órdenes) sobre los mismos contextos congelados
+([ADR-007](docs/decisiones/ADR-007-modelos-por-agente.md),
+[cuaderno 02](notebooks/02_comparativa_modelos.ipynb); gasto 0,55 €). Las tarifas de Gemini son estimación.
+
+| Agente | Modelo | Coste | Latencia | Reintentos de puertas | Juez: fidelidad / claridad / sin consejo |
+| --- | --- | --- | --- | --- | --- |
+| Analista | **Sonnet 5.5** (elegido) | 0,0264 € | 15,0 s | 0 | **4,5** / 4,5 / 4,25 |
+| Analista | Haiku 4.5 | 0,0096 € | 16,9 s | 0 | 2,0 / 4,0 / 3,25 |
+| Analista | Gemini 2.5 Flash | 0,0148 € | 32,9 s | 2 | 3,0 / 4,0 / 4,0 |
+| Guionista | Sonnet 5.5 | 0,0349 € | 21,1 s | 1 | 4,25 / 4,5 / 5,0 |
+| Guionista | **Haiku 4.5** (elegido) | 0,0109 € | 14,9 s | 1 | 3,5 / 4,0 / 4,25 |
+| Guionista | Gemini 2.5 Flash | 0,0074 € | 15,5 s | 3 (guion > 5 min) | 4,0 / 4,0 / 4,25 |
+| Q&A | Sonnet 5.5 | 0,0110 € | 2,5 s | — | 0 recomendaciones |
+| Q&A | **Haiku 4.5** (elegido) | 0,0044 € | 3,8 s | — | 0 recomendaciones |
+| Q&A | Gemini 2.5 Flash | 0,0018 € | 3,1 s | — | 0 recomendaciones |
+
+Haiku como Analista añade hechos sin respaldo que ninguna puerta detecta (fidelidad 2,0): por eso el Analista
+sigue en Sonnet. En el Guionista, Sonnet puntúa algo mejor pero cuesta 3,2 veces más; las puertas deterministas
+cubren lo que se le escapa a Haiku. Gemini queda como plan B de proveedor (`BRIEFER_LLM_PROVIDER=gemini`, cadena
+completa ≈ 0,021 € frente a ≈ 0,037 €).
+
+### Voz, portada y voz a texto
+
+| Comparativa | Opción A | Opción B | Elección |
+| --- | --- | --- | --- |
+| **Voces del podcast** | **edge-tts** (Álvaro + Ximena, +10 %): 0 €, 17,1 s p50 para 3,2-3,7 min de audio, 158 palabras/min, WER 1,1 %, SRT exacto | **Gemini 3.8 TTS** multi-locutor: ≈ 0,047 € (*estimación*, tarifa sin verificar) y 24,7 s para 3:38, ≈ 163 palabras/min, WER 1,4 %, SRT aproximado | edge-tts por defecto; Gemini premium para la demo y el pregenerado. El Q&A habla siempre con edge-tts para quedar < 10 s |
+| **Portada** | **SDXS local** en CPU: 0 €, 4-7 s (1.ª 23-36 s), ~1,8 GB de modelo, OpenRAIL++ con uso comercial | **Gemini imagen** `gemini-3.1-flash-lite-image`: ≈ 0,029 € por portada (tarifa oficial; **no medida**: exige facturación activa) | Local |
+| **Voz a texto** | **`gpt-4o-mini-transcribe`**: 1,28 s, WER 0, 0,003 $/min | `whisper-1`: 2,55 s, WER 0, 0,006 $/min | `gpt-4o-mini-transcribe` |
+
+Las voces se eligieron en una cata a ciegas de 6 opciones con el mismo guion; OpenAI `gpt-4o-mini-tts` se
+descartó por latencia (309 s para 6 líneas ese día). En producción edge-tts se sustituiría por un TTS con
+contrato: Azure ≈ 0,049 € por episodio (*estimación* sobre tarifa pública).
+
+---
+
+## Viabilidad y monetización
+
+Resumen de [docs/04 §6](docs/04_viabilidad_costes_latencia_compliance.md#6-monetización). Costes de IA medidos;
+fijos y precios, *estimaciones* o tarifas públicas (marcadas allí una a una). Sin salarios.
+
+| | |
+| --- | --- |
+| **Coste variable** | IA 0,034 € por briefing (medido) + voz con contrato ≈ 0,049 € (*estimación*). Usuario Pro con episodio propio ≈ 2,1 €/mes; con segmentos por valor compartidos entre usuarios, ≈ 0,75 €/mes (*estimación*) |
+| **Costes fijos** | ≈ 1.070 €/mes en lanzamiento B2C · ≈ 3.700 €/mes listo para B2B2C (datos y noticias con licencia, nube en la UE, cumplimiento) |
+| **Planes** | Free (3 valores de un catálogo compartido) · **Pro 6,99 €/mes** (cartera, voz, subidas, vídeo) · **Marca blanca**: alta 15.000 € + 1.500 €/mes + 0,30 €/MAU |
+| **Punto de equilibrio** | B2C: ≈ 9.200 registrados con un 4 % de conversión · B2B2C: **un** cliente de ≈ 10.000 MAU cubre el fijo |
+| **Latencia** | El briefing se prepara al cierre en segundo plano (≈ 1 min); la pregunta por voz, ≈ 6 s |
+| **Conclusión** | El B2B2C es el motor: un contrato cubre el fijo y la distribución la pone el banco o broker. El B2C es escaparate y laboratorio |
+
+---
+
+## Compliance y privacidad
+
+El producto informa, no asesora. Cada control está en el código y tiene tests; tabla completa en
+[docs/04 §5](docs/04_viabilidad_costes_latencia_compliance.md#5-marco-regulatorio).
+
+| Riesgo | Control | Dónde |
+| --- | --- | --- |
+| Recomendación de compra/venta (MiFID II) | Prohibida en los prompts; detección determinista con reintento y recorte; el Q&A reconduce «¿compro?»; red-team de 31 casos | `agents/guardrails.py`, `tests/test_agents_redteam.py` |
+| Cifras inventadas | Toda cifra del análisis y del guion debe estar en las fuentes; si no, reintento y se quita la frase | `guardrails.untraceable_figures` |
+| *Prompt injection* en noticias, PDF o gráfico | Contenido de terceros delimitado y declarado dato; fuentes con forma de orden señaladas al Analista | `guardrails.looks_like_injection`, `analyst.py` |
+| Tono de la noticia leído como señal (MAR) | Tono por noticia junto a su fuente, nunca agregado por valor | `ingest/sentiment.py` |
+| Voces sintéticas e imagen IA (AI Act art. 50) | Aviso hablado al cierre, metadatos ID3 y MP4, rótulo fijo en el vídeo, placa «Imagen generada por IA» en la portada, pie en Telegram | `media/podcast.py`, `media/video.py`, `media/cover.py` |
+| Cartera del usuario (RGPD) | Nunca a disco: `briefing.json` con `portfolio: null`, sin gráfico de cartera en `data/`; al LLM solo tickers y pesos; la captura se procesa en memoria | [ADR-005](docs/decisiones/ADR-005-privacidad-cartera-no-persistida.md), `pipeline.py`, `storage.py` |
+| Audio y ficheros subidos | Subidas en carpeta temporal única que se borra; el audio de la pregunta se borra tras transcribirlo; «Borrar mis datos» en Archivo | `storage.delete_user_data` |
+| Derechos de autor | Solo titular, extracto ≤ 200 caracteres, fuente y enlace; respeta `robots.txt` | `ingest/news.py`, `ingest/article_meta.py` |
+| Secretos | Claves y tokens redactados en errores, métricas, logs y UI; modo Real con contraseña en la URL pública | `logging_utils.redact_secrets`, `components/shell.py` |
+| Datos simulados tomados por reales | Sustitutos marcados en la UI y la traza; precios sintéticos rotulados | `logging_utils.step_fell_back`, `components/trace.py` |
+
+Disclaimer visible en la app, dicho por Osa al final del podcast, en el vídeo y en Telegram. Transferencias
+internacionales por proveedor (Anthropic, OpenAI, Google, Telegram) en
+[docs/04](docs/04_viabilidad_costes_latencia_compliance.md#rgpd--transferencias-internacionales).
+
+---
+
+## Arranque
+
+Requisitos: **Python 3.11+** (o solo Docker). ffmpeg viene con `imageio-ffmpeg`.
+
+```bash
+git clone https://github.com/Romequinco/multimodal-market-briefer.git && cd multimodal-market-briefer
+```
+
+| Sistema | Comando | Abre |
+| --- | --- | --- |
+| Windows (PowerShell) | `powershell -ExecutionPolicy Bypass -File scripts\run.ps1` | http://localhost:8501 |
+| Linux / macOS | `bash scripts/run.sh` | http://localhost:8501 |
+| Docker (Compose ≥ 2.24) | `docker compose up --build` | http://localhost:8501 |
+| Nube | Railway con el mismo `Dockerfile` y `railway.json`: [docs/09](docs/09_despliegue_railway.md) | URL pública |
+
+Los scripts crean `.venv`, instalan dependencias solo si han cambiado, copian `.env.example` a `.env` y lanzan
+Streamlit en `localhost`. Sin claves la app abre en Demo · voces reales. Para el modo Real, pon
+`ANTHROPIC_API_KEY` (y `OPENAI_API_KEY` para la voz) en `.env`. Opciones: `-Local` / `--local` instala los
+modelos locales (CLIP, FinBERT, SDXS), `-Expose` / `--expose` abre la app a la red local, `-Port N` / `--port N`.
+
+Verificado: clon limpio en Windows con `run.ps1` (app en 220 s); Docker con modelos locales (imagen de
+3,37 GB, *healthy* en 10 s, briefing real dentro en 114 s); Railway con `$PORT` y contraseña del modo Real.
+`run.sh` no se pudo completar en un clon limpio de Linux por red lenta (llegó a instalar sin errores).
+
+<details>
+<summary><b>Variables de entorno principales</b> (plantilla completa y comentada en <code>.env.example</code>)</summary>
+
+En el código, sin `.env`, todos los proveedores son `mock`; `.env.example` propone el stack real.
+
+| Variable | `.env.example` | Opciones / para qué |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` · `OPENAI_API_KEY` · `GEMINI_API_KEY` | vacío | Claude (agentes y visión) · STT · Gemini (LLM, TTS premium, imagen) |
+| `TELEGRAM_BOT_TOKEN` · `TELEGRAM_CHAT_ID` | vacío | Entrega por Telegram; `python scripts/telegram_setup.py --write --test` |
+| `BRIEFER_REAL_MODE_PASSWORD` | vacío | Si tiene valor, el modo Real pide contraseña (5 intentos por sesión) |
+| `BRIEFER_LLM_PROVIDER` | `anthropic` | `anthropic` · `gemini` · `mock` |
+| `BRIEFER_VISION_PROVIDER` | `claude` | `claude` · `mock` |
+| `BRIEFER_STT_PROVIDER` | `whisper_api` | `whisper_api` · `mock` |
+| `BRIEFER_TTS_PROVIDER` | `edge` | `edge` (gratis) · `gemini` (premium, cae a edge) · `mock` |
+| `BRIEFER_IMAGE_GEN_PROVIDER` | `none` | `local` (SDXS, gratis) · `gemini` (de pago) · `none` · `mock` |
+| `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `none` | `clip` (local) · `none` · `mock` |
+| `BRIEFER_FINBERT` | `false` | Tono de cada noticia (necesita `requirements-local.txt`) |
+| `BRIEFER_LLM_MODEL` · `BRIEFER_LLM_MODEL_CHEAP` | `claude-sonnet-5-5` · `claude-haiku-4-5-20251001` | Analista y visión · Guionista, Q&A y estructurado |
+| `BRIEFER_SCRIPTWRITER_MODEL` | vacío (= barato) | Otro modelo para el Guionista |
+| `BRIEFER_WHISPER_API_MODEL` | `gpt-4o-mini-transcribe` | o `whisper-1` |
+| `BRIEFER_VOICE_A` · `BRIEFER_VOICE_B` | `es-ES-AlvaroNeural` · `es-ES-XimenaNeural` | Voces edge-tts de Toro y Osa |
+| `BRIEFER_VERIFY_PODCAST` | `true` | El STT escucha el podcast y mide el WER (solo modo real) |
+| `BRIEFER_DEFAULT_TICKERS` | `SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA` | Valores por defecto (formato Yahoo) |
+| `BRIEFER_FALLBACK_TO_MOCK` | `true` | Si falta una clave o librería, mock con aviso |
+| `BRIEFER_OUTPUT_DIR` | `data/outputs` | En Railway, `/data/outputs` sobre un volumen |
+
+</details>
+
+<details>
+<summary><b>Comandos útiles</b></summary>
+
+```bash
+python scripts/demo.py --mock                       # briefing de punta a punta por CLI, todo mock, sin red
+python scripts/demo.py --demo-voices                # sin claves, con voces reales (≈ 6 s, 0 €)
+python scripts/demo.py --tickers SAN.MC AAPL --upload data/samples/resultados_ejemplo.pdf data/samples/grafico_ejemplo.png --video --cover
+python scripts/demo.py --question "¿Qué dice el PDF?" --briefing pregenerado --warmup
+python scripts/demo.py --mock --strict              # sale con 3 si algún paso usó un sustituto
+python scripts/smoke_real.py                        # una llamada real mínima por proveedor (< 0,01 €)
+python scripts/telegram_setup.py --write --test     # configura el chat de Telegram
+python scripts/metrics_report.py --include-demo     # p50/p95 de latencia y coste de los briefings guardados
+python scripts/evaluar_briefings.py                 # evaluación de briefings (--real genera y juzga; gasta)
+python scripts/measure_qa_voice.py                  # cadena de voz del Q&A en frío y en caliente
+python scripts/build_pitch.py                       # regenera pitch/pitch_briefly.pdf
+```
+
+Códigos de salida de `demo.py`: 0 bien · 1 falló un paso núcleo · 2 entrada inválida · 3 sustituto con
+`--strict` · 130 interrumpido.
+
+</details>
+
+### Tests
+
+```bash
+python -m pytest -q                     # 1301 tests sin red (red bloqueada en conftest.py)
+python -m pytest -q -m live             # 13 tests con red, claves y coste real
+ruff check src app scripts tests && mypy
+```
+
+**1301 tests sin red** con proveedores mock y fixtures, más 13 «live» excluidos por defecto. La CI
+([`tests.yml`](.github/workflows/tests.yml)) pasa ruff + mypy y pytest en Python 3.11 y 3.13.
 
 ---
 
 ## Estructura del repositorio
 
 ```text
-.
-├── app/                         # UI Streamlit (solo presentación; llama a briefer.pipeline / storage)
-│   ├── main.py                  # arranca el armazón (components/shell.py): st.navigation oculta, barra superior, vista y pie
-│   ├── views/                   # hoy.py (briefing del día) · preguntar.py (chat por voz o texto) · archivo.py (briefings, RGPD)
-│   └── components/              # shell.py (barra superior, chip del modo, menú ⚙ con «Quiénes somos») · briefing_view.py (vista única
-│                                # del briefing) · new_briefing.py (diálogo «Nuevo briefing») · qa_view.py (chat) · theme.py (tema
-│                                # «Noticiero nocturno») · players.py (modos, insignias, reproductores) · trace.py («Cómo se hizo»)
-│                                # · styles/*.css (CSS por área, cargado por theme.area_css)
-├── src/briefer/                 # paquete con el nombre técnico interno (la marca visible es Briefly)
-│   ├── brand.py                 # identidad: nombre, eslogan, edición, locutores Toro y Osa (fuente única)
-│   ├── config.py                # Settings desde .env (pydantic-settings)
-│   ├── schemas.py               # contratos de datos (Pydantic v2) + DISCLAIMER_ES
-│   ├── pipeline.py              # run_briefing() y answer_question() (modos real / mock / demo_voices)
-│   ├── costs.py                 # coste estimado por paso (tarifas verificadas)
-│   ├── logging_utils.py         # track_step() → StepMetric, step_fell_back(), redact_secrets()
-│   ├── storage.py               # guardar (sin cartera)/cargar/exportar (ZIP) briefings; briefing destacado
-│   ├── providers/               # base.py · registry.py · mock.py · llm/ · vision/ · stt/ · tts/ · image/
-│   ├── ingest/                  # news, article_meta, cache, tickers, prices, pdf_reader, chart_reader, portfolio, voice, sentiment
-│   ├── agents/                  # analyst, scriptwriter, qa, guardrails, timeframe + prompts/{analyst,scriptwriter,qa}.md
-│   ├── media/                   # charts, podcast, speech (normalización para TTS), transcript, video, cover
-│   └── delivery/                # telegram_sender
-├── tests/                       # 1225 tests sin red (mock y fixtures; red bloqueada) + 13 «live» (-m live)
-├── scripts/                     # run.ps1 · run.sh · demo.py · smoke_real.py · telegram_setup.py · build_pitch.py · métricas y evaluación
-├── notebooks/                   # 00 recorrido del pipeline · 01 evaluación de briefings · 02 comparativa de modelos (resultados en eval/)
-├── pitch/                       # pitch_briefly.pdf (+ fuente HTML) y demo_guion.md
-├── docs/                        # documentación (ver índice); marca en docs/assets/marca/, capturas en docs/assets/capturas/
-├── data/samples/                # ejemplos versionados (CSV, JSON, PDF, PNG; cartera_ejemplo.png ficticia) + demo_briefing/
-├── data/cache/ data/outputs/    # generados en ejecución (ignorados por git)
-├── .github/workflows/tests.yml  # CI: ruff + mypy y pytest en mock (Python 3.11 y 3.13)
-├── .streamlit/config.toml       # tema, subida máxima 50 MB, sin telemetría
-├── Dockerfile  docker-compose.yml  .dockerignore
-├── requirements.txt             # dependencias del MVP
-├── requirements-local.txt       # opcional: modelos locales (torch, transformers, diffusers, accelerate)
-├── requirements-dev.txt         # pytest-cov, ruff, mypy
-├── pyproject.toml  .env.example  .gitignore
-├── CLAUDE.md                    # contexto para agentes IA
-└── README.md
+app/                    UI Streamlit: solo presentación, llama a briefer.pipeline
+  main.py               arranca el armazón (components/shell.py)
+  views/                hoy.py · preguntar.py · archivo.py
+  components/           shell (barra superior, chip del modo, menú ⚙) · briefing_view · new_briefing
+                        · qa_view · players · theme · trace · styles/*.css
+src/briefer/            paquete (nombre técnico interno; la marca visible es Briefly)
+  schemas.py            contratos Pydantic entre módulos
+  pipeline.py           run_briefing() · answer_question() · portfolio_from_screenshot()
+  brand.py              textos de marca: fuente única
+  config.py · costs.py · storage.py · logging_utils.py
+  providers/            base.py · registry.py · mock.py · llm/ vision/ stt/ tts/ image/
+  ingest/               noticias, precios, tickers (+ catálogo de 169 activos), PDF, gráfico, cartera, voz, FinBERT
+  agents/               analista, guionista, Q&A, guardarraíles, marco horario + prompts/*.md
+  media/                gráficos, podcast, normalización para voz, transcripción, vídeo, portada
+  delivery/             Telegram
+tests/                  tests sin red (mock y fixtures) + 13 «live»
+scripts/                run.ps1 · run.sh · demo.py · smoke_real.py · métricas, evaluación y pitch
+notebooks/              00 recorrido del pipeline · 01 evaluación · 02 comparativa de modelos (resultados en eval/)
+data/samples/           ejemplos versionados + demo_briefing/ (briefing real pregenerado de «Hoy»)
+docs/                   documentación (índice abajo), marca y capturas en docs/assets/
+pitch/                  pitch_briefly.pdf (+ fuente HTML) y guion de la demo
+Dockerfile · docker-compose.yml · railway.json · requirements*.txt · pyproject.toml · .env.example
 ```
 
----
-
-## Mediciones
-
-Todas las cifras salen de los `StepMetric` de ejecuciones reales (tokens reales × tarifa pública en `costs.py`;
-revisado a ojo contra la consola del proveedor). Método y detalle en
-[docs/04 · Método de medición](docs/04_viabilidad_costes_latencia_compliance.md#método-de-medición).
-
-**Evaluación de N = 6 briefings reales** (06-oct-2026; 3 carteras y 3 listas de valores, una con PDF + gráfico;
-[`notebooks/eval/resumen.md`](notebooks/eval/resumen.md)):
-
-| Métrica | Resultado |
-| --- | --- |
-| Latencia de pared | p50 **52,7 s** · p95 **68,2 s** |
-| Coste por briefing | p50 **0,034 €** · p95 **0,062 €** (0,069 € con PDF + gráfico) |
-| Fiabilidad | 0 fallos · 0 pasos caídos a sustituto |
-| *Grounding* y compliance | **232/232** cifras trazables · **0** frases con recomendación · 35/35 puntos clave con fuente |
-| Podcast | 3,2-3,7 min (6/6 en la banda de 3-5 min) |
-| Juez Sonnet (1-5) | fidelidad 3,3 · claridad 4,0 · sin consejo 4,2 · utilidad 3,3 |
-
-**Otras mediciones**:
-
-| Qué | Medido |
-| --- | --- |
-| Pregunta por voz de punta a punta (audio → STT → Haiku → voz) | p50 **6,4 s** en frío (con precalentamiento) · **6,0 s** en caliente · ≈ 0,0014 € con caché de prompt (≈ 0,006 € sin ella) |
-| Transcripción de la pregunta | 1,3 s · WER 0 |
-| Verificación del podcast por STT | WER 1,1 % (edge-tts) · 1,4 % (Gemini TTS) |
-| Briefing con vídeo y tres subidas (gráfico, captura de cartera, paisaje) | 0,057 € · 82 s; la cartera y el paisaje se descartan sin llamar a visión (0 €) |
-| Briefing dentro de Docker (gráfico, vídeo, portada local y Telegram) | 0,061 € · 114 s · 0 errores |
-| Cartera desde captura del broker | 8,5 s · ≈ 0,005 € · 5/5 posiciones |
-| Vídeo 9:16 · portada SDXS · router CLIP | 6-9 s · 4-7 s · 70-85 ms por imagen; los tres a 0 € |
-| Telegram (mensaje, audio, imagen y vídeo) | 8,5 s |
-| Demo sin claves con voces reales | ≈ 6 s · 0 € |
-
-La comparativa Sonnet / Haiku / Gemini por agente con juez ciego
-([ADR-007](docs/decisiones/ADR-007-modelos-por-agente.md),
-[cuaderno 02](notebooks/02_comparativa_modelos.ipynb)) confirma Sonnet en el Analista y Haiku en Guionista y Q&A;
-Gemini queda como plan B de proveedor. Para medir de nuevo: `scripts/metrics_report.py`,
-`scripts/evaluar_briefings.py` y `scripts/measure_qa_voice.py` ([Anexo A](#cli)).
+`data/cache/`, `data/outputs/`, `.env` y `docs/raw/` no se versionan.
 
 ---
 
-## Viabilidad y monetización
-
-Resumen de [docs/04](docs/04_viabilidad_costes_latencia_compliance.md#6-monetización). Los costes de IA son
-**medidos**; los fijos y los precios son **estimaciones** o tarifas públicas, y así se marcan allí.
-
-| | |
-| --- | --- |
-| **Coste variable** | IA ≈ 0,034 € por briefing (medido) + TTS de producción con contrato (Azure, ≈ 0,049 € por episodio, estimación). Usuario Pro con episodio propio ≈ 2,1 €/mes; con generación por segmentos compartidos por valor, ≈ 0,75 €/mes |
-| **Costes fijos** | ≈ 1.070 €/mes en un lanzamiento B2C · ≈ 3.700 €/mes listo para B2B2C (datos y noticias con licencia, nube en la UE, cumplimiento). Sin salarios |
-| **Planes** | Free (3 valores de un catálogo compartido) · **Pro 6,99 €/mes** (cartera completa, voz, subidas, vídeo) · **Marca blanca B2B2C**: alta de 15.000 € + 1.500 €/mes + 0,30 €/MAU |
-| **Punto de equilibrio** | B2C: ≈ 9.200 registrados con un 4 % de conversión · B2B2C: **un** cliente de ≈ 10.000 MAU cubre el fijo |
-| **Latencia** | Briefing en ≈ 1 min en segundo plano (se prepara al cierre, el usuario no espera); Q&A por voz ≈ 6 s |
-| **Conclusión** | El B2B2C es el motor (un contrato cubre el fijo y la distribución la pone el banco o *broker*); el B2C es escaparate y laboratorio |
-
----
-
-## Compliance y privacidad
-
-Cada control está en el código y tiene tests; la tabla riesgo → control → fichero está en
-[docs/04 §5](docs/04_viabilidad_costes_latencia_compliance.md#5-marco-regulatorio).
-
-- **MiFID II · informa, no asesora.** `agents/guardrails.py` detecta recomendaciones y fuerza un reintento en
-  Analista y Guionista (y recorta si persisten); el Q&A reconduce las peticiones de consejo. Disclaimer visible en
-  la app, en el guion (lo dice Osa al cerrar), en el vídeo y en Telegram. Red-team en
-  `tests/test_agents_redteam.py`.
-- **Veracidad.** Puertas de *grounding*: toda cifra del análisis y del guion debe estar en las fuentes; las
-  causas sin fuente se atribuyen o se matizan. Documentos y noticias entran al LLM delimitados como dato
-  (defensa ante *prompt injection*).
-- **Derechos de autor.** De cada noticia solo titular, extracto ≤ 200 caracteres, fuente y enlace, respetando el
-  `robots.txt` del medio; nunca el cuerpo.
-- **AI Act art. 50 · transparencia.** Voces sintéticas avisadas en el audio (cierre hablado y metadatos ID3), en
-  el vídeo (rótulo fijo y metadatos MP4), en la app y en Telegram; la portada lleva la placa «Imagen generada por
-  IA».
-- **MAR.** El «impacto de la noticia» (FinBERT) es el tono de cada noticia, nunca un agregado por valor ni una
-  señal.
-- **RGPD · cartera.** La cartera **no se guarda en disco** (`briefing.json` con `portfolio: null` y sin gráfico de
-  cartera; [ADR-005](docs/decisiones/ADR-005-privacidad-cartera-no-persistida.md)); al LLM solo van tickers y
-  pesos. La captura del broker va entera al modelo de visión, en memoria y sin guardarse (la app recomienda
-  recortar nombre y nº de cuenta). Las subidas se procesan en una carpeta temporal que se borra y el audio de la
-  pregunta se borra tras transcribirlo. «Borrar mis datos» en «Archivo» (sección «Privacidad y datos»).
-- **Secretos.** Las claves se redactan en errores, métricas, logs y UI; la app escucha solo en `localhost`
-  salvo que se pida lo contrario.
-
-Briefly es un proyecto académico y una startup ficticia; el nombre no está registrado como marca. El contenido
-generado puede contener errores: los modelos de IA pueden equivocarse o interpretar mal una noticia, y los
-derechos de las noticias pertenecen a sus editores.
-
----
-
-## Identidad
-
-| | |
-| --- | --- |
-| **Nombre** | **Briefly** (la marca y el programa se llaman igual) |
-| **Eslogan** | «El cierre del día, mientras vuelves a casa» |
-| **Tono** | Radio nocturna: serio y preciso con los datos, cercano en la conversación. Lema: «Te contamos el mercado; tú decides.» |
-| **Locutores** | **Toro** (voz A, el optimista que abre y se fija en lo que sube) y **Osa** (voz B, la prudente que pone el contexto y los riesgos y cierra con el aviso legal). Guiño a *bull & bear*; las dos voces son **sintéticas** |
-| **Paleta** | «Noticiero nocturno»: fondo `#12151B`, superficie `#1C2129`, texto `#D6DEE8`, acento `#C0502A` / `#F0997B`, sube `#5DCAA5`, baja `#F09595` (contrastes WCAG AA validados en los tests) |
-| **Tipografía** | Source Serif 4 (marca y titulares) · Inter (texto) · JetBrains Mono (datos y rótulos) |
-| **Logo** | Cuatro velas japonesas que hacen de barras de ecualizador + «briefly» en minúscula. Variantes en [`docs/assets/marca/`](docs/assets/marca/) |
-
-Los textos de marca viven en un único sitio, `src/briefer/brand.py`, y de ahí los leen la app, el guion, la
-transcripción, los gráficos y los metadatos del audio. Guía completa en
-[docs/08_identidad_marca.md](docs/08_identidad_marca.md).
-
----
-
-## Demo y pitch
-
-- **Demo grabada:** el enlace está [arriba del todo](#briefly). Recorre portada → generar un briefing real con
-  gráfico, vídeo, portada y Telegram → «Puntos clave», transcripción y vídeo → «Cómo se hizo» → cartera desde
-  captura → pregunta por voz → llegada a Telegram. Guion con tiempos, locución y checklist en
-  [pitch/demo_guion.md](pitch/demo_guion.md).
-- **Sin vídeo también se ve:** la vista «Hoy» de la app enseña el briefing real pregenerado de
-  `data/samples/demo_briefing/` (podcast, vídeo, portada, «impacto de la noticia» y traza) sin claves ni red.
-- **Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf), 12 diapositivas (problema, propuesta,
-  demo, cadena de modelos, resultados medidos, costes, compliance, monetización, roadmap, equipo). Fuente en
-  [pitch/pitch_briefly.html](pitch/pitch_briefly.html); se regenera con `python scripts/build_pitch.py` (ver
-  [pitch/README.md](pitch/README.md)).
-
----
-
-## Documentación
+## Documentación y pitch
 
 | Documento | Contenido |
 | --- | --- |
-| [docs/README.md](docs/README.md) | Índice operativo y ruta de lectura |
 | [00 · Enunciado](docs/00_enunciado.md) | Enunciado estructurado y checklist de rúbrica |
-| [01 · Producto](docs/01_producto_y_propuesta_valor.md) | Problema, público, propuesta de valor, monetización |
+| [01 · Producto](docs/01_producto_y_propuesta_valor.md) | Problema, público, propuesta de valor, métricas |
 | [02 · Arquitectura](docs/02_arquitectura_y_flujo_datos.md) | Capas, componentes, secuencias, cadena de modelos |
-| [03 · Contratos](docs/03_contratos_modulos.md) | Schemas, interfaces y reparto por carriles |
+| [03 · Contratos](docs/03_contratos_modulos.md) | Schemas, interfaces y registro de cambios |
 | [04 · Viabilidad](docs/04_viabilidad_costes_latencia_compliance.md) | Costes, latencias, compliance, monetización |
-| [05 · Roadmap](docs/05_roadmap_TODO.md) | Plan por fases y tareas hasta la entrega |
-| [06 · Estado actual](docs/06_estado_actual.md) | Qué funciona, mediciones, riesgos y registro de jornadas |
-| [07 · Revisión crítica](docs/07_revision_critica.md) | Revisión del plan: hallazgos, prioridades MoSCoW, plan por fases |
-| [08 · Identidad de marca](docs/08_identidad_marca.md) | Guía de marca de Briefly: logo, colores, tipografía, tono, locutores |
-| [09 · Despliegue en Railway](docs/09_despliegue_railway.md) | Publicar Briefly en la nube paso a paso (demo pública, modo real con contraseña) |
-| [Decisiones (ADR)](docs/decisiones/README.md) | Decisiones de arquitectura |
-| [Material de clase](docs/clase/00_indice.md) | Resumen del material del taller |
-| [Cuadernos](notebooks/README.md) | Recorrido del pipeline, evaluación de briefings, comparativa de modelos |
-| [Pitch](pitch/README.md) | Deck técnico y guion de la demo |
+| [05 · Roadmap](docs/05_roadmap_TODO.md) | Plan por fases |
+| [06 · Estado actual](docs/06_estado_actual.md) | Qué funciona, mediciones, riesgos, registro de jornadas |
+| [07 · Revisión crítica](docs/07_revision_critica.md) | Revisión del plan y prioridades |
+| [08 · Identidad de marca](docs/08_identidad_marca.md) | Logo, paleta, tipografía, tono, locutores |
+| [09 · Despliegue en Railway](docs/09_despliegue_railway.md) | Publicar la app paso a paso, modo Real con contraseña |
+| [Decisiones (ADR)](docs/decisiones/README.md) | ADR-001 a ADR-007 |
+| [Cuadernos](notebooks/README.md) | Recorrido del pipeline, evaluación, comparativa de modelos |
+| [Índice de docs](docs/README.md) | Ruta de lectura |
+
+**Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf), 12 diapositivas: problema, propuesta,
+demo, cadena de modelos, resultados medidos, costes, compliance, monetización, roadmap y equipo. Fuente en
+[pitch/pitch_briefly.html](pitch/pitch_briefly.html) ([cómo regenerarlo](pitch/README.md)).
+
+**Demo:** la app desplegada en [Railway](https://multimodal-market-briefer-production.up.railway.app/). Recorrido
+sugerido en [pitch/demo_guion.md](pitch/demo_guion.md).
+
+---
+
+## Checklist del enunciado
+
+Criterios de [docs/00](docs/00_enunciado.md).
+
+| Criterio | Dónde | Estado |
+| --- | --- | --- |
+| Esquema del producto, problema, público, valor multimodal | [Qué resuelve](#qué-resuelve), [docs/01](docs/01_producto_y_propuesta_valor.md), pitch | Hecho |
+| Costes de inferencia y latencias | [Comparativas](#comparativas-y-mediciones), [docs/04](docs/04_viabilidad_costes_latencia_compliance.md), `costs.py`, traza por paso | Medido |
+| Compliance y privacidad | [Compliance](#compliance-y-privacidad), `agents/guardrails.py`, ADR-005 | Hecho |
+| Monetización | [Viabilidad](#viabilidad-y-monetización), [docs/04 §6](docs/04_viabilidad_costes_latencia_compliance.md#6-monetización) | Hecho |
+| Diversidad de modalidades | [15 modalidades](#modalidades-y-cadena-de-modelos), todas verificadas en real | Hecho |
+| Orquestación multimodelo | `pipeline.py`, [cadena de modelos](#cadena-de-modelos-en-un-briefing), «Cómo se hizo», ADR-007 | Hecho |
+| MVP ejecutable y usable | `app/` (3 vistas), [Railway](https://multimodal-market-briefer-production.up.railway.app/), modos real / demo / offline | Hecho |
+| Plug-and-play | `scripts/run.ps1`, `scripts/run.sh`, `requirements.txt`, `Dockerfile`, `railway.json` | Hecho (`run.sh` sin clon limpio completo en Linux) |
+| README con capturas, flujo multimodal y arquitectura | Este fichero | Hecho |
+| Pitch deck técnico | [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf) | Hecho |
+| Separación modelos / lógica / UI | `providers/` · `ingest/ agents/ media/ delivery/` · `app/`; tests sin red, ruff + mypy | Hecho |
+| Demostración funcional | App desplegada en la nube (Railway) | Hecho |
 
 ---
 
 ## Equipo
 
-| Integrante | Notas |
+| Integrante | Aportación destacada |
 | --- | --- |
 | Óscar Romero Quincoces | |
-| Daniel García López | Integración de FinBERT: «impacto de la noticia» (PR #1) |
+| Daniel García López | «Impacto de la noticia» con FinBERT (PR #1) |
 | Fernando Dapena Tauste | |
 
-El trabajo se organizó en tres carriles paralelos, cada uno contra los mocks de `providers/mock.py` y los
-contratos de `schemas.py`:
+El trabajo se repartió en tres carriles paralelos contra los mocks de `providers/mock.py` y los contratos de
+`schemas.py`: **A** entradas y procesado, **B** agentes y orquestación, **C** salidas, entrega y UI.
 
-| Carril | Ámbito |
-| --- | --- |
-| **A** · Entradas y procesado | Noticias, precios, PDF, gráficos, cartera, voz, router CLIP, FinBERT |
-| **B** · Agentes y orquestación | Analista, Guionista, Q&A, guardarraíles, pipeline, costes y métricas |
-| **C** · Salidas y UI | Podcast, transcripción, gráficos, vídeo, portada, Telegram y la app Streamlit |
+Máster MIAX · Taller B5-T4 · Entrega 8-oct-2026. Nombres internos: la marca es Briefly; el código conserva el
+paquete `briefer`, el repositorio `multimodal-market-briefer` y las variables `BRIEFER_*`. Identidad completa en
+[docs/08](docs/08_identidad_marca.md).
 
-Máster MIAX · Taller B5-T4 · Entrega 8-oct-2026.
+### Aviso legal
 
----
+Briefly genera **información financiera genérica con fines educativos**. No es asesoramiento en materia de
+inversión en el sentido de MiFID II, no tiene en cuenta la situación personal del usuario y **no emite
+recomendaciones de compra o venta**. Las voces del podcast son **sintéticas** y la portada está generada por IA.
+Los modelos pueden equivocarse o interpretar mal una noticia; los derechos de las noticias pertenecen a sus
+editores. Briefly es un proyecto académico y una startup ficticia; el nombre no está registrado como marca.
 
-## Anexo A · Arranque en detalle, modos y CLI
-
-### Scripts de arranque
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run.ps1          # MVP en http://localhost:8501
-powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Local   # + modelos locales (requirements-local.txt)
-powershell -ExecutionPolicy Bypass -File scripts\run.ps1 -Expose  # visible desde otros equipos de la red
-```
-
-```bash
-bash scripts/run.sh            # MVP en http://localhost:8501
-bash scripts/run.sh --local    # + modelos locales (requirements-local.txt)
-bash scripts/run.sh --expose   # visible desde otros equipos de la red
-```
-
-Ambos scripts buscan un **Python ≥ 3.11** (en Windows también el lanzador `py`), crean `.venv`, instalan
-`requirements.txt` (y `requirements-local.txt` con `-Local` / `--local`) **solo si los requirements han cambiado**
-desde la última instalación (así se puede relanzar sin red el día de la demo), **se detienen con un mensaje claro
-si `pip` falla**, copian `.env.example` a `.env` si no existe, fijan `PYTHONPATH=src` y lanzan
-`streamlit run app/main.py`. Por defecto la app escucha **solo en `localhost`**, para no exponer tus claves de API
-en la red; `-Expose` / `--expose` la abre a la red local (con aviso). Otras opciones: `-Port N` / `--port N`
-(8501 por defecto) y `-Reinstall` / `--reinstall` (fuerza `pip install`).
-
-`run.ps1` está verificado desde un **clon limpio** en Windows sin `.env` (la app responde a los 220 s con el
-briefing pregenerado, en modo demo). `run.sh` sigue la misma lógica; su prueba en un clon limpio de Linux
-(`python:3.11-slim`) llegó a crear `.venv` e instalar, pero se cortó por la red lenta antes de terminar.
-
-Manualmente: `pip install -r requirements.txt` (o `pip install -e .`, y `pip install -e .[local]` para los
-modelos locales) y `streamlit run app/main.py`.
-
-### Docker
-
-```bash
-docker compose up --build      # http://localhost:8501
-```
-
-Requiere **Docker Compose ≥ 2.24** (usa `env_file` con `required: false`: si no hay `.env`, arranca en modo
-demo). La imagen (Python 3.11, usuario **no root** con UID 1000, `TZ=Europe/Madrid`, *healthcheck* en
-`/_stcore/health`) incluye ffmpeg y, por defecto (`ARG LOCAL_MODELS=true`), torch CPU + transformers + diffusers +
-accelerate, de modo que CLIP, FinBERT y la portada local funcionan en el contenedor (`--build-arg
-LOCAL_MODELS=false` para una imagen mínima). Los modelos de Hugging Face se guardan en el volumen `hf-cache`;
-`data/outputs/` y `data/cache/` se montan como volúmenes (en Linux, si tu UID no es 1000, da permisos de escritura
-a esas carpetas). Compose publica el puerto **solo en este equipo** (`127.0.0.1:8501`).
-
-**En la nube (Railway):** el mismo `Dockerfile` sirve tal cual (escucha en `$PORT`, 8501 por defecto) con
-`railway.json`; guía paso a paso en [docs/09_despliegue_railway.md](docs/09_despliegue_railway.md). En una URL
-pública, `BRIEFER_REAL_MODE_PASSWORD` protege el modo real (el que gasta con las claves).
-
-**Verificado el 06-oct-2026** (Docker Desktop, Windows): imagen de 3,37 GB (769 MB comprimida), contenedor
-*healthy* a los 10 s y briefing real dentro del contenedor:
-
-```bash
-docker compose exec briefer python scripts/demo.py --tickers SAN.MC AAPL --video --cover \
-  --upload data/samples/grafico_ejemplo.png --deliver telegram
-```
-
-114 s, 0,061 €, 0 pasos con error (portada SDXS, vídeo y Telegram incluidos). Consejos: usa **rutas de modelos
-relativas** en `.env` (p. ej. `BRIEFER_SDXL_MODEL=data/cache/models/sdxs-512-dreamshaper`) para que el mismo
-`.env` valga en Windows y en el contenedor, y **construye la imagen con antelación** (con la red lenta, la
-*build* tardó entre 6 y 60 min).
-
-### Lo primero que se ve: el briefing pregenerado
-
-Al abrir la app, la vista «Hoy» muestra (sin pulsar nada) el **último briefing real guardado** o, si no hay ninguno, el **briefing
-real pregenerado** del repo (`data/samples/demo_briefing/`: cinco valores del IBEX y de EE. UU. con un PDF y un
-gráfico de ejemplo, voz premium de Gemini TTS, «impacto de la noticia» con FinBERT, portada local, vídeo y traza
-«Cómo se hizo»). Un briefing de ensayo en modo demo (mock, datos de ejemplo o sustitutos) **nunca** lo tapa. Desde
-«Hoy», «Preguntar sobre este briefing» lleva al Agente Q&A y «Nuevo briefing» abre el diálogo para generar el tuyo. Se
-regenera con `storage.export_briefing`, no se edita a mano.
-
-### Modos de ejecución
-
-| Modo | Qué hace | Necesita | UI | CLI |
-| --- | --- | --- | --- | --- |
-| **Real** | Noticias y precios reales (caché diaria en `data/cache/`), Claude para análisis, guion, visión y Q&A, STT de OpenAI para la voz, edge-tts (o Gemini TTS con `BRIEFER_TTS_PROVIDER=gemini`); FinBERT si `BRIEFER_FINBERT=true` | `ANTHROPIC_API_KEY` + red (`OPENAI_API_KEY` para preguntar por voz) | Chip del modo (arriba a la derecha) → «Real (APIs de .env)» (no aparece si faltan claves; el popover dice el motivo) | `python scripts/demo.py` |
-| **Demo sin claves (voces reales)** | Noticias de ejemplo, precios sintéticos y modelos simulados, pero el podcast y la respuesta del Q&A **suenan** con edge-tts | Red (edge-tts es gratis y sin clave) | Chip del modo → «Demo · voces reales» (por defecto) | `python scripts/demo.py --demo-voices` |
-| **Mock offline** | Todo simulado y determinista; el audio es un WAV mudo | Nada | Chip del modo → «Demo offline» | `python scripts/demo.py --mock` |
-
-En modo real, si un proveedor falla en un paso núcleo, el briefing termina igualmente con un sustituto (datos de
-ejemplo o mock) **y la UI lo avisa** (insignias, avisos y nodo naranja en «Cómo se hizo»). El botón «Refrescar
-datos» (o `--refresh`) ignora la caché del día.
-
-### CLI
-
-```bash
-python scripts/demo.py --demo-voices                              # sin claves, con voces reales (~6 s, 0 €)
-python scripts/demo.py --mock                                     # todo mock, sin red
-python scripts/demo.py --mock --video --cover                     # + vídeo 9:16 y portada (mock), sin red
-python scripts/demo.py --tickers SAN.MC AAPL --upload data/samples/resultados_ejemplo.pdf data/samples/grafico_ejemplo.png
-python scripts/demo.py --refresh                                  # real, ignorando la caché diaria
-python scripts/demo.py --question "¿Qué dice el PDF?" --briefing pregenerado --warmup
-python scripts/demo.py --mock --strict                            # sale con 3 si algún paso usó un sustituto
-python scripts/smoke_real.py                                      # prueba de humo de cada proveedor con clave (< 0,01 €)
-python scripts/telegram_setup.py --write --test                   # configura el chat de Telegram (Anexo C)
-python -m pytest -q                                               # 1225 tests sin red (los «live» con -m live)
-ruff check src app scripts tests && mypy                          # estilo y tipos, como la CI (pip install -r requirements-dev.txt)
-python scripts/metrics_report.py --include-demo                   # p50/p95 de latencia y coste de los briefings guardados
-python scripts/evaluar_briefings.py                               # evaluación de briefings (tabla en notebooks/eval/); --real genera y juzga lo que falte (gasta)
-python scripts/measure_qa_voice.py                                # cadena de voz del Q&A (audio → STT → Q&A → voz), en frío y caliente
-python scripts/build_pitch.py                                     # regenera pitch/pitch_briefly.pdf
-```
-
-Flags de `scripts/demo.py`: `--tickers T [T ...]` (por defecto `BRIEFER_DEFAULT_TICKERS`; admite nombres como
-«santander»), `--portfolio CSV`, `--upload [FICHERO ...]` (PDF, imagen o audio), `--video`, `--cover` (necesita
-`BRIEFER_IMAGE_GEN_PROVIDER` distinto de `none` en modo real), `--deliver telegram`, `--mock` o `--demo-voices`
-(excluyentes; sin ninguno, modo real), `--refresh`, `--question TEXTO` (pregunta al Agente Q&A en vez de generar),
-`--briefing auto|pregenerado|ninguno|<id o ruta>` (contexto de la pregunta), `--warmup` y `--strict`. Imprime la
-tabla de pasos con proveedor, latencia, coste estimado y caídas a sustituto. **Códigos de salida:** 0 bien · 1
-falló un paso núcleo (dice cuál y lo ya gastado) · 2 entrada inválida · 3 con `--strict`, algún paso usó un
-sustituto · 130 interrumpido.
-
-`scripts/smoke_real.py` hace una llamada mínima real por proveedor configurado (Anthropic texto, estructurado y
-visión, Gemini, TTS y STT; el STT transcribe el audio que acaba de generar el TTS y se valida con el WER) e
-imprime `OK` / `FAIL` / `SKIP` con latencia y coste; nunca imprime claves. Opciones: `--only anthropic gemini
-audio`, `--gemini-model`.
-
-Cuadernos (en [`notebooks/`](notebooks/)):
-[00 · recorrido del pipeline paso a paso](notebooks/00_recorrido_pipeline.ipynb) (mock, sin red ni claves, 13 s) ·
-[01 · evaluación de briefings reales](notebooks/01_evaluacion_briefings.ipynb) ·
-[02 · comparativa de modelos por agente](notebooks/02_comparativa_modelos.ipynb).
-
----
-
-## Anexo B · Configuración
-
-Toda la configuración vive en `.env` (nunca se versiona) y se lee en `src/briefer/config.py`
-(pydantic-settings, sin distinguir mayúsculas). Plantilla completa y comentada en `.env.example`.
-
-**Ojo con los valores por defecto:** en el **código** todos los proveedores son `mock` (y `none` para imagen y
-clasificador) para que tests y desarrollo funcionen sin red ni claves; **`.env.example` propone el stack real**
-del MVP (`anthropic` + `claude` + `whisper_api` + `edge`). La columna «`.env.example`» indica el valor que
-queda al copiar la plantilla. La pregunta por voz real necesita `OPENAI_API_KEY`; sin ella, el STT cae a `mock`
-(transcripción marcada `[MOCK]`).
-
-Sin `ANTHROPIC_API_KEY` (u otra clave necesaria) la app sigue arrancando: con `BRIEFER_FALLBACK_TO_MOCK=true`
-el `registry` cae a `mock` y lo deja en el log; el popover del chip del modo muestra una insignia por familia
-(«real» o «MOCK (falta X)») y bloquea el modo real con el motivo. Solo se aceptan proveedores implementados: un `.env`
-antiguo que nombre uno retirado (`openai` como LLM, `qwen_local`, `whisper_local`, `elevenlabs`) pasa esa familia
-a `mock` con un aviso; cualquier otro nombre no válido hace fallar la configuración al arrancar.
-
-### Proveedores
-
-| Variable | Valores | Código | `.env.example` | Para qué |
-| --- | --- | --- | --- | --- |
-| `BRIEFER_LLM_PROVIDER` | `anthropic` · `gemini` · `mock` | `mock` | `anthropic` | Agentes analista, guionista y Q&A |
-| `BRIEFER_VISION_PROVIDER` | `claude` · `mock` | `mock` | `claude` | Lectura de gráficos, páginas de PDF y capturas de cartera |
-| `BRIEFER_STT_PROVIDER` | `whisper_api` · `mock` | `mock` | `whisper_api` | Pregunta por voz y verificación del podcast |
-| `BRIEFER_TTS_PROVIDER` | `edge` · `gemini` · `mock` | `mock` | `edge` | Podcast y respuesta hablada. `gemini` (de pago, `GEMINI_API_KEY`) solo cambia el podcast: si falla, cae a edge-tts, y el Q&A habla siempre con edge-tts |
-| `BRIEFER_IMAGE_GEN_PROVIDER` | `local` (alias `sdxl_turbo`) · `gemini` · `none` · `mock` | `none` | `none` | Portada (opcional). `local` es gratis (SDXS en CPU, `requirements-local.txt`, ~1,8 GB la primera vez). `gemini` es de pago (≈ 0,029 € por portada, requiere **facturación activa**). Con `none`, la casilla «Portada con IA» se desactiva en modo real |
-| `BRIEFER_IMAGE_CLASSIFIER_PROVIDER` | `clip` · `none` · `mock` | `none` | `none` | Router de las imágenes subidas (opcional, local y gratis). `clip` necesita `requirements-local.txt`; la primera vez descarga ~600 MB |
-| `BRIEFER_FALLBACK_TO_MOCK` | `true` · `false` | `true` | `true` | Si falta clave o librería: mock con aviso (`true`) o `ProviderConfigError` (`false`) |
-
-### Modelos
-
-| Variable | Por defecto (código y `.env.example`) | Para qué |
-| --- | --- | --- |
-| `BRIEFER_LLM_MODEL` | `claude-sonnet-5-5` | Agente Analista (Anthropic) |
-| `BRIEFER_LLM_MODEL_CHEAP` | `claude-haiku-4-5-20251001` | Guionista, Q&A y estructurado de PDF/gráfico/cartera (`get_llm(cheap=True)`) |
-| `BRIEFER_SCRIPTWRITER_MODEL` | vacío (= el barato) | Modelo del Guionista si se quiere otro, p. ej. `claude-sonnet-5-5` (≈ 2,6-2,9× más caro; ver [ADR-006](docs/decisiones/ADR-006-guionista-haiku-puertas-deterministas.md)) |
-| `BRIEFER_GEMINI_MODEL` | `gemini-2.5-flash` | LLM si `BRIEFER_LLM_PROVIDER=gemini` |
-| `BRIEFER_VISION_MODEL` | `claude-sonnet-5-5` | Visión con Claude |
-| `BRIEFER_WHISPER_API_MODEL` | `gpt-4o-mini-transcribe` (alternativa: `whisper-1`) | STT por API (OpenAI): WER 0, 1,3 s y la mitad de coste que `whisper-1`; máximo 25 MB por audio |
-| `BRIEFER_GEMINI_IMAGE_MODEL` | `gemini-3.1-flash-lite-image` | Portada con Gemini (0,0336 $ por imagen 1K, tarifa oficial consultada el 06-oct-2026) |
-| `BRIEFER_SDXL_MODEL` | `IDKiro/sdxs-512-dreamshaper` | Portada local (SDXS, OpenRAIL++, uso comercial); admite una ruta local relativa |
-| `BRIEFER_SDXL_STEPS` | `0` | Pasos de la portada local (`0` = los del modelo: 1 en SDXS) |
-| `BRIEFER_CLIP_MODEL` | `openai/clip-vit-base-patch32` | Router de imágenes local (CPU) |
-| `BRIEFER_LOCAL_DEVICE` | `auto` (`auto` · `cpu` · `cuda` · `mps`) | Dispositivo de los modelos locales |
-
-### Idioma, voces y contenido
-
-| Variable | Por defecto (código y `.env.example`) | Para qué |
-| --- | --- | --- |
-| `BRIEFER_LANGUAGE` | `es` | Idioma de STT y contenido |
-| `BRIEFER_VOICE_A` · `BRIEFER_VOICE_B` | `es-ES-AlvaroNeural` · `es-ES-XimenaNeural` | Voces edge-tts de Toro (A) y Osa (B; también responde en el Q&A). Elegidas en una cata a ciegas |
-| `BRIEFER_GEMINI_TTS_MODEL` | `gemini-3.8-flash-tts` | Modelo de Gemini TTS si `BRIEFER_TTS_PROVIDER=gemini` |
-| `BRIEFER_GEMINI_VOICE_A` · `BRIEFER_GEMINI_VOICE_B` | `Puck` · `Kore` | Voces de Gemini para Toro (A) y Osa (B) |
-| `BRIEFER_SPEAKER_A_NAME` · `BRIEFER_SPEAKER_B_NAME` | `Toro` · `Osa` | Nombres de los locutores (por defecto, los de `src/briefer/brand.py`) |
-| `BRIEFER_TTS_RATE` · `BRIEFER_TTS_PITCH` | `+10%` · vacío (`+0Hz`) | Velocidad y tono de edge-tts |
-| `BRIEFER_VERIFY_PODCAST` | `true` | En modo real, el STT escucha el podcast y mide el WER contra el guion |
-| `BRIEFER_DEFAULT_TICKERS` | `SAN.MC,ITX.MC,IBE.MC,AAPL,NVDA` | Valores por defecto (formato Yahoo, separados por comas) |
-| `BRIEFER_CONTEXT_TICKERS` | `^IBEX,^GSPC` | Índices de referencia: precios y noticias de mercado en todo briefing |
-| `BRIEFER_NEWS_RSS_FEEDS` | vacío | Feeds RSS generalistas; vacío = Expansión «Mercados» + Europa Press (además, por valor: Google News, Bing News, Yahoo y yfinance) |
-| `BRIEFER_NEWS_MAX_ITEMS` | `20` | Máximo de noticias por briefing |
-| `BRIEFER_FINBERT` | `false` | «Impacto de la noticia» (Haiku traduce + FinBERT clasifica). Necesita `requirements-local.txt` |
-| `BRIEFER_PODCAST_TARGET_MINUTES` | `4` | Duración objetivo del podcast |
-
-### Claves
-
-| Variable | Por defecto | Para qué |
-| --- | --- | --- |
-| `ANTHROPIC_API_KEY` | vacío | LLM y visión con Claude |
-| `OPENAI_API_KEY` | vacío | STT: voz a texto y verificación del podcast (opcional) |
-| `GEMINI_API_KEY` | vacío | LLM Gemini, TTS Gemini multi-locutor y portada con Gemini imagen (opcional) |
-| `TELEGRAM_BOT_TOKEN` · `TELEGRAM_CHAT_ID` | vacío | Entrega por Telegram (opcional; ver [Anexo C](#anexo-c--telegram)) |
-
-### Rutas y logging
-
-| Variable | Por defecto | Para qué |
-| --- | --- | --- |
-| `BRIEFER_DATA_DIR` · `BRIEFER_CACHE_DIR` · `BRIEFER_OUTPUT_DIR` · `BRIEFER_SAMPLES_DIR` | `data` · `data/cache` · `data/outputs` · `data/samples` | Rutas (relativas a la raíz del repo si no son absolutas) |
-| `BRIEFER_LOG_LEVEL` | `INFO` | `DEBUG` · `INFO` · `WARNING` · `ERROR`. Solo con `DEBUG` la UI enseña el *traceback* de un error (siempre con las claves redactadas) |
-
----
-
-## Anexo C · Telegram
-
-El envío por Telegram (`delivery/telegram_sender.py`) está **verificado en real** (06-oct-2026: mensaje, audio,
-imagen y vídeo en 8,5 s). Para configurar tu propio bot, una sola vez:
-
-1. En Telegram, abre **@BotFather** → `/newbot` → elige nombre y usuario → copia el token.
-2. Pon el token en `.env`: `TELEGRAM_BOT_TOKEN=<token>` (nunca en un chat ni en un issue).
-3. Abre la conversación con tu bot y escríbele algo (p. ej. `/start`).
-4. `python scripts/telegram_setup.py --write` comprueba el bot (`getMe`), lista los chats que le han escrito
-   (`getUpdates`, últimas 24 h) y escribe `TELEGRAM_CHAT_ID` en `.env` (solo esa línea). Si hay varios chats,
-   añade `--chat-id <id>`.
-5. `python scripts/telegram_setup.py --test` envía un mensaje de prueba.
-
-Con las dos variables rellenas, la casilla «Enviar por Telegram» se activa en «Opciones» del diálogo
-«Nuevo briefing» (o `python scripts/demo.py --deliver telegram`). Se envía: el resumen (HTML, con fuentes y aviso legal),
-el podcast, la portada (con el pie «Imagen generada por IA») o, si no hay, el gráfico general, y el vídeo si se
-generó (límites de la Bot API: 50 MB audio y vídeo, 10 MB foto; lo que se pasa se omite y se avisa). Si falla el
-mensaje, el envío falla; si falla una pieza posterior, el resto cuenta como enviado y el detalle dice qué faltó.
-El token nunca aparece en errores, logs ni traza.
+**Te contamos el mercado; tú decides.**

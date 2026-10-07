@@ -10,8 +10,8 @@
   Exportar:  .venv/Scripts/python scripts/build_pitch.py [--preview carpeta]
   Cifras: docs/04, docs/06, notebooks/eval/resumen.md y ADR-006/007 (medidas o marcadas «estimación»).
 
-  MARCADORES POR RELLENAR (buscar «MARCADOR»):
-    · [enlace a la demo]    → URL de la demo grabada (diapositiva 10); QR con --demo-url
+  Demo: la app desplegada en Railway (diapositiva 10), https://multimodal-market-briefer-production.up.railway.app/
+  Versión entregada: etiqueta v1.0 (rama entrega-v1). Sin marcadores pendientes.
 -->
 <style>
 @font-face {
@@ -291,14 +291,12 @@ table.t tr.ctl td:first-child { color: var(--amber); }
 
 /* ───────────── 10 · Demo ───────────── */
 .demo { display: grid; grid-template-columns: 300px 1fr; gap: 40px; flex: 1; }
-.qr {
-  width: 240px; height: 240px; border-radius: 14px; border: 2px dashed var(--amber); position: relative; overflow: hidden;
-  display: flex; align-items: center; justify-content: center; background: var(--surface);
-}
-.qr img { width: 100%; height: 100%; display: block; background: #fff; }
-.qr.missing img { display: none; }
-.qr.missing::after { content: "QR de la demo\A(pendiente)"; white-space: pre; text-align: center; font-family: var(--mono); font-size: 13px; color: var(--amber); }
-.demo .link { margin-top: 14px; font-size: 16px; }
+.live { background: var(--surface); border: 1px solid var(--accent); border-radius: 14px; padding: 18px 20px; }
+.live .lbl { font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-soft); margin-bottom: 10px; }
+.live .lbl::before { content: "● "; }
+.live .url { font-family: var(--mono); font-size: 14.5px; color: var(--text-strong); line-height: 1.45; }
+.live .modes { margin: 12px 0 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+.live .modes b { color: var(--text); font-weight: 600; }
 .demo .run { margin-top: 18px; font-family: var(--mono); font-size: 12.5px; color: var(--text); background: var(--bg-sidebar); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; line-height: 1.6; }
 .demo .run .c { color: var(--muted); }
 ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; }
@@ -399,7 +397,7 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
 <section class="slide">
   <div class="kicker"><b>03</b> · Producto</div>
   <h2 class="title">Un episodio al día que se escucha, se lee, se ve y se pregunta</h2>
-  <p class="lede">Eliges valores o cargas tu cartera; al cierre llega tu edición. Toro abre con lo que sube; Osa pone el contexto, los riesgos y el aviso legal.</p>
+  <p class="lede">Eliges valores (169 activos validados o cualquiera de Yahoo Finance) o cargas tu cartera; al cierre llega tu edición. Toro abre con lo que sube; Osa pone el contexto, los riesgos y el aviso legal.</p>
   <div class="prod">
     <div class="main">
       <figure class="shot big" data-name="docs/assets/capturas/02_briefing.png">
@@ -548,7 +546,7 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
       <div class="fact"><div class="big">1223</div><p><b>tests sin red</b> (red bloqueada) + 13 «live»; cobertura 97 %; ruff + mypy limpios; CI en 3.11 y 3.13.</p></div>
       <div class="fact"><div class="big">3 modos</div><p><b>Real</b>, <b>sin claves</b> (voces reales) y <b>offline</b> (todo mock). La app abre con un briefing real pregenerado sin claves ni red.</p></div>
       <div class="fact"><div class="big">Fallback</div><p><b>Sustituto marcado</b>: si un paso núcleo falla, sale un sustituto avisado en la UI y en naranja en la traza; los opcionales se omiten. Probado con una clave inválida (401 real).</p></div>
-      <div class="fact"><div class="big">10 s</div><p><b>Docker</b> <em>healthy</em>; briefing real dentro del contenedor en 114 s y 0,061 €. <b>Clon limpio</b> con <span class="mono" style="font-size:13px">run.ps1</span>: app arriba en 220 s.</p></div>
+      <div class="fact"><div class="big">Nube</div><p><b>Desplegada en Railway</b> con la misma imagen Docker (<em>healthy</em> en 10 s; briefing real dentro en 114 s y 0,061 €); modo Real con contraseña. <b>Clon limpio</b> con <span class="mono" style="font-size:13px">run.ps1</span>: 220 s.</p></div>
       <div class="fact" style="border-bottom:0"><div class="big">7 ADR</div><p>Decisiones registradas: stack, proveedores, tolerancia a fallos, salida JSON, privacidad de la cartera, modelos por agente.</p></div>
     </div>
   </div>
@@ -705,24 +703,25 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
 <!-- ═══════════════ 10 · DEMO ═══════════════ -->
 <section class="slide">
   <div class="kicker"><b>10</b> · Demo</div>
-  <h2 class="title">Tres minutos de producto real</h2>
-  <p class="lede" style="margin-bottom:18px">Grabada en modo real con las claves del equipo. Sin claves, la app abre igualmente con un briefing real pregenerado.</p>
+  <h2 class="title">Producto real, en vivo y en la nube</h2>
+  <p class="lede" style="margin-bottom:18px">La demo es la app desplegada (versión <span class="mono" style="font-size:15px">v1.0</span>): cualquiera la abre sin claves con un briefing real pregenerado; en clase, modo Real con los datos de hoy.</p>
   <div class="demo">
     <div>
-      <!-- QR: python scripts/build_pitch.py --demo-url URL (necesita segno); si no existe, se ve el marco -->
-      <div class="qr"><img src="assets/qr_demo.png" alt="QR de la demo" onerror="this.parentElement.classList.add('missing')"></div>
-      <!-- MARCADOR: sustituir [enlace a la demo] por la URL de la demo grabada -->
-      <div class="link">Vídeo: <span class="placeholder">[enlace a la demo]</span></div>
+      <div class="live">
+        <div class="lbl">En vivo · Railway</div>
+        <div class="url">multimodal-market-briefer-<br>production.up.railway.app</div>
+        <p class="modes"><b>Demo</b>: abierta, sin claves ni gasto.<br><b>Real</b>: con la contraseña que da el equipo.</p>
+      </div>
       <div class="run"><span class="c"># arrancar en local</span><br>scripts\run.ps1 · scripts/run.sh<br>docker compose up --build<br><span class="c"># → http://localhost:8501</span></div>
     </div>
     <ol class="steps">
       <li><span><b>Hoy</b>: el episodio pregenerado suena; propuesta de valor y «Cómo se hizo» en una línea.</span><span class="t">0:00</span></li>
-      <li><span><b>Nuevo briefing</b>: valores, un gráfico de velas y opciones (vídeo, portada, Telegram).</span><span class="t">0:25</span></li>
-      <li><span><b>Resultado</b>: puntos clave con fuente, podcast Toro/Osa, transcripción y gráficos.</span><span class="t">1:00</span></li>
-      <li><span><b>Vídeo 9:16</b> y <b>«Cómo se hizo»</b>: modelo, latencia y coste de cada paso.</span><span class="t">1:25</span></li>
-      <li><span><b>Tu cartera</b>: captura del broker → 5/5 posiciones, sin guardar nada.</span><span class="t">2:00</span></li>
-      <li><span><b>Preguntar por voz</b>: «¿Por qué ha subido hoy el Santander?» y Osa responde, con fuentes.</span><span class="t">2:30</span></li>
-      <li><span><b>Telegram</b> en el móvil: resumen, audio, portada y vídeo.</span><span class="t">3:15</span></li>
+      <li><span><b>Nuevo briefing</b> (otra pestaña): buscador de valores, un gráfico de velas, vídeo y portada.</span><span class="t">0:25</span></li>
+      <li><span><b>Preguntar por voz</b> mientras genera: «¿Por qué ha subido el Santander?» y Osa responde.</span><span class="t">1:00</span></li>
+      <li><span><b>Tu cartera</b>: captura del broker → 5/5 posiciones, sin guardar nada.</span><span class="t">1:40</span></li>
+      <li><span><b>Resultado</b>: puntos clave con fuente, podcast Toro/Osa, transcripción y gráficos.</span><span class="t">2:10</span></li>
+      <li><span><b>Vídeo 9:16</b> y <b>«Cómo se hizo»</b>: modelo, latencia y coste de cada paso.</span><span class="t">2:45</span></li>
+      <li><span><b>Archivo</b> y, si el bot está configurado, <b>Telegram</b> en el móvil.</span><span class="t">3:30</span></li>
     </ol>
   </div>
   <div class="disclaimer" style="margin-top:auto;margin-bottom:6px"><span class="lbl">En pantalla</span><span>Voces sintéticas generadas con IA · información, no asesoramiento financiero. Cartera de ejemplo ficticia.</span></div>
@@ -753,7 +752,7 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
       <div class="card"><h3>Calidad editorial</h3><p>Subir fidelidad y utilidad del juez (3,3 / 5) con más evaluación y prueba con usuarios reales.</p></div>
     </div>
   </div>
-  <div class="disclaimer" style="margin-top:14px"><span class="lbl">Pendiente hoy</span><span><span class="mono" style="font-size:13px">run.sh</span> verificado del todo en Linux/macOS · CI en GitHub al subir la rama · portada con Gemini (requiere facturación; la local ya funciona) · métricas de hábito: ninguna medida todavía.</span></div>
+  <div class="disclaimer" style="margin-top:14px"><span class="lbl">Pendiente</span><span><span class="mono" style="font-size:13px">run.sh</span> verificado de punta a punta en Linux/macOS (Windows, Docker y Railway, sí) · prueba con usuarios reales y métricas de hábito: ninguna medida todavía.</span></div>
   <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · pitch técnico</span><span>11 / 12</span></div>
 </section>
 
@@ -768,6 +767,7 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
     <div class="person"><div class="nm">Fernando Dapena Tauste</div><div class="rl">Equipo Briefly</div></div>
   </div>
   <div class="links">github.com/Romequinco/multimodal-market-briefer · MIAX · Taller B5-T4 · 8-oct-2026<br>
+    multimodal-market-briefer-production.up.railway.app<br>
     Tres personas, seis modelos de IA, un toro y una osa.</div>
   <div class="foot"><span class="brand"><svg><use href="#ico"/></svg>Briefly · voces sintéticas generadas con IA · información, no asesoramiento financiero</span><span>12 / 12</span></div>
 </section>

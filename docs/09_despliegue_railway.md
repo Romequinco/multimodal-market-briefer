@@ -1,7 +1,9 @@
 # 09 · Desplegar Briefly en Railway (paso a paso)
 
 > Guía para alguien que no ha desplegado nunca nada. Al terminar tendrás Briefly en una dirección pública
-> (`https://algo.up.railway.app`) que se actualiza sola cada vez que se sube un cambio a `main` en GitHub.
+> (`https://algo.up.railway.app`) que se actualiza sola cada vez que se sube un cambio a la rama que elijas
+> (la de la entrega es `entrega-v1`, protegida: ver el paso 8). Despliegue actual:
+> <https://multimodal-market-briefer-production.up.railway.app/>.
 > Preparado el 07-oct-2026; las pantallas de Railway pueden cambiar de nombre, pero los pasos son estos.
 
 ## Qué hay ya preparado en el repo
@@ -132,10 +134,19 @@ todo (briefings y, si usas la portada local, los modelos de Hugging Face):
 No montes el volumen en `/app/data`: taparía `data/samples/` (el briefing pregenerado de la portada).
 La cartera del usuario sigue sin guardarse nunca en disco (ADR-005), haya volumen o no.
 
-## Paso 8 · Actualizar la app más adelante
+## Paso 8 · Versión congelada de la entrega y actualizaciones
 
-Cada `git push` a `main` redespliega solo (Railway lo detecta). Si algo sale mal, en **Deployments** puedes
-volver a un despliegue anterior con **Rollback**.
+Desde la entrega (07-oct-2026) la app pública sale de la rama **`entrega-v1`**, no de `main`:
+
+- `entrega-v1` y la etiqueta `v1.0` apuntan al mismo commit (lo entregado) y están **protegidas** con reglas
+  de GitHub (*Settings → Rules → Rulesets*): nadie puede hacer push, push forzado ni borrarlas.
+- En Railway: servicio → **Settings → Source → Branch** = `entrega-v1`. Así los commits que el equipo siga
+  haciendo en `main` no cambian la app que ve el evaluador.
+- `main` sigue abierta para mejoras (solo se prohíben push forzado y borrado).
+- Para publicar una versión nueva: crear `v1.1` y una rama `entrega-v1.1` desde `main`, y cambiar la rama en
+  Railway; o, si se quiere mover `entrega-v1`, desactivar antes su regla en GitHub.
+
+Si algo sale mal, en **Deployments** puedes volver a un despliegue anterior con **Rollback**.
 
 ## Costes (estimación, no medidos)
 

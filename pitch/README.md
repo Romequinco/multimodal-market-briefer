@@ -2,22 +2,26 @@
 
 Material de la presentación final (entrega: 8-oct-2026).
 
+**Demo: la app desplegada** en <https://multimodal-market-briefer-production.up.railway.app/> (Railway, rama `entrega-v1`, versión `v1.0`). Abre en modo demo, sin
+claves ni gasto, con un briefing real pregenerado; el modo Real pide una contraseña que el equipo da aparte. No hay
+vídeo grabado: la demo se hace en vivo sobre esa URL con [`demo_guion.md`](demo_guion.md).
+
 | Fichero | Qué es |
 | --- | --- |
 | [`pitch_briefly.pdf`](pitch_briefly.pdf) | Deck técnico exportado: 12 diapositivas 16:9 (1280 × 720) |
 | [`pitch_briefly.html`](pitch_briefly.html) | Fuente del deck (HTML + CSS inline, fuente Source Serif 4 local, logos de `docs/assets/marca/`, capturas de `docs/assets/capturas/`) |
-| [`demo_guion.md`](demo_guion.md) | Guion de la demo grabada (3:30-4:00 min): checklist previa, pasos con tiempos, locución, trucos de edición |
-| `assets/` | Fotograma del vídeo 9:16 del pregenerado (lo extrae el script) y, si se genera, el QR de la demo |
+| [`demo_guion.md`](demo_guion.md) | Guion de la demo en vivo sobre la app desplegada (3:30-4:00 min): checklist previa, pasos con tiempos y locución, plan B |
+| `assets/` | Fotograma del vídeo 9:16 del pregenerado (lo extrae el script) y, si se genera, un QR |
 
 **Regenerar el PDF** (Chrome o Edge del sistema en modo headless; sin dependencias nuevas):
 
 ```bash
 .venv/Scripts/python scripts/build_pitch.py                    # → pitch/pitch_briefly.pdf
 .venv/Scripts/python scripts/build_pitch.py --preview <carpeta> # + una PNG por diapositiva para revisar
-.venv/Scripts/python scripts/build_pitch.py --demo-url <URL>    # + QR de la demo (requiere pip install segno)
+.venv/Scripts/python scripts/build_pitch.py --demo-url <URL>    # + QR en pitch/assets/ (requiere pip install segno; el deck no lo usa)
 ```
 
-**Marcador por rellenar** en `pitch_briefly.html` (buscar `MARCADOR`): `[enlace a la demo]` (diapositiva 10). Si falta una captura, la diapositiva de producto muestra un marco con
+Sin marcadores pendientes: la diapositiva 10 lleva la URL de la app desplegada (y la 12, al cierre). Si falta una captura, la diapositiva de producto muestra un marco con
 su nombre en vez de romper el diseño. Inter y JetBrains Mono no van incluidas: si no están instaladas, el deck usa
 Segoe UI y Consolas.
 
@@ -28,11 +32,10 @@ Contenido original previsto:
   (de `StepMetric`), compliance (MiFID II: no es asesoramiento; RGPD: datos de cartera),
   monetización (B2C como cara visible, B2B2C de marca blanca como negocio) y roadmap
   (edición de mañana, recorte automático de capturas de cartera). El vídeo 9:16, el router
-  CLIP y la cartera desde captura ya están hechos (06-oct); portada y Telegram, implementados sin
-  prueba real: ver `docs/06_estado_actual.md` antes de contarlos como demostrados.
+  CLIP, la cartera desde captura, la portada local y Telegram están hechos y verificados en real (06-oct):
+  ver `docs/06_estado_actual.md`.
 - `capturas/` — capturas de la app para el deck y el README.
-- `demo/` — enlace o vídeo corto de la demo (los `.mp4` pesados no se versionan; subir a un
-  enlace externo y referenciarlo aquí).
+- `demo/` — previsto para un vídeo de la demo; sustituido el 07-oct por la app desplegada en Railway.
 - Guion de la presentación (quién cuenta qué y tiempos).
 
 Fuentes de datos para las cifras: `docs/04_viabilidad_costes_latencia_compliance.md` y las
