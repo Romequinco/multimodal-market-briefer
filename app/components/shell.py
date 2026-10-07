@@ -16,11 +16,13 @@ vistas lo leen con :func:`current_mode`.
 
 from __future__ import annotations
 
+import hmac
 from html import escape
 
 import streamlit as st
 
 from briefer import brand
+from briefer.config import Settings, get_settings
 from briefer.logging_utils import error_text
 
 from .brand import mark_html, page_icon
@@ -107,6 +109,67 @@ def _store_mode(mode: str) -> None:
     st.session_state["use_mock"] = mode != "real"
 
 
+# ── Contraseña del modo real (despliegue público) ─────────────────────────────────
+
+_REAL_UNLOCKED_KEY = "_real_unlocked"
+_REAL_ATTEMPTS_KEY = "_real_attempts"
+#: Intentos fallidos por sesión antes de bloquear el formulario (frena el probar a ciegas).
+MAX_REAL_ATTEMPTS = 5
+
+
+def _real_password(settings: Settings | None = None) -> str:
+    try:
+        secret = (settings or get_settings()).briefer_real_mode_password
+    except Exception:  # .env mal formado: sin contraseña configurada
+        return ""
+    return secret.get_secret_value().strip() if secret is not None else ""
+
+
+def real_password_required(settings: Settings | None = None) -> bool:
+    """``True`` si ``BRIEFER_REAL_MODE_PASSWORD`` tiene valor (el modo real pide contraseña)."""
+    return bool(_real_password(settings))
+
+
+def check_real_password(candidate: str, settings: Settings | None = None) -> bool:
+    """Compara en tiempo constante con ``BRIEFER_REAL_MODE_PASSWORD`` (``False`` si no hay ninguna)."""
+    expected = _real_password(settings)
+    if not expected:
+        return False
+    return hmac.compare_digest(candidate.strip().encode("utf-8"), expected.encode("utf-8"))
+
+
+def real_mode_locked() -> bool:
+    """¿El modo real está bloqueado en esta sesión? (hay contraseña y aún no se ha introducido bien)."""
+    return real_password_required() and not st.session_state.get(_REAL_UNLOCKED_KEY, False)
+
+
+def _unlock_real() -> None:
+    """Callback del formulario: comprueba la contraseña y desbloquea el modo real en la sesión."""
+    attempts = int(st.session_state.get(_REAL_ATTEMPTS_KEY, 0))
+    if attempts >= MAX_REAL_ATTEMPTS:
+        return
+    if check_real_password(str(st.session_state.get("mb_real_pwd", ""))):
+        st.session_state[_REAL_UNLOCKED_KEY] = True
+        st.session_state[_REAL_ATTEMPTS_KEY] = 0
+    else:
+        st.session_state[_REAL_ATTEMPTS_KEY] = attempts + 1
+    st.session_state["mb_real_pwd"] = ""  # la contraseña no se queda en el campo
+
+
+def _real_password_form() -> None:
+    """Campo de contraseña dentro del popover del modo (mientras tanto se sigue en demo)."""
+    attempts = int(st.session_state.get(_REAL_ATTEMPTS_KEY, 0))
+    if attempts >= MAX_REAL_ATTEMPTS:
+        st.error("Demasiados intentos. Recarga la página para volver a probar.")
+        return
+    st.caption("El modo real gasta con las claves de API: introduce la contraseña de esta instalación. "
+               "Mientras tanto se sigue en modo demo.")
+    st.text_input("Contraseña del modo real", type="password", key="mb_real_pwd")
+    st.button("Desbloquear", key="mb_real_unlock", on_click=_unlock_real, type="primary")
+    if attempts:
+        st.caption(f":red[Contraseña incorrecta] ({attempts}/{MAX_REAL_ATTEMPTS}).")
+
+
 def mode_popover() -> str:
     """Chip del modo en la barra superior (``st.popover``) con el selector y los proveedores.
 
@@ -117,29 +180,38 @@ def mode_popover() -> str:
     except Exception as exc:  # .env mal formado
         available, why = False, error_text(exc)
     options = mode_options(available)
+    try:
+        fallback = default_demo_mode()
+    except Exception:  # .env mal formado: la barra no se rompe
+        fallback = "mock"
     previous = st.session_state.get(MODE_KEY)
     if previous not in options:
-        try:
-            previous = default_demo_mode() if previous != "real" else options[-2]
-        except Exception:  # .env mal formado: la barra no se rompe
-            previous = "mock"
+        previous = fallback if previous != "real" else options[-2]
     # El valor del widget manda; si no existe (primera carga) se siembra con el modo de la sesión.
     if st.session_state.get(_MODE_WIDGET) not in options:
         st.session_state[_MODE_WIDGET] = previous
-    mode = st.session_state[_MODE_WIDGET]
+    locked = real_mode_locked()
+    chosen = st.session_state[_MODE_WIDGET]
+    mode = fallback if chosen == "real" and locked else chosen
     tone = "real" if mode == "real" else "demo"
     with st.container(key=f"mb-modechip-{tone}", width="content"):
         with st.popover(MODE_CHIP[mode], icon=":material/radio_button_checked:", width="content"), \
                 st.container(key="mb-mode-pop", gap="small"):
             st.markdown("**Modo de funcionamiento**")
-            mode = st.radio(
+            chosen = st.radio(
                 "Modo de funcionamiento",
                 options,
                 format_func=lambda m: MODE_LABELS[m],
                 key=_MODE_WIDGET,
                 label_visibility="collapsed",
             )
-            st.caption(MODE_HELP[mode])
+            st.caption(MODE_HELP[chosen])
+            mode = chosen
+            if chosen == "real" and real_mode_locked():
+                mode = fallback
+                _real_password_form()
+            elif chosen == "real" and real_password_required():
+                st.caption("Modo real desbloqueado en esta sesión.")
             if not available:
                 st.caption(f"Modo real no disponible: {why}")
             st.markdown("**Proveedores de IA**")
@@ -278,13 +350,17 @@ __all__ = [
     "VIEW_ARCHIVE",
     "VIEW_ASK",
     "VIEW_HOY",
+    "MAX_REAL_ATTEMPTS",
     "about_body",
+    "check_real_password",
     "about_dialog",
     "current_mode",
     "footer",
     "host_html",
     "mode_options",
     "mode_popover",
+    "real_mode_locked",
+    "real_password_required",
     "run_app",
     "topbar",
 ]

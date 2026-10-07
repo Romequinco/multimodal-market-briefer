@@ -60,10 +60,12 @@ USER app
 
 EXPOSE 8501
 
+# Puerto: 8501 en local (docker compose); en Railway u otra nube, el que indique la variable PORT.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8501/_stcore/health', timeout=4).status == 200 else 1)" || exit 1
+    CMD python -c "import os,urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:%s/_stcore/health' % os.environ.get('PORT', '8501'), timeout=4).status == 200 else 1)" || exit 1
 
 # En el contenedor 0.0.0.0 es lo correcto: el aislamiento lo da el mapeo de puertos de Docker.
-CMD ["streamlit", "run", "app/main.py", \
-     "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true", \
-     "--browser.gatherUsageStats=false"]
+# Forma shell con exec: expande ${PORT} y deja a streamlit como PID 1 (recibe SIGTERM al parar).
+CMD exec streamlit run app/main.py \
+    --server.port="${PORT:-8501}" --server.address=0.0.0.0 --server.headless=true \
+    --browser.gatherUsageStats=false

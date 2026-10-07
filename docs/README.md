@@ -80,6 +80,7 @@ Reglas: no ejecutar git, no versionar `.env`, no copiar material de clase litera
 | [06_estado_actual.md](06_estado_actual.md) | Estado vivo |
 | [07_revision_critica.md](07_revision_critica.md) | Revisión crítica del plan (05-oct): hallazgos, MoSCoW, plan por fases, checklist de rúbrica |
 | [08_identidad_marca.md](08_identidad_marca.md) | Guía de marca: decisiones, logo y variantes, colores con contrastes, tipografía, tono, locutores, formatos |
+| [09_despliegue_railway.md](09_despliegue_railway.md) | Despliegue en Railway paso a paso (demo pública y modo real con contraseña) |
 | [decisiones/](decisiones/README.md) | ADRs |
 | [clase/00_indice.md](clase/00_indice.md) | Resumen del material del taller |
 | [assets/](assets/) | Diagramas y capturas; [assets/marca/](assets/marca/) con logo, icono, banner y fuentes |

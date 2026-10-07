@@ -119,6 +119,60 @@ def test_mode_chip_real_when_keys_available(monkeypatch: pytest.MonkeyPatch) -> 
     assert at.get("popover")[0].proto.popover.label == "Real"
 
 
+def test_real_password_pure_helpers() -> None:
+    locked = Settings(briefer_real_mode_password="s3creta")
+    assert shell.real_password_required(locked)
+    assert shell.check_real_password("s3creta", locked)
+    assert shell.check_real_password("  s3creta ", locked)  # espacios al copiar y pegar
+    assert not shell.check_real_password("otra", locked)
+    open_ = Settings(briefer_real_mode_password="")
+    assert not shell.real_password_required(open_)
+    assert not shell.check_real_password("", open_)  # sin contraseña configurada nunca «acierta»
+
+
+@pytest.fixture
+def real_password(monkeypatch: pytest.MonkeyPatch):
+    from briefer.config import reset_settings_cache
+
+    monkeypatch.setattr(shell, "real_mode_available", lambda: (True, ""))
+    monkeypatch.setenv("BRIEFER_REAL_MODE_PASSWORD", "s3creta")
+    reset_settings_cache()
+    yield "s3creta"
+    monkeypatch.delenv("BRIEFER_REAL_MODE_PASSWORD")
+    reset_settings_cache()
+
+
+def test_real_mode_needs_password_when_configured(real_password: str) -> None:
+    at = app(MAIN).run()
+    at.radio(key="mb_mode_choice").set_value("real").run()
+    assert not at.exception
+    # Elegido «Real» pero bloqueado: se sigue en demo y aparece el campo de contraseña.
+    assert at.session_state["run_mode"] == "mock" and at.session_state["use_mock"] is True
+    assert at.get("popover")[0].proto.popover.label == "Demo offline"
+    at.text_input(key="mb_real_pwd").input("mala")
+    at.button(key="mb_real_unlock").click().run()
+    assert at.session_state["run_mode"] == "mock"
+    assert any("Contraseña incorrecta" in c.value for c in at.caption)
+    at.text_input(key="mb_real_pwd").input(real_password)
+    at.button(key="mb_real_unlock").click().run()
+    assert not at.exception
+    assert at.session_state["run_mode"] == "real" and at.session_state["use_mock"] is False
+    assert at.get("popover")[0].proto.popover.label == "Real"
+    assert at.session_state["mb_real_pwd"] == ""  # la contraseña no se queda en el campo
+
+
+def test_real_password_attempts_are_limited(real_password: str) -> None:
+    at = app(MAIN).run()
+    at.radio(key="mb_mode_choice").set_value("real").run()
+    for _ in range(shell.MAX_REAL_ATTEMPTS):
+        at.text_input(key="mb_real_pwd").input("mala")
+        at.button(key="mb_real_unlock").click().run()
+    assert not at.exception
+    assert any("Demasiados intentos" in e.value for e in at.error)
+    assert not at.text_input  # el formulario desaparece: ni la contraseña buena desbloquea ya
+    assert at.session_state["run_mode"] == "mock"
+
+
 def test_mode_chip_survives_view_changes() -> None:
     at = app(MAIN).run()
     at.radio(key="mb_mode_choice").set_value("demo_voices").run()

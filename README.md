@@ -525,6 +525,7 @@ transcripción, los gráficos y los metadatos del audio. Guía completa en
 | [06 · Estado actual](docs/06_estado_actual.md) | Qué funciona, mediciones, riesgos y registro de jornadas |
 | [07 · Revisión crítica](docs/07_revision_critica.md) | Revisión del plan: hallazgos, prioridades MoSCoW, plan por fases |
 | [08 · Identidad de marca](docs/08_identidad_marca.md) | Guía de marca de Briefly: logo, colores, tipografía, tono, locutores |
+| [09 · Despliegue en Railway](docs/09_despliegue_railway.md) | Publicar Briefly en la nube paso a paso (demo pública, modo real con contraseña) |
 | [Decisiones (ADR)](docs/decisiones/README.md) | Decisiones de arquitectura |
 | [Material de clase](docs/clase/00_indice.md) | Resumen del material del taller |
 | [Cuadernos](notebooks/README.md) | Recorrido del pipeline, evaluación de briefings, comparativa de modelos |
@@ -597,6 +598,10 @@ accelerate, de modo que CLIP, FinBERT y la portada local funcionan en el contene
 LOCAL_MODELS=false` para una imagen mínima). Los modelos de Hugging Face se guardan en el volumen `hf-cache`;
 `data/outputs/` y `data/cache/` se montan como volúmenes (en Linux, si tu UID no es 1000, da permisos de escritura
 a esas carpetas). Compose publica el puerto **solo en este equipo** (`127.0.0.1:8501`).
+
+**En la nube (Railway):** el mismo `Dockerfile` sirve tal cual (escucha en `$PORT`, 8501 por defecto) con
+`railway.json`; guía paso a paso en [docs/09_despliegue_railway.md](docs/09_despliegue_railway.md). En una URL
+pública, `BRIEFER_REAL_MODE_PASSWORD` protege el modo real (el que gasta con las claves).
 
 **Verificado el 06-oct-2026** (Docker Desktop, Windows): imagen de 3,37 GB (769 MB comprimida), contenedor
 *healthy* a los 10 s y briefing real dentro del contenedor:

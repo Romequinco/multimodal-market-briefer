@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr | None = None
     gemini_api_key: SecretStr | None = None
 
+    # ── Acceso (despliegue público) ─────────────────────────────────────────────
+    # Si tiene valor, la UI pide esta contraseña antes de activar el modo Real (el que gasta con las
+    # claves de API); los modos demo siguen abiertos. Vacío = sin contraseña (uso en local).
+    briefer_real_mode_password: SecretStr | None = None
+
     # ── Entrega ─────────────────────────────────────────────────────────────────
     telegram_bot_token: SecretStr | None = None
     telegram_chat_id: str | None = None
