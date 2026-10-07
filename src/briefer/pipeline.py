@@ -1359,7 +1359,7 @@ def answer_question(
         llm_cheap = providers.llm_cheap
         if run_mode != "real":
             def _demo(step: StepHandle) -> QAAnswer:
-                answer = qa.demo_answer(question_text, briefing)
+                answer = qa.demo_answer(question_text, briefing, history=history)
                 step.detail = ("Demo guiada por reglas, sin llamada a un LLM; "
                                f"fuentes citadas: {len(answer.sources)}")
                 return answer
@@ -1387,6 +1387,8 @@ def _speak(answer: QAAnswer, briefing: Briefing | None, tts: TTSProvider, s: Set
 
     El TTS sale de ``qa_tts``: si el podcast usa Gemini, la respuesta va por edge-tts (latencia).
     """
+    if answer.response_kind == "demo_notice":
+        return answer
     tts = qa_tts(s, tts)
     metrics = list(answer.metrics)
     qa_dir = s.output_path / (briefing.id if briefing else "sin_briefing") / "qa"
@@ -1421,7 +1423,7 @@ def speak_answer(
     Si la respuesta ya tiene audio, se devuelve tal cual. ``mode`` debe ser el mismo de la
     pregunta.
     """
-    if answer.audio_path is not None:
+    if answer.audio_path is not None or answer.response_kind == "demo_notice":
         return answer
     s = settings or get_settings()
     providers = _providers_for_mode(s, resolve_mode(mode, use_mock))

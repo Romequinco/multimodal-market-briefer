@@ -153,7 +153,8 @@ def test_speak_answer_tolerates_tts_failure(
         raise RuntimeError("tts caído")
 
     monkeypatch.setattr(MockTTS, "synthesize", broken)
-    ans = pipeline.answer_question("Hola", sample_briefing, speak=False, mode="mock", settings=settings)
+    ans = pipeline.answer_question("¿Qué dice el briefing sobre Santander?", sample_briefing,
+                                   speak=False, mode="mock", settings=settings)
     spoken = pipeline.speak_answer(ans, sample_briefing, mode="mock", settings=settings)
     assert spoken.audio_path is None and spoken.metrics[-1].step == "qa.tts" and spoken.metrics[-1].error
 

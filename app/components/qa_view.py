@@ -51,7 +51,7 @@ def start_warmup(run_mode: str) -> bool:
     return True
 
 
-def suggestions(b: Briefing | None) -> list[str]:
+def suggestions(b: Briefing | None, *, demo: bool = False) -> list[str]:
     """Tres preguntas de ejemplo a partir del briefing (un clic y responde).
 
     La última, «¿Debería comprar acciones?», enseña el guardarraíl MiFID II (informa, no asesora).
@@ -64,8 +64,10 @@ def suggestions(b: Briefing | None) -> list[str]:
         if tickers:
             name = TICKER_UNIVERSE.get(tickers[0], {}).get("name", tickers[0])
             out.append(f"¿Qué dice este briefing sobre {name}?")
+            if demo:
+                out.append(f"¿Qué precio tiene {name} en este briefing?")
     out.append("¿Cuáles son las fuentes del briefing?")
-    out.append("¿Debería comprar acciones?")
+    out.append("¿Cuál subió más?" if demo else "¿Debería comprar acciones?")
     return out
 
 
@@ -171,7 +173,7 @@ def render_answer_body(answer: QAAnswer, briefing: Briefing | None, *, key: str,
     if answer.audio_path is not None and Path(answer.audio_path).exists():
         st.audio(str(answer.audio_path))
         st.caption(VOICE_NOTE)
-    elif audio_index is not None:
+    elif audio_index is not None and answer.response_kind != "demo_notice":
         from briefer import pipeline
 
         from .shell import current_mode

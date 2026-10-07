@@ -168,7 +168,7 @@ def test_qa_answer_is_normalized_before_tts(
     monkeypatch.setattr(pipeline, "demo_voice_tts", lambda _s: tts)
     monkeypatch.setattr(
         qa, "demo_answer",
-        lambda question, briefing: QAAnswer(
+        lambda question, briefing, **kwargs: QAAnswer(
             question=question, answer_text="SAN.MC sube un 2,5 % hasta 4,3 €."
         ),
     )

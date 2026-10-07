@@ -271,6 +271,7 @@ class QAAnswer(_Model):
     audio_path: Path | None = None
     sources: list[str] = Field(default_factory=list)
     metrics: list[StepMetric] = Field(default_factory=list)
+    response_kind: Literal["answer", "demo_excerpt", "demo_notice"] = "answer"
 
 
 __all__ = [

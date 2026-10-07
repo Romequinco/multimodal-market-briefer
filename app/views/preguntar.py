@@ -92,7 +92,7 @@ def _answer(question: str | Path, speak: bool) -> QAAnswer:
     with st.spinner("Pensando…"):
         answer = pipeline.answer_question(question, briefing, speak=speak and not two_step,
                                           history=history, mode=mode)
-    if not two_step:
+    if not two_step or answer.response_kind == "demo_notice":
         return answer
     with st.container(key="mb-qa-pending"):  # el texto se ve ya, mientras se sintetiza la voz
         qa_view.render_answer_body(answer, briefing, key="pending", trace=False)
@@ -117,8 +117,8 @@ with st.container(key="mb-qa"):
     # ── Cabecera ──
     st.html(qa_view.page_title_html())
     if mode != "real":
-        st.info("Demo guiada: consulta los puntos y fuentes del briefing. Las respuestas se construyen con "
-                "su contenido guardado; la conversación libre y el micrófono están disponibles en modo Real.",
+        st.info("Demo guiada: consulta el resumen, las empresas, sus precios y variaciones del briefing. "
+                "Usa las sugerencias para probarla. La conversación libre y el micrófono están en modo Real.",
                 icon=":material/info:")
     if briefing is not None:
         with st.container(key="mb-qa-context", horizontal=True, vertical_alignment="center", gap="small"):
@@ -144,7 +144,7 @@ with st.container(key="mb-qa"):
     with st.container(key="mb-qa-composer"):
         compact = "on" if answers else "off"
         asked = {str(a.question).strip() for a in answers}
-        remaining_suggestions = [q for q in qa_view.suggestions(briefing) if q not in asked]
+        remaining_suggestions = [q for q in qa_view.suggestions(briefing, demo=mode != "real") if q not in asked]
         if remaining_suggestions:
             with st.container(key=f"mb-qa-sugs-{compact}"):
                 st.pills("Prueba con:", remaining_suggestions, key=SUGGEST_KEY, on_change=_suggest,
