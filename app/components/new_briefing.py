@@ -593,7 +593,8 @@ def new_briefing_form(*, key: str = "nb") -> None:
                       help="Vídeo vertical 9:16 con el podcast, los gráficos y subtítulos (unos segundos más).")
             o2.toggle("Portada con IA", key=f"{key}_cover", disabled=not cover_ready,
                       help="Ilustración generada por IA a partir del tono del día (no representa datos)."
-                      if cover_ready else "Configura BRIEFER_IMAGE_GEN_PROVIDER (p. ej. local) en .env.")
+                      if cover_ready else "Portada desactivada en esta instalación: configura "
+                      "BRIEFER_IMAGE_GEN_PROVIDER (local o gemini) en .env o en las variables del servidor.")
             o3.toggle("Enviar por Telegram", key=f"{key}_telegram", disabled=not telegram_ready,
                       help="Resumen, audio, imagen y vídeo (si lo hay) a tu chat de Telegram."
                       if telegram_ready else "Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID "

@@ -95,6 +95,19 @@ BRIEFER_REAL_MODE_PASSWORD=una-frase-larga-que-solo-sepa-el-equipo
 - Telegram (opcional): `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`, como en local.
 - Si alguna vez la contraseña se comparte de más, cámbiala aquí: Railway redespliega y la anterior deja de valer.
 
+## Paso 6b (opcional) · Portada con IA
+
+Con la configuración de arriba (`BRIEFER_IMAGE_GEN_PROVIDER=none`), el interruptor «Portada con IA» del
+diálogo sale desactivado en modo Real. Dos formas de activarlo:
+
+| | **Gemini (recomendada en Railway)** | **Local (SDXS en CPU)** |
+|---|---|---|
+| Variables | `BRIEFER_IMAGE_GEN_PROVIDER=gemini` y `GEMINI_API_KEY=…` | `BRIEFER_IMAGE_GEN_PROVIDER=local` y `LOCAL_MODELS=true` |
+| Coste | ≈ 0,03 € por portada (estimación de [04](04_viabilidad_costes_latencia_compliance.md)); exige **facturación activa** en el proyecto de Google de la clave (sin ella responde 429 y el briefing sale sin portada) | 0 € de API, pero más Railway: imagen de ~3,4 GB, ~2-3 GB de RAM al generar (estimación) y ~1,8 GB de modelo que se descarga la primera vez |
+| Notas | Nada más que tocar | Añade un volumen en `/home/app/.cache/huggingface` (y `RAILWAY_RUN_UID=0`) para no volver a descargar el modelo en cada despliegue; la primera portada tarda más |
+
+La portada siempre lleva el rótulo «Imagen generada por IA» y es opcional: si falla, el briefing sigue sin ella.
+
 ## Paso 7 (opcional) · Que el Archivo no se borre en cada despliegue
 
 El disco del contenedor se vacía en cada despliegue: los briefings generados desaparecen (el pregenerado de
