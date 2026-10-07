@@ -231,6 +231,15 @@ def new_briefing_id(now: datetime | None = None) -> str:
     return f"{now:%Y%m%d-%H%M%S}-{uuid4().hex[:6]}"
 
 
+class BriefingOptions(_Model):
+    """Opciones de generación reutilizables; nunca contiene documentos ni cartera."""
+
+    target_minutes: float = Field(default=4.0, gt=0, le=30)
+    make_video: bool = False
+    make_cover: bool = False
+    telegram: bool = False
+
+
 class Briefing(_Model):
     """Resultado completo de ``pipeline.run_briefing``."""
 
@@ -247,6 +256,7 @@ class Briefing(_Model):
     metrics: list[StepMetric] = Field(default_factory=list)
     # Añadido respecto a la spec inicial (opcional): resultados de entrega por canal.
     deliveries: list[DeliveryResult] = Field(default_factory=list)
+    generation_options: BriefingOptions | None = None
 
 
 class QAAnswer(_Model):
@@ -270,6 +280,7 @@ __all__ = [
     "AudioAsset",
     "AudioSegment",
     "Briefing",
+    "BriefingOptions",
     "ChartAsset",
     "DeliveryResult",
     "DocumentInsight",

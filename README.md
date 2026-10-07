@@ -87,10 +87,17 @@ La app tiene tres vistas en la barra superior. El chip de arriba a la derecha ca
 | Vista | Qué haces |
 | --- | --- |
 | **Hoy** | Escuchas el último briefing (o el pregenerado). Pestañas: Puntos clave · Transcripción · Gráficos · Vídeo · Cómo se hizo. **Nuevo briefing** abre un diálogo con cuatro secciones: *valores* (buscador de 169 activos validados del IBEX 35, Europa, EE. UU., índices, materias primas, cripto y divisas, más búsqueda libre en Yahoo Finance), *tu cartera* (CSV, captura del broker o ejemplo), *documentos* (PDF, gráficos, notas de voz) y *opciones* (vídeo, portada con IA, Telegram). |
-| **Preguntar** | Escribes o grabas una pregunta sobre el briefing. El Agente Q&A responde con fuentes y Osa la lee en voz alta. |
+| **Preguntar** | En Real escribes o grabas una pregunta; el agente responde con fuentes y Osa puede leerla. En demo consultas los puntos y fuentes del briefing mediante una demo guiada, sin micrófono ni conversación libre. |
 | **Archivo** | Buscas, filtras (todos, con audio, demo), abres o borras briefings. «Privacidad y datos» borra todo lo guardado. |
 
 ### Tres modos
+
+La web permite preguntar desde cada punto clave, buscar palabras en la transcripción y descargarla en TXT.
+«Nuevo briefing» muestra una vista previa de las imágenes y el tamaño de los documentos, pliega las secciones
+opcionales y permite elegir la duración aproximada (2–10 minutos, en Real; la demo mantiene su episodio corto).
+«Repetir selección», en Hoy y Archivo, recupera valores y opciones sin generar nada hasta que pulses Generar;
+la cartera y los documentos se añaden de nuevo. En Preguntar puedes solicitar la voz después de leer una respuesta,
+y el historial se reinicia al cambiar de briefing o de modo.
 
 | | **Real** | **Demo · voces reales** (por defecto) | **Demo offline** |
 | --- | --- | --- | --- |

@@ -151,7 +151,7 @@ def test_render_full_briefing(sample_briefing: Briefing, tmp_path: Path) -> None
     assert "Del archivo · 05/10/2026" in body and bv.VOICE_NOTE in body
     assert at.get("audio") and at.get("video")
     labels = [d.label for d in at.get("download_button")]
-    assert labels == ["Podcast .wav", "Todo .zip"]  # el .srt del ejemplo no existe en disco
+    assert labels == ["Podcast .wav", "Transcripción .txt", "Todo .zip"]  # el .srt del ejemplo no existe en disco
     assert any(btn.label == "Preguntar sobre este briefing" for btn in at.button)
     assert not any("mb-disclaimer" in c.value for c in at.caption), "el aviso legal lo pone el pie del armazón"
 

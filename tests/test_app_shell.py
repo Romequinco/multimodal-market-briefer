@@ -169,7 +169,7 @@ def test_real_password_attempts_are_limited(real_password: str) -> None:
         at.button(key="mb_real_unlock").click().run()
     assert not at.exception
     assert any("Demasiados intentos" in e.value for e in at.error)
-    assert not at.text_input  # el formulario desaparece: ni la contraseña buena desbloquea ya
+    assert all(field.key != "mb_real_pwd" for field in at.text_input)  # el formulario de contraseña desaparece
     assert at.session_state["run_mode"] == "mock"
 
 

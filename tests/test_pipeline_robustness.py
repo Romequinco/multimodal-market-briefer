@@ -162,7 +162,7 @@ def test_qa_failure_carries_metrics(settings: Settings, monkeypatch: pytest.Monk
     def boom(*_a, **_k):
         raise RuntimeError("q&a roto")
 
-    monkeypatch.setattr(pipeline.qa, "answer", boom)
+    monkeypatch.setattr(pipeline.qa, "demo_answer", boom)
     with pytest.raises(pipeline.PipelineStepError) as info:
         pipeline.answer_question("Hola", None, mode="mock", settings=settings)
     assert [m.step for m in info.value.metrics] == ["agents.qa"]

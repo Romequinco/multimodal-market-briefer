@@ -25,6 +25,7 @@ Estado y reruns:
 from __future__ import annotations
 
 import html
+import io
 import re
 import shutil
 import tempfile
@@ -36,6 +37,7 @@ import components  # noqa: F401  (añade src/ al sys.path)
 from briefer.config import get_settings
 from briefer.ingest.tickers import CATALOG, TICKER_UNIVERSE, ticker_info
 from briefer.logging_utils import error_text, get_logger
+from briefer.schemas import Briefing, BriefingOptions
 from components.players import (
     StatusProgress,
     pending,
@@ -49,6 +51,7 @@ log = get_logger("app.nuevo")
 DONE_KEY = "_nb_done"
 PORTFOLIO_KEY = "portfolio"
 LAST_TICKERS_KEY = "_nb_last_tickers"
+REPEAT_KEY = "_nb_repeat"
 #: Mensajes de la sección cartera (sobreviven a los reruns del diálogo): lista de ``(tipo, texto)``.
 PF_MSGS_KEY = "_nb_pf_msgs"
 PF_ERROR_KEY = "_nb_pf_error"  # (origen "csv"|"shot", texto)
@@ -443,6 +446,40 @@ def _yahoo_search(key: str, mode: str) -> None:
                        "reales en modo Real.")
 
 
+def _docs_key(key: str) -> str:
+    epoch = st.session_state.get(f"{key}_docs_epoch", 0)
+    return f"{key}_docs_{epoch}" if epoch else f"{key}_docs"
+
+
+def format_file_size(size: int) -> str:
+    return f"{size / (1024 * 1024):.1f} MB" if size >= 1024 * 1024 else f"{max(1, round(size / 1024))} KB"
+
+
+def repeat_briefing_button(briefing: Briefing | Path, *, key: str) -> None:
+    """Abre un formulario precargado sin iniciar generación ni recuperar datos personales."""
+    if not st.button("Repetir selección", key=key, icon=":material/replay:", type="tertiary",
+                     help="Recupera los valores y las opciones; podrás revisarlos antes de generar."):
+        return
+    if isinstance(briefing, Path):
+        from briefer import storage
+
+        try:
+            briefing = storage.load_briefing(briefing)
+        except Exception as exc:
+            show_error(exc, "la recuperación del briefing")
+            return
+    options = briefing.generation_options or BriefingOptions(
+        make_video=briefing.video is not None, make_cover=briefing.cover_path is not None,
+        telegram=any(d.channel == "telegram" for d in briefing.deliveries),
+    )
+    options = options.model_copy(update={"target_minutes": min(10.0, max(2.0, options.target_minutes))})
+    st.session_state[REPEAT_KEY] = {
+        "tickers": list(briefing.context.tickers), "options": options,
+        "date": briefing.analysis.date.strftime("%d/%m/%Y"),
+    }
+    _new_briefing_dialog()
+
+
 def _on_generate(key: str, deliver: list[str], make_cover: bool, refresh_allowed: bool) -> None:
     """``on_click`` de «Generar»: deja la petición con lo que hay en los widgets (se consume una vez)."""
     ss = st.session_state
@@ -450,7 +487,8 @@ def _on_generate(key: str, deliver: list[str], make_cover: bool, refresh_allowed
     ss[LAST_TICKERS_KEY] = tickers
     ss[f"{key}_request"] = {
         "tickers": tickers,
-        "uploads": list(ss.get(f"{key}_docs") or []),
+        "uploads": list(ss.get(_docs_key(key)) or []),
+        "target_minutes": float(ss.get(f"{key}_duration", 4.0)),
         "make_video": bool(ss.get(f"{key}_video")),
         "make_cover": make_cover and bool(ss.get(f"{key}_cover")),
         "deliver": deliver if ss.get(f"{key}_telegram") else [],
@@ -509,6 +547,11 @@ def _run(request: dict, mode: str, settings) -> None:
                         mode=mode,
                         use_cache=not request["refresh"],
                         progress=reporter,
+                        settings=settings.model_copy(update={
+                            "briefer_podcast_target_minutes": request.get(
+                                "target_minutes", settings.briefer_podcast_target_minutes,
+                            ),
+                        }),
                     )
                     bar.progress(1.0, text="Briefing listo")
                     status.update(label="Briefing listo", state="complete", expanded=False)
@@ -551,6 +594,17 @@ def new_briefing_form(*, key: str = "nb") -> None:
 
     mode = current_mode()
     settings = get_settings()
+    repeat = st.session_state.pop(REPEAT_KEY, None)
+    if repeat is not None:
+        forget_portfolio(key)
+        st.session_state[f"{key}_tickers"] = repeat["tickers"]
+        st.session_state[f"{key}_duration"] = repeat["options"].target_minutes
+        st.session_state[f"{key}_video"] = repeat["options"].make_video
+        st.session_state[f"{key}_cover"] = repeat["options"].make_cover
+        st.session_state[f"{key}_telegram"] = repeat["options"].telegram
+        st.session_state[f"{key}_refresh"] = False
+        st.session_state[f"{key}_docs_epoch"] = st.session_state.get(f"{key}_docs_epoch", 0) + 1
+        st.session_state[f"{key}_repeat_note"] = repeat["date"]
 
     # Un único hueco: al generar se vacía primero (si no, el formulario de la ejecución anterior
     # seguiría visible y pulsable, «caducado», mientras corre el pipeline) y se pinta el progreso.
@@ -577,6 +631,9 @@ def new_briefing_form(*, key: str = "nb") -> None:
     options = list(dict.fromkeys([*defaults, *catalog, *current]))
 
     with form_parent, st.container(key=f"{key}-form"):
+        if st.session_state.get(f"{key}_repeat_note"):
+            st.info("Selección recuperada del briefing del " + st.session_state[f"{key}_repeat_note"]
+                    + ". Revisa las opciones y pulsa Generar. Añade de nuevo la cartera o los documentos si los necesitas.")
         # 1 · Valores
         with st.container(key=f"{key}-sec1"):
             _section(1, "¿Qué quieres seguir?")
@@ -616,18 +673,18 @@ def new_briefing_form(*, key: str = "nb") -> None:
                                 'selección.</div>', unsafe_allow_html=True)
 
         # 2 · Cartera
-        with st.container(key=f"{key}-sec2"):
+        with st.expander("Tu cartera · opcional", expanded=st.session_state.get(PORTFOLIO_KEY) is not None):
             _section(2, "Tu cartera", "opcional")
             _portfolio_section(key, mode, settings)
 
         # 3 · Documentos
-        with st.container(key=f"{key}-sec3"):
+        with st.expander("Documentos · opcional", expanded=bool(st.session_state.get(_docs_key(key)))):
             _section(3, "Documentos", "opcional")
             docs = st.file_uploader(
                 "PDF de resultados, capturas de gráficos o notas de voz",
                 type=UPLOAD_TYPES,
                 accept_multiple_files=True,
-                key=f"{key}_docs",
+                key=_docs_key(key),
                 help="Detectamos el tipo por la extensión: los PDF se leen con extracción de texto + visión, "
                      "las imágenes de gráficos con visión y los audios se transcriben (voz a texto). Se añaden "
                      "como contexto del análisis y se borran al terminar. La captura de tu cartera va en el "
@@ -640,12 +697,33 @@ def new_briefing_form(*, key: str = "nb") -> None:
                     for f in docs for label, cls in [doc_kind(f.name)]
                 )
                 st.markdown(f'<ul class="mb-nb-files">{items}</ul>', unsafe_allow_html=True)
+                for file in docs:
+                    label, kind = doc_kind(file.name)
+                    st.caption(f"{file.name} · {format_file_size(len(file.getvalue()))} · {label}")
+                    if kind == "img":
+                        from PIL import Image
+                        try:
+                            with Image.open(io.BytesIO(file.getvalue())) as image:
+                                image.thumbnail((360, 220))
+                                st.image(image.copy(), caption=file.name, width="content")
+                        except (OSError, ValueError, Image.DecompressionBombError):
+                            st.warning(f"No se puede mostrar la vista previa de {file.name}. Revisa la imagen.")
 
         # 4 · Opciones
         cover_ready = mode != "real" or settings.briefer_image_gen_provider != "none"
         telegram_ready = bool(settings.telegram_bot_token and settings.telegram_chat_id)
-        with st.container(key=f"{key}-sec4"):
+        active_options = any(st.session_state.get(f"{key}_{name}") for name in ("video", "cover", "telegram", "refresh"))
+        active_options = active_options or (
+            st.session_state.get(f"{key}_duration", settings.briefer_podcast_target_minutes)
+            != settings.briefer_podcast_target_minutes
+        )
+        with st.expander("Opciones · duración, vídeo y portada", expanded=active_options):
             _section(4, "Opciones")
+            if f"{key}_duration" not in st.session_state:
+                st.session_state[f"{key}_duration"] = min(10.0, max(2.0, settings.briefer_podcast_target_minutes))
+            st.number_input("Duración del podcast (minutos)", min_value=2.0, max_value=10.0, step=0.5,
+                            value=None, key=f"{key}_duration",
+                            help="Duración aproximada. En demo el episodio sigue siendo un ejemplo corto.")
             o1, o2, o3 = st.columns(3)
             o1.toggle("Vídeo corto", key=f"{key}_video",
                       help="Vídeo vertical 9:16 con el podcast, los gráficos y subtítulos (unos segundos más).")
@@ -686,4 +764,5 @@ def new_briefing_button(*, key: str, label: str = "Nuevo briefing", type: str = 
                         width="content") -> None:
     """Botón que abre el diálogo «Nuevo briefing»."""
     if st.button(label, key=key, type=type, width=width, icon=":material/add:"):
+        st.session_state.pop("nb_repeat_note", None)
         _new_briefing_dialog()

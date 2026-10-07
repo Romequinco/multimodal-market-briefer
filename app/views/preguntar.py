@@ -55,12 +55,15 @@ if briefing is None:
         briefing = featured[0]
         st.session_state["briefing"] = briefing
 
-context_id = briefing.id if briefing is not None else None
+context_id = (briefing.id if briefing is not None else None, mode)
 if st.session_state.get(CONTEXT_KEY) != context_id:
     st.session_state[CONTEXT_KEY] = context_id
     st.session_state[ANSWERS_KEY] = []
     st.session_state[HISTORY_KEY] = []
     st.session_state[VOICE_KEY] = []
+    st.session_state.pop("_qa_audio_request", None)
+    st.session_state.pop(SCROLL_KEY, None)
+    st.session_state.pop(SUGGEST_KEY, None)
 
 
 def _suggest() -> None:
@@ -75,6 +78,7 @@ def _clear() -> None:
     st.session_state[ANSWERS_KEY] = []
     st.session_state[HISTORY_KEY] = []
     st.session_state[VOICE_KEY] = []
+    st.session_state.pop("_qa_audio_request", None)
 
 
 def _answer(question: str | Path, speak: bool) -> QAAnswer:
@@ -112,14 +116,18 @@ voices: list[bool] = st.session_state.get(VOICE_KEY, [])
 with st.container(key="mb-qa"):
     # ── Cabecera ──
     st.html(qa_view.page_title_html())
+    if mode != "real":
+        st.info("Demo guiada: consulta los puntos y fuentes del briefing. Las respuestas se construyen con "
+                "su contenido guardado; la conversación libre y el micrófono están disponibles en modo Real.",
+                icon=":material/info:")
     if briefing is not None:
         with st.container(key="mb-qa-context", horizontal=True, vertical_alignment="center", gap="small"):
             st.html(qa_view.context_html(briefing), width="content")
             page_link(VIEW_ARCHIVE, "Cambiar", ":material/swap_horiz:")
     else:
         with st.container(key="mb-qa-empty"):
-            st.info("No hay ningún briefing cargado: el agente responderá sin el contexto del día. "
-                    "Abre o genera uno en «Hoy» para preguntar sobre él.", icon=":material/info:")
+            st.info("No hay ningún briefing cargado. Abre o genera uno en «Hoy» para preguntar sobre él.",
+                    icon=":material/info:")
             page_link(VIEW_HOY, "Ir a Hoy", ":material/podcasts:")
 
     # ── Conversación (en orden cronológico) ──
@@ -130,24 +138,40 @@ with st.container(key="mb-qa"):
         n = len(answers)
         for i, previous in enumerate(reversed(answers)):
             voice = voices[n - 1 - i] if n - 1 - i < len(voices) else False
-            qa_view.render_qa_turn(previous, briefing, key=str(i), voice=voice)
+            qa_view.render_qa_turn(previous, briefing, key=str(i), voice=voice, audio_index=n - 1 - i)
 
     # ── Barra de entrada: sugerencias, chat (texto o voz) y herramientas ──
     with st.container(key="mb-qa-composer"):
         compact = "on" if answers else "off"
         asked = {str(a.question).strip() for a in answers}
-        pending = [q for q in qa_view.suggestions(briefing) if q not in asked]  # sin repetir lo ya preguntado
-        if pending:
+        remaining_suggestions = [q for q in qa_view.suggestions(briefing) if q not in asked]
+        if remaining_suggestions:
             with st.container(key=f"mb-qa-sugs-{compact}"):
-                st.pills("Prueba con:", pending, key=SUGGEST_KEY, on_change=_suggest,
+                st.pills("Prueba con:", remaining_suggestions, key=SUGGEST_KEY, on_change=_suggest,
                          label_visibility="visible" if not answers else "collapsed")
-        prompt = st.chat_input("Escribe o graba tu pregunta…", accept_audio=True, key="qa_chat")
+        prompt = st.chat_input("Escribe o graba tu pregunta…" if mode == "real" else "Consulta el briefing…",
+                               accept_audio=mode == "real", key="qa_chat", disabled=briefing is None)
         with st.container(key="mb-qa-tools", horizontal=True, vertical_alignment="center", gap="small",
                           wrap=False):
-            speak = st.toggle("Respuesta en audio", value=True, key=SPEAK_KEY)
+            speak = st.toggle("Respuesta en audio", value=mode != "mock", key=SPEAK_KEY, disabled=mode == "mock")
+            speak = speak and mode != "mock"
             st.space("stretch")
             st.button("Borrar conversación", type="tertiary", icon=":material/delete_sweep:",
-                      key="qa_clear", on_click=_clear, disabled=not answers)
+                key="qa_clear", on_click=_clear, disabled=not answers)
+
+audio_request = st.session_state.pop("_qa_audio_request", None)
+if audio_request is not None and 0 <= audio_request < len(answers) and mode != "mock":
+    try:
+        with st.spinner("Preparando la voz…"):
+            spoken = pipeline.speak_answer(answers[audio_request], briefing, mode=mode)
+        answers[audio_request] = spoken
+        st.session_state[ANSWERS_KEY] = answers
+        if spoken.audio_path is None:
+            st.warning("No se pudo generar la voz. La respuesta sigue disponible en texto; puedes reintentarlo.")
+        else:
+            st.rerun()
+    except Exception as exc:
+        show_error(exc, "el audio de la respuesta")
 
 if st.session_state.pop(SCROLL_KEY, False) and answers:
     qa_view.scroll_to_latest(f"a{len(answers)}")  # la respuesta nueva, a la vista
@@ -187,7 +211,7 @@ if choice:
             with user_slot.container():
                 qa_view.render_user_turn(
                     "Transcribiendo tu pregunta…" if isinstance(question, Path) else str(question),
-                    key="pending", voice=isinstance(question, Path),
+                    key="pending",
                 )
             qa_view.scroll_to_latest(f"p{len(answers)}")  # la pregunta enviada y el «Pensando…», a la vista
             with st.chat_message("assistant", avatar=qa_view.BOT_AVATAR):

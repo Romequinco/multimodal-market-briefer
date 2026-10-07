@@ -25,6 +25,7 @@ resultado queda en ``trace`` (``StepMetric.detail`` de ``agents.qa``).
 from __future__ import annotations
 
 import re
+import unicodedata
 
 from briefer.agents import load_prompt
 from briefer.agents.analyst import allowed_sources, build_user_message
@@ -157,6 +158,57 @@ def _extract_citations(text: str, briefing: Briefing | None) -> tuple[str, list[
     cleaned = _CITATION.sub("", text)
     cleaned = re.sub(r"\s+([.,;:!?])", r"\1", cleaned)
     return " ".join(cleaned.split()), sources
+
+
+def demo_answer(question: str, briefing: Briefing | None) -> QAAnswer:
+    """Consulta guiada sin LLM: recupera puntos existentes y no inventa explicaciones."""
+    question = question.strip()
+    if not question:
+        raise ValueError("La pregunta está vacía.")
+    prefix = "Demo guiada: "
+    if asks_for_advice(question) or re.search(r"\b(?:comprar|vender|invertir|recomiendas)\b", question, re.IGNORECASE):
+        return QAAnswer(question=question, answer_text=prefix + ADVICE_REMINDER_ES)
+    if briefing is None:
+        return QAAnswer(question=question, answer_text=prefix + "abre un briefing para consultar su resumen y fuentes.")
+    if looks_like_injection(question):
+        return QAAnswer(question=question, answer_text=prefix + "solo puedo mostrar contenido del briefing abierto.")
+
+    def normalized(value: str) -> str:
+        return "".join(c for c in unicodedata.normalize("NFKD", value.lower()) if not unicodedata.combining(c))
+
+    q = normalized(question)
+    points = list(briefing.analysis.key_points)
+    general = any(term in q for term in ("mercado", "resumen", "puntos clave", "fuentes", "noticias del briefing"))
+    if not general:
+        from briefer.ingest.tickers import TICKER_UNIVERSE
+
+        stopwords = {"que", "por", "porque", "como", "del", "las", "los", "una", "con", "para", "sobre",
+                     "este", "esta", "briefing", "pasado", "movido", "explicame", "hoy", "acciones"}
+        terms = {t for t in re.findall(r"\w+", q) if len(t) > 2 and t not in stopwords}
+        matched = []
+        for point in points:
+            labels = [point.title, *point.tickers]
+            labels.extend(str(TICKER_UNIVERSE.get(t, {}).get("name", t)) for t in point.tickers)
+            haystack = normalized(" ".join(labels))
+            if terms & set(re.findall(r"\w+", haystack)):
+                matched.append(point)
+        points = matched
+    if not points:
+        return QAAnswer(
+            question=question,
+            answer_text=prefix + "no encuentro ese tema en los puntos clave. Prueba con el resumen del mercado, "
+            "las fuentes o el botón «Preguntar sobre esto» de una noticia. La conversación libre está en modo Real.",
+        )
+    points = points[:6]
+    allowed = allowed_sources(briefing.context)
+    sources = list(dict.fromkeys(s for point in points for s in point.sources if s in allowed))
+    content = "\n\n".join(f"**{point.title}**\n\n{point.explanation}" for point in points)
+    return QAAnswer(
+        question=question,
+        answer_text=f"Demo guiada · briefing del {briefing.analysis.date:%d/%m/%Y}. "
+        "Estos son los puntos guardados sobre tu consulta:\n\n" + content,
+        sources=sources,
+    )
 
 
 def answer(

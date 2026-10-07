@@ -153,11 +153,11 @@ def test_ask_uses_featured_context_and_suggestions(demo_samples: Path) -> None:
     assert at.session_state["briefing"] is not None  # llega directo: usa el destacado de Hoy
     assert "Sobre:" in html(at)
     pills = at.pills(key="qa_suggest")
-    suggestion = next(o for o in pills.options if o.startswith("¿Qué ha pasado hoy"))
+    suggestion = next(o for o in pills.options if o.startswith("¿Qué pasó en el mercado"))
     pills.set_value(suggestion).run()
     assert not at.exception
     answers = at.session_state["qa_answers"]
-    assert len(answers) == 1 and answers[0].question.startswith("¿Qué ha pasado hoy")
+    assert len(answers) == 1 and answers[0].question.startswith("¿Qué pasó en el mercado")
     assert "mb-qa-lat" in html(at)  # chip de latencia total
     assert at.pills(key="qa_suggest").value is None  # la sugerencia se desmarca
     assert suggestion not in at.pills(key="qa_suggest").options  # no se ofrece otra vez lo ya preguntado
@@ -201,7 +201,9 @@ def test_ask_two_step_when_pipeline_supports_it(monkeypatch: pytest.MonkeyPatch)
 
     monkeypatch.setattr(pipeline, "answer_question", answer_text_only)
     monkeypatch.setattr(pipeline, "speak_answer", speak_answer, raising=False)
-    at = app(ASK).run()
+    at = app(ASK)
+    at.session_state["run_mode"] = "demo_voices"
+    at.run()
     at.chat_input[0].set_value("¿Qué ha pasado?").run()
     assert not at.exception
     assert seen["speak"] is False and seen["spoken"]  # texto primero, voz después
@@ -217,7 +219,9 @@ def test_ask_without_audio_answer_skips_tts(monkeypatch: pytest.MonkeyPatch) -> 
 
     monkeypatch.setattr(pipeline, "answer_question", spy)
     monkeypatch.setattr(pipeline, "speak_answer", lambda *a, **k: pytest.fail("no debe hablar"), raising=False)
-    at = app(ASK).run()
+    at = app(ASK)
+    at.session_state["run_mode"] = "demo_voices"
+    at.run()
     at.toggle(key="qa_speak").set_value(False).run()
     at.chat_input[0].set_value("¿Qué ha pasado?").run()
     assert not at.exception and seen == [False]

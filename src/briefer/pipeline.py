@@ -97,6 +97,7 @@ from briefer.schemas import (
     Analysis,
     AudioAsset,
     Briefing,
+    BriefingOptions,
     DeliveryResult,
     DocumentInsight,
     MarketContext,
@@ -1172,6 +1173,10 @@ def _run_briefing(
         video=video_asset,
         metrics=list(metrics),
         deliveries=[DeliveryResult(channel="web", ok=True, detail="Disponible en la app")],
+        generation_options=BriefingOptions(
+            target_minutes=s.briefer_podcast_target_minutes, make_video=make_video,
+            make_cover=make_cover, telegram="telegram" in channels,
+        ),
     )
 
     # 8. Entrega (opcional por canal): un canal caído queda como ok=False y se sigue.
@@ -1321,7 +1326,8 @@ def answer_question(
         ValueError: la pregunta está vacía.
     """
     s = settings or get_settings()
-    providers = _providers_for_mode(s, resolve_mode(mode, use_mock))
+    run_mode = resolve_mode(mode, use_mock)
+    providers = _providers_for_mode(s, run_mode)
     metrics: list[StepMetric] = []
 
     try:
@@ -1351,11 +1357,20 @@ def answer_question(
             return run
 
         llm_cheap = providers.llm_cheap
-        result = _run_core(
-            "agents.qa", llm_cheap.provider_name, llm_cheap.model, metrics, _qa_with(llm_cheap),
-            _llm_fallback(s, cheap=True, fn_factory=_qa_with)
-            if s.briefer_fallback_to_mock and llm_cheap.provider_name != "mock" else None,
-        )
+        if run_mode != "real":
+            def _demo(step: StepHandle) -> QAAnswer:
+                answer = qa.demo_answer(question_text, briefing)
+                step.detail = ("Demo guiada por reglas, sin llamada a un LLM; "
+                               f"fuentes citadas: {len(answer.sources)}")
+                return answer
+
+            result = _run_core("agents.qa", "mock", "demo-qa", metrics, _demo)
+        else:
+            result = _run_core(
+                "agents.qa", llm_cheap.provider_name, llm_cheap.model, metrics, _qa_with(llm_cheap),
+                _llm_fallback(s, cheap=True, fn_factory=_qa_with)
+                if s.briefer_fallback_to_mock and llm_cheap.provider_name != "mock" else None,
+            )
     except PipelineStepError as exc:
         exc.metrics = list(metrics)
         raise

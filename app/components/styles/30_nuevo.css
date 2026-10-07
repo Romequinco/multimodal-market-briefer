@@ -179,7 +179,7 @@
 [data-testid="stDialog"] .st-key-nb_pf_shot [data-testid="stFileUploaderDropzoneInstructions"] span::after {
   content: "PNG o JPG · máx. 50 MB";
 }
-[data-testid="stDialog"] .st-key-nb_docs [data-testid="stFileUploaderDropzoneInstructions"] span::after {
+[data-testid="stDialog"] [class*="st-key-nb_docs"] [data-testid="stFileUploaderDropzoneInstructions"] span::after {
   content: "PDF, imágenes (PNG, JPG, WEBP) o audio · máx. 50 MB por fichero";
 }
 
@@ -208,3 +208,9 @@
 
 /* Buscador de Yahoo: sin la pista en inglés de Streamlit («Press Enter to submit form») */
 [data-testid="stDialog"] [data-testid="InputInstructions"] { display: none; }
+/* Las opciones secundarias se pliegan; en móvil los controles usan el ancho disponible. */
+@media (max-width: 640px) {
+  .st-key-nb-form [data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
+  .st-key-nb-form [data-testid="stColumn"] { width: 100% !important; flex: 1 1 100% !important; }
+  .st-key-nb-form [data-testid="stFileUploader"] { min-width: 0; }
+}

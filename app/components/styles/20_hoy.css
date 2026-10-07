@@ -184,3 +184,5 @@
 /* Hero sin portada: el reproductor no se estira a todo el ancho (1100 px de barra en portátil) */
 [class*="st-key-mb-hero-body-nocover-"] [class*="st-key-mb-player-hero-"] { max-width: 46rem; }
 [class*="st-key-mb-hero-body-nocover-"] .mb-hero__title { max-width: 40em; }
+/* Buscar texto sin perder el hilo del diálogo. */
+.mb-line__text mark { background: var(--mb-amber); color: var(--mb-bg); border-radius: 3px; padding: 0 2px; }

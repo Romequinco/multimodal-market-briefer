@@ -56,14 +56,15 @@ def suggestions(b: Briefing | None) -> list[str]:
 
     La última, «¿Debería comprar acciones?», enseña el guardarraíl MiFID II (informa, no asesora).
     """
-    out = ["¿Qué ha pasado hoy en el mercado?"]
+    out = ["¿Qué pasó en el mercado según este briefing?"]
     if b is not None:
         from briefer.ingest.tickers import TICKER_UNIVERSE
 
         tickers = [t for kp in b.analysis.key_points for t in kp.tickers] or list(b.context.tickers)
         if tickers:
             name = TICKER_UNIVERSE.get(tickers[0], {}).get("name", tickers[0])
-            out.append(f"¿Por qué se ha movido hoy {name}?")
+            out.append(f"¿Qué dice este briefing sobre {name}?")
+    out.append("¿Cuáles son las fuentes del briefing?")
     out.append("¿Debería comprar acciones?")
     return out
 
@@ -71,8 +72,7 @@ def suggestions(b: Briefing | None) -> list[str]:
 def welcome_text(b: Briefing | None) -> str:
     """Saludo inicial del asistente (conversación vacía)."""
     if b is None:
-        return ("Hola. No tengo ningún briefing delante, así que responderé sin el contexto del día. "
-                "¿Qué quieres saber?")
+        return "Abre o genera un briefing en «Hoy» para consultar sus noticias y fuentes."
     tickers = ", ".join(b.context.tickers[:6])
     who = f": {tickers}" if tickers else ""
     return f"Hola. Tengo delante el briefing del {b.analysis.date:%d/%m/%Y}{who}. ¿Qué quieres saber?"
@@ -119,7 +119,10 @@ def _source_md(source: str, news: dict[str, NewsItem]) -> str:
         title, url, outlet = source, _safe_url(source), ""
     text = _md_escape(title)
     link = f"[{text}]({url})" if url else text
-    return f"{link} · {_md_escape(outlet)}" if outlet else link
+    meta = f" · {_md_escape(outlet)}" if outlet else ""
+    if item is not None:
+        meta += f" · {item.published_at:%d/%m/%Y %H:%M}"
+    return link + meta
 
 
 def _sources_md(answer: QAAnswer, briefing: Briefing | None) -> str:
@@ -131,7 +134,7 @@ def _sources_md(answer: QAAnswer, briefing: Briefing | None) -> str:
     return " · ".join(_source_md(s, news) for s in answer.sources)
 
 
-def render_user_turn(text: str, *, key: str, voice: bool = False) -> None:
+def render_user_turn(text: str, *, key: str, voice: bool = False, transcribed: bool = True) -> None:
     """Burbuja de la pregunta del usuario (``voice``: se marcó como transcrita de su voz).
 
     El contenedor con clave ``mb-qa-user-<key>`` permite al CSS distinguir la burbuja del usuario
@@ -140,7 +143,9 @@ def render_user_turn(text: str, *, key: str, voice: bool = False) -> None:
     with st.chat_message("user", avatar=USER_AVATAR), st.container(key=f"mb-qa-user-{key}"):
         st.markdown(text.replace("$", "\\$") if text else "…")  # sin LaTeX accidental con «$»
         if voice:
-            st.caption(":material/mic: Transcrito de tu voz con IA (el audio ya se ha borrado).")
+            note = ("Transcrito de tu voz con IA (el audio ya se ha borrado)." if transcribed
+                    else "Pregunta de voz de ejemplo; transcripción simulada.")
+            st.caption(":material/mic: " + note)
 
 
 def render_bot_text(text: str) -> None:
@@ -149,25 +154,44 @@ def render_bot_text(text: str) -> None:
         st.markdown(text)
 
 
+def _request_audio(index: int) -> None:
+    st.session_state["_qa_audio_request"] = index
+
+
 def render_answer_body(answer: QAAnswer, briefing: Briefing | None, *, key: str, trace: bool = True,
-                       voice: bool = False) -> None:
+                       voice: bool = False, audio_index: int | None = None) -> None:
     """Cuerpo de una respuesta: texto, audio con su aviso, fuentes, latencia y «Cómo se hizo».
 
     Se llama dentro de un ``st.chat_message`` del asistente. ``trace=False`` para la respuesta
     provisional (texto ya visible mientras se sintetiza la voz).
     """
     st.markdown(answer.answer_text)
+    if any(m.model == "demo-qa" or (m.step == "agents.qa" and m.provider == "mock") for m in answer.metrics):
+        st.caption("Respuesta de demo · contenido limitado al briefing, sin conversación libre con IA.")
     if answer.audio_path is not None and Path(answer.audio_path).exists():
         st.audio(str(answer.audio_path))
         st.caption(VOICE_NOTE)
+    elif audio_index is not None:
+        from briefer import pipeline
+
+        from .shell import current_mode
+
+        offline = current_mode() == "mock"
+        st.button("Escuchar respuesta", key=f"qa_listen_{key}", type="tertiary", icon=":material/volume_up:",
+                  disabled=offline or not callable(getattr(pipeline, "speak_answer", None)),
+                  help="La demo offline no genera voz." if offline else "Genera la voz de esta respuesta.",
+                  on_click=_request_audio, args=(audio_index,))
     sources = _sources_md(answer, briefing) if answer.sources else ""
     lat = latency_html(answer)
     if sources or lat:
         with st.container(key=f"mb-qa-meta-{key}", horizontal=True, vertical_alignment="center", gap="small"):
-            if sources:
-                st.caption("Fuentes: " + sources)
             if lat:
                 st.html(lat, width="content")
+    if sources:
+        news = {} if briefing is None else {s: item for item in briefing.context.news for s in (item.id, item.url)}
+        with st.expander(f"Fuentes ({len(answer.sources)})", icon=":material/link:"):
+            for source in answer.sources:
+                st.markdown(_source_md(source, news))
     if trace and answer.metrics:
         with st.container(key=f"mb-qa-trace-{key}"):
             with st.expander("Cómo se hizo", icon=":material/account_tree:"):
@@ -177,11 +201,13 @@ def render_answer_body(answer: QAAnswer, briefing: Briefing | None, *, key: str,
                 render_trace(answer, key=f"qa_trace_{key}")
 
 
-def render_qa_turn(answer: QAAnswer, briefing: Briefing | None, *, key: str, voice: bool = False) -> None:
+def render_qa_turn(answer: QAAnswer, briefing: Briefing | None, *, key: str, voice: bool = False,
+                   audio_index: int | None = None) -> None:
     """Un turno completo de la conversación: pregunta del usuario y respuesta del asistente."""
-    render_user_turn(answer.question, key=key, voice=voice)
+    transcribed = any(m.step == "qa.stt" and m.provider != "mock" for m in answer.metrics)
+    render_user_turn(answer.question, key=key, voice=voice, transcribed=transcribed)
     with st.chat_message("assistant", avatar=BOT_AVATAR):
-        render_answer_body(answer, briefing, key=key, voice=voice)
+        render_answer_body(answer, briefing, key=key, voice=voice, audio_index=audio_index)
 
 
 _SCROLL_JS = """<script>/* mb-qa-scroll %s */

@@ -171,8 +171,10 @@ def test_m3_ask_voice_then_text_uses_text(monkeypatch: pytest.MonkeyPatch) -> No
         return real_answer(question, *args, **kwargs)
 
     monkeypatch.setattr(pipeline, "answer_question", spy)
-    at = ui.app(ui.ASK).run()
-    at.toggle(key="qa_speak").set_value(False).run()
+    at = ui.app(ui.ASK)
+    at.session_state["run_mode"] = "real"  # el micrófono solo está disponible en Real
+    at.session_state["qa_speak"] = False
+    at.run()
     pending["value"] = SimpleNamespace(text="", audio=recording)
     at.run()  # 1.ª: por voz
     assert not at.exception
@@ -200,7 +202,9 @@ def test_m3_recording_is_never_resent(monkeypatch: pytest.MonkeyPatch) -> None:
         return real_answer(question, *args, **kwargs)
 
     monkeypatch.setattr(pipeline, "answer_question", spy)
-    at = ui.app(ui.ASK).run()
+    at = ui.app(ui.ASK)
+    at.session_state["run_mode"] = "real"
+    at.run()
     pending["value"] = SimpleNamespace(text="¿Y Repsol?", audio=recording)
     at.run()
     assert not at.exception and len(questions) == 1 and isinstance(questions[0], Path)
@@ -214,7 +218,9 @@ def test_m3_recording_is_never_resent(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_m3_empty_recording_shows_warning(monkeypatch: pytest.MonkeyPatch) -> None:
     ui = _ui()
     pending = _fake_chat_input(monkeypatch)
-    at = ui.app(ui.ASK).run()
+    at = ui.app(ui.ASK)
+    at.session_state["run_mode"] = "real"
+    at.run()
     pending["value"] = SimpleNamespace(text="", audio=SimpleNamespace(getvalue=lambda: b""))
     at.run()
     assert not at.exception

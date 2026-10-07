@@ -17,6 +17,7 @@ HTML se escapa (titulares y fuentes vienen de noticias externas).
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from datetime import date
 from html import escape
@@ -159,18 +160,29 @@ def transcript_lines(briefing: Briefing) -> list[tuple[str, str, float | None]]:
     return [(s.speaker, s.text, s.start_s) for s in segments]
 
 
-def transcript_html(lines: Sequence[tuple[str, str, float | None]], names: dict[str, str] | None = None) -> str:
+def transcript_html(lines: Sequence[tuple[str, str, float | None]], names: dict[str, str] | None = None,
+                    query: str = "") -> str:
     """Transcripción en estilo diálogo: insignia, nombre (+ minuto) y texto de cada intervención."""
     names = names or speaker_names()
     rows = []
+    pattern = re.compile(re.escape(query.strip()), re.IGNORECASE) if query.strip() else None
     for speaker, text, start in lines:
         name = names.get(speaker, speaker)
         variant = "b" if speaker == "B" else "a"
         when = f"<span>{fmt_duration(start)}</span>" if start is not None else ""
+        if pattern:
+            parts, cursor = [], 0
+            for match in pattern.finditer(text):
+                parts.extend((escape(text[cursor:match.start()]), f"<mark>{escape(match.group())}</mark>"))
+                cursor = match.end()
+            parts.append(escape(text[cursor:]))
+            body = "".join(parts)
+        else:
+            body = escape(text)
         rows.append(
             f'<div class="mb-line"><span class="mb-badge mb-badge--{variant}" aria-hidden="true">'
             f"{escape(name[:1])}</span><div><div class=\"mb-line__who\">{escape(name)} {when}</div>"
-            f'<p class="mb-line__text">{escape(text)}</p></div></div>'
+            f'<p class="mb-line__text">{body}</p></div></div>'
         )
     return '<div class="mb-transcript">' + "".join(rows) + "</div>"
 
@@ -235,14 +247,27 @@ def _warnings(briefing: Briefing, key: str) -> None:
                 st.caption(f":material/send: Enviado por {d.channel}: {d.detail or 'OK'}")
 
 
-def _tab_transcript(briefing: Briefing) -> None:
+def transcript_text(briefing: Briefing) -> str:
+    names = speaker_names()
+    lines = transcript_lines(briefing)
+    return "\n\n".join(f"{names.get(speaker, speaker)}: {text}" for speaker, text, _ in lines) if lines else (
+        briefing.transcript.text if briefing.transcript else ""
+    )
+
+
+def _tab_transcript(briefing: Briefing, key: str) -> None:
+    query = st.text_input("Buscar en la transcripción", key=f"{key}_transcript_search_{briefing.id}",
+                          placeholder="Empresa, cifra o palabra…")
     lines = transcript_lines(briefing)
     if lines:
-        st.html(transcript_html(lines))
+        if query.strip():
+            count = sum(len(re.findall(re.escape(query.strip()), text, re.IGNORECASE)) for _, text, _ in lines)
+            st.caption(f"{count} coincidencia(s)" if count else "No hay coincidencias con esa búsqueda.")
+        st.html(transcript_html(lines, query=query))
         st.caption("Texto del guion original; el audio lee cifras y tickers en forma hablada. "
                    + VOICE_NOTE)
     elif briefing.transcript and briefing.transcript.text.strip():
-        st.text(briefing.transcript.text)
+        st.html(transcript_html([("", briefing.transcript.text, None)], query=query))
     else:
         st.write("Este briefing no tiene transcripción.")
 
@@ -298,6 +323,11 @@ def _actions(briefing: Briefing, key: str, ask_button: bool) -> None:
                 file_name=f"{_FILE_PREFIX}_{briefing.id}.srt", mime="application/x-subrip",
                 key=f"{key}_dl_srt", on_click="ignore", icon=":material/subtitles:",
             )
+        text = transcript_text(briefing)
+        if text:
+            st.download_button("Transcripción .txt", text, file_name=f"{_FILE_PREFIX}_{briefing.id}.txt",
+                               mime="text/plain; charset=utf-8", key=f"{key}_dl_text", on_click="ignore",
+                               icon=":material/article:")
         from briefer import storage
 
         st.download_button(
@@ -330,9 +360,9 @@ def render_briefing_view(briefing: Briefing, *, key: str = "briefing", origin: s
     with st.container(key=f"mb-hoy-tabs-{key}"):
         tabs = dict(zip(names, st.tabs(names), strict=True))
         with tabs["Puntos clave"]:
-            render_key_points(briefing)
+            render_key_points(briefing, ask_key=f"{key}_{briefing.id}")
         with tabs["Transcripción"]:
-            _tab_transcript(briefing)
+            _tab_transcript(briefing, key)
         with tabs["Gráficos"]:
             _tab_charts(briefing, key)
         if video:
@@ -342,6 +372,9 @@ def render_briefing_view(briefing: Briefing, *, key: str = "briefing", origin: s
             _tab_trace(briefing, key)
 
     _actions(briefing, key, ask_button=True)
+    from .new_briefing import repeat_briefing_button
+
+    repeat_briefing_button(briefing, key=f"{key}_repeat")
 
 
 __all__ = [

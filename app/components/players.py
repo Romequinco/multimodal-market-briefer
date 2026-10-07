@@ -434,13 +434,15 @@ def set_active_briefing(briefing: Briefing) -> None:
     st.session_state[ACTIVE_BRIEFING_KEY] = briefing
 
 
-def ask_about(briefing: Briefing) -> None:
+def ask_about(briefing: Briefing, question: str | None = None) -> None:
     """Callback de «Preguntar sobre este briefing»: lo fija como contexto y abre la página.
 
     Se usa como ``on_click`` (la navegación se pide en la siguiente ejecución con ``st.switch_page``,
     que no se puede llamar dentro de un callback).
     """
     set_active_briefing(briefing)
+    if question:
+        st.session_state["_qa_request"] = {"text": question}
     st.session_state["_goto"] = PAGE_ASK
 
 
@@ -509,7 +511,9 @@ def disclaimer_note(text: str | None = None) -> None:
     st.caption(f'<span class="mb-disclaimer"><b>Aviso:</b> {body}</span>', unsafe_allow_html=True)
 
 
-def render_key_points(briefing: Briefing, max_points: int | None = None, *, compact: bool = False) -> None:
+def render_key_points(
+    briefing: Briefing, max_points: int | None = None, *, compact: bool = False, ask_key: str | None = None,
+) -> None:
     """Puntos clave con impacto (▲/▼/●), valores y fuentes enlazadas."""
     a = briefing.analysis
     points = a.key_points[:max_points] if max_points else a.key_points
@@ -518,10 +522,14 @@ def render_key_points(briefing: Briefing, max_points: int | None = None, *, comp
         return
     news = _news_index(briefing)
     impacts = {} if compact else news_impacts(briefing)
-    for kp in points:
+    for index, kp in enumerate(points):
         sources = [] if compact else [source_parts(s, news) for s in kp.sources]
         tones = [source_impact(s, news, impacts) for s in kp.sources] if impacts else []
         keypoint_card(kp, sources, compact=compact, impacts=tones)
+        if ask_key:
+            st.button("Preguntar sobre esto", key=f"{ask_key}_point_{index}", type="tertiary",
+                      icon=":material/forum:", on_click=ask_about,
+                      args=(briefing, f"Explícame este punto del briefing: {kp.title}"))
 
 
 def news_impacts(briefing: Briefing) -> dict[str, dict]:

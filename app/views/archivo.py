@@ -253,6 +253,9 @@ def _card(summary: storage.BriefingSummary, active_id: str | None) -> None:
             if not summary.error:
                 st.button("Abrir", key=f"arch_open_{summary.id}", type="primary", icon=":material/play_arrow:",
                           on_click=_open, args=(summary.path,), help="Ábrelo en Hoy para escucharlo y preguntar")
+                from components.new_briefing import repeat_briefing_button
+
+                repeat_briefing_button(summary.path, key=f"arch_repeat_{summary.id}")
             with st.popover("Borrar", icon=":material/delete:", width="content"):
                 st.markdown("**¿Borrar este briefing?**")
                 st.caption("Se borra su carpeta en el servidor (audio, subtítulos, gráficos y JSON). "
