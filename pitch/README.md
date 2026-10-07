@@ -9,12 +9,14 @@ vídeo grabado: la demo se hace en vivo sobre esa URL con [`demo_guion.md`](demo
 | Fichero | Qué es |
 | --- | --- |
 | [`pitch_briefly.pdf`](pitch_briefly.pdf) | Deck técnico exportado: **7 diapositivas** 16:9 (1280 × 720) |
-| [`pitch_briefly.html`](pitch_briefly.html) | Fuente del deck (HTML + CSS inline, fuente Source Serif 4 local, logo de `docs/assets/marca/`, captura `docs/assets/capturas/01_portada.png`) |
+| [`pitch_briefly.html`](pitch_briefly.html) | Fuente del deck (HTML + CSS inline, fuente Source Serif 4 local, logo de `docs/assets/marca/`, capturas de `docs/assets/capturas/` y `assets/captura_como_se_hizo.png`) |
 | [`demo_guion.md`](demo_guion.md) | Guion de la demo en vivo sobre la app desplegada (3:30-4:00 min): checklist previa, pasos con tiempos y locución, plan B |
 | `assets/qr_demo.png` | QR de la app desplegada (diapositiva 7); lo genera el script con `--demo-url` |
+| `assets/captura_como_se_hizo.png` | Captura de la pestaña «Cómo se hizo» (traza de modelos) para la diapositiva 6, tomada de la app local con Playwright |
 
 **Formato.** La mitad de la presentación es la demo en vivo, así que el deck solo acompaña: poco texto, cifras
-grandes y un mensaje por diapositiva.
+grandes y un mensaje por diapositiva. El enfoque es **académico** (cómo se hizo y cómo se midió), no comercial:
+la monetización aparece solo como hipótesis en una línea.
 
 | # | Diapositiva | Contenido |
 | --- | --- | --- |
@@ -22,9 +24,9 @@ grandes y un mensaje por diapositiva.
 | 2 | Problema | Una frase y tres bloques: titulares dispersos, PDFs de 40 páginas, gráficos sin contexto |
 | 3 | Qué es Briefly | Captura real de la app en un portátil; entradas → salidas; por qué multimodal y no un chat |
 | 4 | Cadena de modelos | CLIP → Claude visión → Analista Sonnet 5.5 → Guionista Haiku 4.5 → TTS → vídeo + portada; rama Q&A por voz |
-| 5 | Números y negocio | 0,034 € y 53 s por briefing (p50, N = 6), 6 s por pregunta de voz; B2B2C, fijo y equilibrio (est.) |
-| 6 | Compliance | «Informa, no asesora»: MiFID II, AI Act art. 50, RGPD, fuentes citadas |
-| 7 | Demo en vivo y cierre | URL + QR, repo · v1.0, siguientes pasos, lema y aviso legal |
+| 5 | Viabilidad: medida y en código | Costes y latencias medidos (briefing p50/p95, pregunta por voz, paso que más pesa, método) · regulación y privacidad implementadas (guardrails, red-team, AI Act art. 50, cartera en memoria, fuentes, secretos) · monetización como hipótesis en una línea |
+| 6 | La app | 4 capturas reales (Hoy, Nuevo briefing, Preguntar, Cómo se hizo); también plan B si falla la demo |
+| 7 | Demo en vivo | Logo, URL + QR, repo · v1.0, lema y aviso legal |
 
 **Regenerar el PDF** (Chrome o Edge del sistema en modo headless):
 
@@ -39,8 +41,8 @@ El QR solo hay que generarlo una vez (o si cambia la URL; entonces cambia tambi�
 Sin `segno` o sin QR, la diapositiva 7 muestra un marcador en su lugar; si falta la captura, la 3 muestra un marco
 con su nombre. Inter y JetBrains Mono no van incluidas: si no están instaladas, el deck usa Segoe UI y Consolas.
 
-Fuentes de las cifras: `docs/04_viabilidad_costes_latencia_compliance.md` (§ 3, evaluación N = 6 y Q&A por voz;
-§ 6, negocio) y el README. Toda cifra va medida o marcada como estimación («est.»).
+Fuentes de las cifras: `docs/04_viabilidad_costes_latencia_compliance.md` (§ 3, evaluación N = 6 y Q&A por voz)
+y `notebooks/eval/resumen.md`. Todas las cifras del deck son medidas.
 
 ## Uso de la marca en el deck
 
@@ -76,4 +78,4 @@ final (p. ej. «Cada paso con el modelo que basta»), con una línea de contexto
 
 **Tono:** el de la marca: serio con los datos, cercano al contarlo. Nada de promesas de rentabilidad ni
 lenguaje de recomendación; el aviso legal (con el de voces sintéticas) va al pie de la diapositiva 7
-y la 6 resume los controles de compliance. Toro y Osa se pueden presentar como «los locutores» del producto.
+y la 5 resume los controles de compliance implementados. Toro y Osa se pueden presentar como «los locutores» del producto.

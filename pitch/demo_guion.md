@@ -69,7 +69,8 @@ inversión, salvo para enseñar a propósito que el agente la reconduce.
   del ensayo desde «Archivo» y contar el nuevo al final.
 - El Analista o el Guionista caen a sustituto: la UI lo avisa en «Cómo se hizo»; se cuenta como robustez.
 - El micrófono no transcribe: escribir la pregunta en la misma barra del chat.
-- La URL no responde: pasar al plan B en local (misma app, mismo pregenerado).
+- La URL no responde: pasar al plan B en local (misma app, mismo pregenerado); mientras arranca, contar el
+  recorrido sobre la diapositiva 6 del pitch («La app», 4 capturas reales).
 
 ---
 

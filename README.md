@@ -556,8 +556,8 @@ Dockerfile · docker-compose.yml · railway.json · requirements*.txt · pyproje
 | [Índice de docs](docs/README.md) | Ruta de lectura |
 
 **Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf), 7 diapositivas (la mitad de la presentación
-es la demo en vivo): portada y equipo, problema, qué es Briefly, cadena de modelos, números y negocio, compliance, y
-demo en vivo con QR y siguientes pasos. Fuente en
+es la demo en vivo): portada y equipo, problema, qué es Briefly, cadena de modelos, viabilidad medida y
+cumplimiento en código, capturas de la app y demo en vivo con QR. Fuente en
 [pitch/pitch_briefly.html](pitch/pitch_briefly.html) ([cómo regenerarlo](pitch/README.md)).
 
 **Demo:** la app desplegada en [Railway](https://multimodal-market-briefer-production.up.railway.app/). Recorrido

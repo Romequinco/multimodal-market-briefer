@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Briefly · Pitch técnico</title>
 <!--
-  Pitch técnico de Briefly (MIAX · Taller B5-T4 · 8-oct-2026).
+  Pitch técnico de Briefly (MIAX · Taller B5-T4 · 8-oct-2026). Enfoque académico: cómo se hizo y cómo se midió.
   7 diapositivas de 1280 × 720 px; una página del PDF por diapositiva. La mitad del tiempo es demo en vivo:
-  las diapositivas solo acompañan (poco texto, cifras grandes).
+  las diapositivas solo acompañan (poco texto, cifras grandes). La 6 (capturas) sirve de plan B.
   Exportar:  .venv/Scripts/python scripts/build_pitch.py [--preview carpeta] [--demo-url URL]
-  Cifras: docs/04 (§ 3 evaluación N = 6, Q&A por voz, § 6 negocio) y README; medidas o marcadas «est.».
+  Cifras: docs/04 § 3 (evaluación N = 6, Q&A por voz) y notebooks/eval/resumen.md; todas medidas.
 -->
 <style>
 @font-face {
@@ -180,56 +180,58 @@ h2.title { font-size: 46px; line-height: 1.1; margin-bottom: 30px; }
 .sw.l { border-color: var(--up); }
 .sw.k { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 
-/* ───────────── 5 · Números ───────────── */
-.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; margin-top: 20px; }
-.kpi { border-top: 3px solid var(--accent); padding-top: 18px; }
-.kpi .v { font-family: var(--mono); font-size: 108px; line-height: 1; color: var(--text-strong); font-weight: 500; letter-spacing: -.04em; white-space: nowrap; }
-.kpi .v small { font-size: 52px; color: var(--accent-soft); letter-spacing: -.02em; margin-left: 4px; }
-.kpi .l { font-size: 22px; color: var(--text); margin-top: 18px; }
-.kpi .s { font-family: var(--mono); font-size: 14px; color: var(--muted); margin-top: 6px; letter-spacing: .03em; }
-.biz {
-  margin-top: auto; display: grid; grid-template-columns: 1.5fr 1fr 1.1fr; gap: 0;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
-}
-.biz > div { padding: 22px 26px; border-left: 1px solid var(--border); }
-.biz > div:first-child { border-left: 0; background: rgba(192,80,42,.12); }
-.biz .k { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-.biz .t { font-size: 22px; color: var(--text-strong); font-weight: 600; margin-top: 6px; line-height: 1.2; }
-.biz .t .n { font-family: var(--mono); font-weight: 500; }
-.biz .k .est { color: var(--amber); }
+/* ───────────── 5 · Viabilidad ───────────── */
+.s-viab h2.title { margin-bottom: 22px; }
+.viab { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; }
+.col-h { font-family: var(--mono); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-soft); margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+table.m { width: 100%; border-collapse: collapse; }
+table.m th { font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; text-align: right; padding: 0 0 4px; }
+table.m td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; vertical-align: middle; }
+table.m td:nth-child(2), table.m td:nth-child(3) { text-align: right; font-family: var(--mono); white-space: nowrap; padding-left: 14px; }
+table.m td:nth-child(3) { color: var(--muted); font-size: 13.5px; }
+table.m td.big { font-size: 27px; color: var(--text-strong); font-weight: 500; letter-spacing: -.02em; }
+.weights { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 15.5px; }
+.weights .mono { font-size: 17px; display: inline-block; min-width: 62px; }
+.method { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+code { font-family: var(--mono); font-size: .88em; color: var(--amber); }
+ul.ctl { list-style: none; margin: 0; padding: 0; }
+ul.ctl li { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: baseline; padding: 9.5px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; line-height: 1.35; }
+ul.ctl .law { font-family: var(--mono); font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-soft); white-space: nowrap; }
+ul.ctl b { color: var(--text-strong); font-weight: 600; }
+.hyp { margin: auto 0 0; font-size: 13px; color: var(--muted); font-style: italic; }
 
-/* ───────────── 6 · Compliance ───────────── */
-.comp { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px; margin-top: 14px; }
-.comp .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 44px 32px;
-  display: grid; grid-template-columns: 60px 1fr; gap: 22px; align-items: center;
+/* ───────────── 6 · La app ───────────── */
+.s-app h2.title { margin-bottom: 16px; }
+.shots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; margin-bottom: 4px; }
+.shot { position: relative; margin: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-strong); background: var(--surface); height: 238px; }
+.shot img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+.shot figcaption {
+  position: absolute; left: 10px; bottom: 10px; font-size: 14px; color: var(--text);
+  background: rgba(14,17,22,.92); padding: 5px 11px; border-radius: 6px; border: 1px solid var(--border-strong);
 }
-.comp .card svg { width: 54px; height: 54px; }
-.comp .law { font-family: var(--mono); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-soft); }
-.comp h3 { font-size: 26px; margin: 5px 0 6px; line-height: 1.15; }
-.comp p { margin: 0; font-size: 17px; color: var(--muted); }
+.shot figcaption b { color: var(--accent-soft); font-weight: 600; }
+.shot.missing { border-style: dashed; display: flex; align-items: center; justify-content: center; }
+.shot.missing img { display: none; }
+.shot.missing::after { content: attr(data-name); font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
-/* ───────────── 7 · Demo y cierre ───────────── */
-.s-demo { padding-top: 52px; }
-.demo { display: grid; grid-template-columns: 1fr 300px; gap: 60px; align-items: start; }
+/* ───────────── 7 · Demo en vivo ───────────── */
+.s-demo { padding-top: 64px; }
+.demo { display: grid; grid-template-columns: 1fr 320px; gap: 60px; align-items: center; }
+.s-demo .logo { width: 300px; margin: 0 0 30px -6px; display: block; }
 .live { font-family: var(--mono); font-size: 15px; color: var(--accent-soft); letter-spacing: .14em; text-transform: uppercase; }
 .live::before { content: "● "; }
-.demo h1 { font-size: 104px; line-height: 1; letter-spacing: -.02em; margin: 12px 0 22px; }
-.demo .url { font-family: var(--mono); font-size: 22px; color: var(--text-strong); word-break: break-all; }
+.demo h1 { font-size: 96px; line-height: 1; letter-spacing: -.02em; margin: 10px 0 24px; }
+.demo .url { font-family: var(--mono); font-size: 22px; color: var(--text-strong); }
 .demo .repo { font-family: var(--mono); font-size: 16px; color: var(--muted); margin-top: 12px; }
 .demo .repo b { color: var(--text); font-weight: 500; }
-.qr { width: 300px; height: 300px; background: #fff; border-radius: 14px; padding: 8px; }
+.qr { width: 320px; height: 320px; background: #fff; border-radius: 14px; padding: 8px; }
 .qr img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 .qr.missing { background: var(--surface); border: 1px dashed var(--amber); display: flex; align-items: center; justify-content: center; }
 .qr.missing img { display: none; }
 .qr.missing::after { content: "QR: build_pitch.py --demo-url"; font-family: var(--mono); font-size: 12px; color: var(--amber); padding: 16px; text-align: center; }
 .qr-cap { font-family: var(--mono); font-size: 13px; color: var(--muted); text-align: center; margin-top: 8px; }
-.next { display: grid; grid-template-columns: 1.45fr 1fr 0.8fr; gap: 18px; margin-top: 52px; }
-.next div { border-top: 2px solid var(--accent); padding-top: 12px; font-size: 21px; color: var(--text-strong); }
-.next div span { display: block; font-family: var(--mono); font-size: 12.5px; color: var(--muted); letter-spacing: .1em; margin-bottom: 3px; }
-.closing { margin-top: auto; display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
-.motto { font-family: var(--serif); font-size: 34px; color: var(--text-strong); font-weight: 600; white-space: nowrap; }
-.legal { font-size: 11.5px; color: var(--muted); max-width: 520px; line-height: 1.4; margin-right: 110px; }
+.motto { margin-top: auto; font-family: var(--serif); font-size: 34px; color: var(--text-strong); font-weight: 600; }
+.legal { font-size: 11.5px; color: var(--muted); max-width: 640px; line-height: 1.4; margin: 10px 0 0; }
 </style>
 </head>
 <body>
@@ -317,7 +319,7 @@ h2.title { font-size: 46px; line-height: 1.1; margin-bottom: 30px; }
         <span class="chip">Vídeo 9:16</span><span class="chip">Portada IA</span><span class="chip">Telegram</span>
         <span class="chip">Respuestas por voz</span>
       </div>
-      <p class="why-line">Un chat espera a que le preguntes. Briefly lee tus PDFs y gráficos y llega solo, al cierre, en el formato que te encaje.</p>
+      <p class="why-line">Las fuentes ya llegan como texto, PDF, imagen y voz: cada formato lo procesa un modelo distinto, encadenado al siguiente, en vez de un único chat de texto.</p>
     </div>
   </div>
   <div class="foot"><svg><use href="#ico"/></svg>Briefly · 3 / 7</div>
@@ -366,72 +368,76 @@ h2.title { font-size: 46px; line-height: 1.1; margin-bottom: 30px; }
   <div class="foot"><svg><use href="#ico"/></svg>Briefly · 4 / 7</div>
 </section>
 
-<!-- ═══════════════ 5 · NÚMEROS Y NEGOCIO ═══════════════ -->
-<section class="slide s-numbers">
-  <div class="kicker"><b>04</b> · Números y negocio</div>
-  <h2 class="title">Medido, no prometido</h2>
-  <div class="kpis">
-    <div class="kpi"><div class="v">0,034<small>€</small></div><div class="l">coste por briefing</div><div class="s">p50 · medido, N = 6</div></div>
-    <div class="kpi"><div class="v">53<small>s</small></div><div class="l">en generar el episodio</div><div class="s">p50 52,7 s · medido, N = 6</div></div>
-    <div class="kpi"><div class="v">6<small>s</small></div><div class="l">pregunta y respuesta por voz</div><div class="s">p50 6,0 s · medido, de punta a punta</div></div>
+<!-- ═══════════════ 5 · VIABILIDAD ═══════════════ -->
+<section class="slide s-viab">
+  <div class="kicker"><b>04</b> · Viabilidad</div>
+  <h2 class="title">Viabilidad: medida y en código</h2>
+  <div class="viab">
+    <div class="col">
+      <p class="col-h">Costes y latencias medidos</p>
+      <table class="m">
+        <thead><tr><th></th><th>p50</th><th>p95</th></tr></thead>
+        <tbody>
+          <tr><td>Coste por briefing</td><td class="big">0,034 €</td><td>0,062 €</td></tr>
+          <tr><td>Latencia del briefing</td><td class="big">52,7 s</td><td>68,2 s</td></tr>
+          <tr><td>Pregunta por voz, de punta a punta</td><td class="big">6,0 s</td><td>rango 5,9-7,5 s</td></tr>
+          <tr><td>Coste por pregunta</td><td class="big">0,0013 €</td><td>—</td></tr>
+        </tbody>
+      </table>
+      <div class="weights">
+        <div><span class="mono soft">73 %</span> del coste: Analista Sonnet 5.5 (0,025 €)</div>
+        <div><span class="mono soft">17,1 s</span> el paso más lento: TTS de las dos voces</div>
+      </div>
+      <p class="method">N = 6 briefings reales (06-oct) · pared con <code>perf_counter</code> · coste = tokens reales × tarifa ·
+        pregunta: voz → STT → Q&amp;A → TTS, en caliente · <code>notebooks/eval/resumen.md</code>, <code>docs/04</code> § 3</p>
+    </div>
+    <div class="col">
+      <p class="col-h">Regulación y privacidad implementadas</p>
+      <ul class="ctl">
+        <li><span class="law">MiFID II</span><div><b>Sin recomendaciones:</b> <code>guardrails.contains_advice</code> recorta o pide reescritura</div></li>
+        <li><span class="law">Cifras</span><div><b>Control de cifras</b> con reintento: 232/232 trazables a su fuente</div></li>
+        <li><span class="law">Red-team</span><div><b>31 casos</b> de inyección, consejo y fuera de ámbito en <code>tests/</code></div></li>
+        <li><span class="law">AI Act 50</span><div><b>Disclaimer</b> en guion y audio; metadatos y rótulos «generado con IA»</div></li>
+        <li><span class="law">RGPD</span><div><b>Cartera solo en memoria</b>: <code>portfolio: null</code> en disco (ADR-005)</div></li>
+        <li><span class="law">Fuentes</span><div><b>Cada punto con su noticia</b>: titular, extracto ≤ 200 caracteres y enlace</div></li>
+        <li><span class="law">Secretos</span><div><b>Redactados</b> en errores, logs y traza (<code>redact_secrets</code>)</div></li>
+      </ul>
+    </div>
   </div>
-  <div class="biz">
-    <div><div class="k">Modelo · marca blanca</div><div class="t">B2B2C con neobancos y brokers</div></div>
-    <div><div class="k">Fijo de producción · <span class="est">est.</span></div><div class="t"><span class="n">≈ 3.700 €</span>/mes</div></div>
-    <div><div class="k">Equilibrio · <span class="est">est.</span></div><div class="t">1 cliente con <span class="n">≈ 10.000</span> usuarios activos</div></div>
-  </div>
+  <p class="hyp">Hipótesis de monetización (no validada): B2B2C de marca blanca; el coste variable es de céntimos por episodio.</p>
   <div class="foot"><svg><use href="#ico"/></svg>Briefly · 5 / 7</div>
 </section>
 
-<!-- ═══════════════ 6 · COMPLIANCE ═══════════════ -->
-<section class="slide s-comp">
-  <div class="kicker"><b>05</b> · Compliance</div>
-  <h2 class="title">Informa, no asesora</h2>
-  <div class="comp">
-    <div class="card">
-      <svg viewBox="0 0 48 48" fill="none" stroke="#F0997B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M24 5l15 6v11c0 10-6.5 17-15 21C15.5 39 9 32 9 22V11z"/><path d="M17 24l5 5 9-10"/></svg>
-      <div><div class="law">MiFID II</div><h3>Sin recomendaciones</h3><p>Guardarraíles deterministas + 31 casos de red-team</p></div>
-    </div>
-    <div class="card">
-      <svg viewBox="0 0 48 48" fill="none" stroke="#F0997B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="5" width="12" height="22" rx="6"/><path d="M11 22a13 13 0 0 0 26 0M24 35v8M17 43h14"/></svg>
-      <div><div class="law">AI Act · art. 50</div><h3>Voces e imagen marcadas como IA</h3><p>En el audio, el vídeo, la portada y los metadatos</p></div>
-    </div>
-    <div class="card">
-      <svg viewBox="0 0 48 48" fill="none" stroke="#F0997B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="21" width="28" height="21" rx="3"/><path d="M16 21v-6a8 8 0 0 1 16 0v6"/><path d="M24 29v6"/></svg>
-      <div><div class="law">RGPD</div><h3>La cartera nunca toca el disco</h3><p>Al modelo solo van tickers y pesos, en memoria</p></div>
-    </div>
-    <div class="card">
-      <svg viewBox="0 0 48 48" fill="none" stroke="#F0997B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 28a8 8 0 0 0 11.3 0l6-6a8 8 0 0 0-11.3-11.3l-2 2"/><path d="M28 20a8 8 0 0 0-11.3 0l-6 6A8 8 0 0 0 22 37.3l2-2"/></svg>
-      <div><div class="law">Fuentes citadas</div><h3>Cada punto con su noticia</h3><p>Titular, extracto ≤ 200 caracteres y enlace</p></div>
-    </div>
+<!-- ═══════════════ 6 · LA APP ═══════════════ -->
+<section class="slide s-app">
+  <div class="kicker"><b>05</b> · La app</div>
+  <h2 class="title">La app</h2>
+  <div class="shots">
+    <figure class="shot" data-name="01_portada.png"><img src="../docs/assets/capturas/01_portada.png" alt="Vista Hoy" onerror="this.parentElement.classList.add('missing')"><figcaption><b>Hoy</b> · episodio, podcast y cotizaciones</figcaption></figure>
+    <figure class="shot" data-name="05_subidas.png"><img src="../docs/assets/capturas/05_subidas.png" alt="Nuevo briefing" onerror="this.parentElement.classList.add('missing')"><figcaption><b>Nuevo briefing</b> · valores, cartera, PDF y gráficos</figcaption></figure>
+    <figure class="shot" data-name="04_preguntar.png"><img src="../docs/assets/capturas/04_preguntar.png" alt="Preguntar" onerror="this.parentElement.classList.add('missing')"><figcaption><b>Preguntar</b> · por voz o texto, respuesta hablada</figcaption></figure>
+    <figure class="shot" data-name="captura_como_se_hizo.png"><img src="assets/captura_como_se_hizo.png" alt="Cómo se hizo" onerror="this.parentElement.classList.add('missing')"><figcaption><b>Cómo se hizo</b> · modelo, latencia y coste por paso</figcaption></figure>
   </div>
-  <p class="note">El cumplimiento está en código y en tests.</p>
   <div class="foot"><svg><use href="#ico"/></svg>Briefly · 6 / 7</div>
 </section>
 
-<!-- ═══════════════ 7 · DEMO Y CIERRE ═══════════════ -->
+<!-- ═══════════════ 7 · DEMO EN VIVO ═══════════════ -->
 <section class="slide s-demo">
   <div class="demo">
     <div>
+      <img class="logo" src="../docs/assets/marca/briefly_logo_oscuro.svg" alt="briefly">
       <div class="live">En antena</div>
       <h1>Demo en vivo</h1>
       <div class="url">https://multimodal-market-briefer-production.up.railway.app/</div>
       <div class="repo"><b>github.com/Romequinco/multimodal-market-briefer</b> · v1.0</div>
-      <div class="next">
-        <div><span>SIGUIENTE</span>Piloto B2B2C de marca blanca</div>
-        <div><span>ESCALA</span>Segmentos por valor</div>
-        <div><span>CANAL</span>App móvil</div>
-      </div>
     </div>
     <div>
       <div class="qr" id="qr"><img src="assets/qr_demo.png" alt="QR de la demo en vivo" onerror="document.getElementById('qr').classList.add('missing')"></div>
       <div class="qr-cap">Ábrela en el móvil</div>
     </div>
   </div>
-  <div class="closing">
-    <div class="motto">Te contamos el mercado; tú decides.</div>
-  </div>
-  <p class="legal" style="margin:14px 0 0">Contenido informativo generado con IA. No constituye asesoramiento de inversión ni recomendación de compra o venta. Puede contener errores. Las voces son sintéticas.</p>
+  <div class="motto">Te contamos el mercado; tú decides.</div>
+  <p class="legal">Contenido informativo generado con IA. No constituye asesoramiento de inversión ni recomendación de compra o venta. Puede contener errores. Las voces son sintéticas.</p>
   <div class="foot"><svg><use href="#ico"/></svg>Briefly · 7 / 7</div>
 </section>
 
