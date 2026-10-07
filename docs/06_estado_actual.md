@@ -20,7 +20,7 @@ limpio en Windows con `run.ps1`, **1225 tests sin red** + 13 `live` con ruff + m
 | --- | --- |
 | README final | **Hecho**: captura y enlaces arriba (demo, pitch PDF, insignia de CI), «Arranca en 2 comandos», 8 capturas, modalidades con «Activo en la demo», diagramas de flujo multimodal y de orquestación, arquitectura, mediciones, viabilidad y compliance resumidos, configuración en anexos |
 | Capturas | **Hecho**: 8 capturas reales en `docs/assets/capturas/` (1440×900, tema oscuro); **rehechas el 07-oct** con los mismos nombres tras el rediseño de la UI (Hoy, puntos clave, vídeo, Preguntar, «Nuevo briefing» con subidas y con cartera, Archivo, Quiénes somos) |
-| Pitch | **Hecho (final)**: `pitch/pitch_briefly.pdf` (12 diapositivas, URL de la app en la 10 y la 12), fuente `pitch/pitch_briefly.html`, `python scripts/build_pitch.py` |
+| Pitch | **Hecho (final)**: `pitch/pitch_briefly.pdf` (7 diapositivas, rehecho el 07-oct para acompañar la demo en vivo; URL y QR de la app en la 7), fuente `pitch/pitch_briefly.html`, `python scripts/build_pitch.py --demo-url <URL>` |
 | Demo | **Hecho**: la app desplegada en <https://multimodal-market-briefer-production.up.railway.app/> (sustituye a la demo grabada); guion para presentarla en vivo en `pitch/demo_guion.md` (3:30-4:00 min) |
 
 **Queda antes de entregar:**

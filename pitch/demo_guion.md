@@ -4,7 +4,7 @@ La demo es la **app desplegada**: <https://multimodal-market-briefer-production.
 `entrega-v1`, versión entregada con la etiqueta `v1.0`). Cualquiera puede abrirla: entra en modo demo, sin claves
 ni gasto, con un briefing real pregenerado en «Hoy». El modo **Real** (datos de hoy, modelos de pago) pide una
 contraseña que el equipo da aparte. Ya no hay vídeo grabado: este guion sirve para presentarla en directo
-(**3:30-4:00 min**) y acompaña a la diapositiva 10 del [pitch](pitch_briefly.pdf). Despliegue y variables, en
+(**3:30-4:00 min**) y acompaña a la diapositiva 7 («Demo en vivo») del [pitch](pitch_briefly.pdf). Despliegue y variables, en
 [docs/09](../docs/09_despliegue_railway.md).
 
 Convenciones: **Pantalla** = qué se ve y qué se pulsa (los nombres entre comillas son los textos exactos de la
@@ -57,7 +57,7 @@ el resto en la pestaña A**.
 | 5 | 2:10-2:45 | Pestaña B: el briefing ya está. Titular, reproductor y **«Puntos clave»**: pasar el ratón por una fuente enlazada. Abrir **«Transcripción»** y **«Gráficos»** un par de segundos cada una. | «Primero un modelo local, CLIP, ha mirado la imagen: es un gráfico, así que merecía la pena pagar la lectura con visión. Luego Sonnet ha analizado las noticias de hoy, Haiku ha escrito el guion y dos voces lo han grabado. Cada punto clave lleva su fuente: si no hay fuente, no ha pasado.» |
 | 6 | 2:45-3:30 | Pestaña **«Vídeo»**: 4-5 s del vídeo 9:16 (subtítulos TORO / OSA y rótulo «Voces sintéticas generadas con IA»). Luego **«Cómo se hizo»**: pasos, modelo, latencia, coste y la decisión de CLIP. | «El mismo episodio en vídeo vertical, con subtítulos por locutor; cero euros, en local. Y esto lo hace auditable: cada paso con su modelo, cuánto ha tardado y cuánto ha costado. Si un proveedor fallara, aquí se vería el sustituto en naranja.» |
 | 7 | 3:30-3:45 | **«Archivo»**: el briefing nuevo junto al pregenerado, filtros y «Privacidad y datos». Si Telegram está configurado y se activó «Enviar por Telegram», enseñar el móvil con el resumen, el audio y el vídeo. | «Todo queda en el archivo, con la opción de borrarlo. Y, si lo configuro, me llega a Telegram mientras vuelvo a casa.» |
-| 8 | 3:45-4:00 | Volver a «Hoy» o a la última diapositiva del pitch (logo, eslogan y URL). | «Briefly: modelos de lenguaje, visión, voz e imagen encadenados, céntimos por episodio y el cumplimiento en el propio código. La dirección está en la diapositiva: probadlo. Información, no asesoramiento; voces sintéticas. Gracias.» |
+| 8 | 3:45-4:00 | Volver a «Hoy» o a la última diapositiva del pitch (URL y QR). | «Briefly: modelos de lenguaje, visión, voz e imagen encadenados, céntimos por episodio y el cumplimiento en el propio código. La dirección está en la diapositiva: probadlo. Información, no asesoramiento; voces sintéticas. Gracias.» |
 
 **Pregunta alternativa** si el Santander no encaja: el pregenerado habla también de Iberdrola («¿Qué ha pasado hoy
 con Iberdrola?»); con el gráfico subido, «¿Qué se ve en el gráfico?». Evitar preguntas que pidan opinión de

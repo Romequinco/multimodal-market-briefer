@@ -555,8 +555,9 @@ Dockerfile · docker-compose.yml · railway.json · requirements*.txt · pyproje
 | [Cuadernos](notebooks/README.md) | Recorrido del pipeline, evaluación, comparativa de modelos |
 | [Índice de docs](docs/README.md) | Ruta de lectura |
 
-**Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf), 12 diapositivas: problema, propuesta,
-demo, cadena de modelos, resultados medidos, costes, compliance, monetización, roadmap y equipo. Fuente en
+**Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf), 7 diapositivas (la mitad de la presentación
+es la demo en vivo): portada y equipo, problema, qué es Briefly, cadena de modelos, números y negocio, compliance, y
+demo en vivo con QR y siguientes pasos. Fuente en
 [pitch/pitch_briefly.html](pitch/pitch_briefly.html) ([cómo regenerarlo](pitch/README.md)).
 
 **Demo:** la app desplegada en [Railway](https://multimodal-market-briefer-production.up.railway.app/). Recorrido

@@ -8,38 +8,39 @@ vídeo grabado: la demo se hace en vivo sobre esa URL con [`demo_guion.md`](demo
 
 | Fichero | Qué es |
 | --- | --- |
-| [`pitch_briefly.pdf`](pitch_briefly.pdf) | Deck técnico exportado: 12 diapositivas 16:9 (1280 × 720) |
-| [`pitch_briefly.html`](pitch_briefly.html) | Fuente del deck (HTML + CSS inline, fuente Source Serif 4 local, logos de `docs/assets/marca/`, capturas de `docs/assets/capturas/`) |
+| [`pitch_briefly.pdf`](pitch_briefly.pdf) | Deck técnico exportado: **7 diapositivas** 16:9 (1280 × 720) |
+| [`pitch_briefly.html`](pitch_briefly.html) | Fuente del deck (HTML + CSS inline, fuente Source Serif 4 local, logo de `docs/assets/marca/`, captura `docs/assets/capturas/01_portada.png`) |
 | [`demo_guion.md`](demo_guion.md) | Guion de la demo en vivo sobre la app desplegada (3:30-4:00 min): checklist previa, pasos con tiempos y locución, plan B |
-| `assets/` | Fotograma del vídeo 9:16 del pregenerado (lo extrae el script) y, si se genera, un QR |
+| `assets/qr_demo.png` | QR de la app desplegada (diapositiva 7); lo genera el script con `--demo-url` |
 
-**Regenerar el PDF** (Chrome o Edge del sistema en modo headless; sin dependencias nuevas):
+**Formato.** La mitad de la presentación es la demo en vivo, así que el deck solo acompaña: poco texto, cifras
+grandes y un mensaje por diapositiva.
+
+| # | Diapositiva | Contenido |
+| --- | --- | --- |
+| 1 | Portada | Logo, eslogan, qué es en una línea, MIAX B5-T4 · 8-oct-2026, equipo |
+| 2 | Problema | Una frase y tres bloques: titulares dispersos, PDFs de 40 páginas, gráficos sin contexto |
+| 3 | Qué es Briefly | Captura real de la app en un portátil; entradas → salidas; por qué multimodal y no un chat |
+| 4 | Cadena de modelos | CLIP → Claude visión → Analista Sonnet 5.5 → Guionista Haiku 4.5 → TTS → vídeo + portada; rama Q&A por voz |
+| 5 | Números y negocio | 0,034 € y 53 s por briefing (p50, N = 6), 6 s por pregunta de voz; B2B2C, fijo y equilibrio (est.) |
+| 6 | Compliance | «Informa, no asesora»: MiFID II, AI Act art. 50, RGPD, fuentes citadas |
+| 7 | Demo en vivo y cierre | URL + QR, repo · v1.0, siguientes pasos, lema y aviso legal |
+
+**Regenerar el PDF** (Chrome o Edge del sistema en modo headless):
 
 ```bash
-.venv/Scripts/python scripts/build_pitch.py                    # → pitch/pitch_briefly.pdf
-.venv/Scripts/python scripts/build_pitch.py --preview <carpeta> # + una PNG por diapositiva para revisar
-.venv/Scripts/python scripts/build_pitch.py --demo-url <URL>    # + QR en pitch/assets/ (requiere pip install segno; el deck no lo usa)
+.venv/Scripts/python scripts/build_pitch.py --demo-url https://multimodal-market-briefer-production.up.railway.app/
+                                                                 # QR en pitch/assets/qr_demo.png (segno) + PDF
+.venv/Scripts/python scripts/build_pitch.py                      # solo el PDF (reutiliza el QR existente)
+.venv/Scripts/python scripts/build_pitch.py --preview <carpeta>  # + una PNG de 1280 × 720 por diapositiva
 ```
 
-Sin marcadores pendientes: la diapositiva 10 lleva la URL de la app desplegada (y la 12, al cierre). Si falta una captura, la diapositiva de producto muestra un marco con
-su nombre en vez de romper el diseño. Inter y JetBrains Mono no van incluidas: si no están instaladas, el deck usa
-Segoe UI y Consolas.
+El QR solo hay que generarlo una vez (o si cambia la URL; entonces cambia también el texto de la diapositiva 7).
+Sin `segno` o sin QR, la diapositiva 7 muestra un marcador en su lugar; si falta la captura, la 3 muestra un marco
+con su nombre. Inter y JetBrains Mono no van incluidas: si no están instaladas, el deck usa Segoe UI y Consolas.
 
-Contenido original previsto:
-- `pitch_briefly.pdf` — deck técnico exportado (10-12 diapositivas):
-  problema y usuario, propuesta de valor, demo, arquitectura multimodal (diagrama de flujo
-  de datos), modelos encadenados y por qué, costes por briefing y latencias medidas
-  (de `StepMetric`), compliance (MiFID II: no es asesoramiento; RGPD: datos de cartera),
-  monetización (B2C como cara visible, B2B2C de marca blanca como negocio) y roadmap
-  (edición de mañana, recorte automático de capturas de cartera). El vídeo 9:16, el router
-  CLIP, la cartera desde captura, la portada local y Telegram están hechos y verificados en real (06-oct):
-  ver `docs/06_estado_actual.md`.
-- `capturas/` — capturas de la app para el deck y el README.
-- `demo/` — previsto para un vídeo de la demo; sustituido el 07-oct por la app desplegada en Railway.
-- Guion de la presentación (quién cuenta qué y tiempos).
-
-Fuentes de datos para las cifras: `docs/04_viabilidad_costes_latencia_compliance.md` y las
-métricas reales que muestra la app. Toda cifra va medida (y se dice cómo) o marcada como estimación.
+Fuentes de las cifras: `docs/04_viabilidad_costes_latencia_compliance.md` (§ 3, evaluación N = 6 y Q&A por voz;
+§ 6, negocio) y el README. Toda cifra va medida o marcada como estimación («est.»).
 
 ## Uso de la marca en el deck
 
@@ -70,9 +71,9 @@ cifras, tickers, costes y latencias. La fuente serif va en `docs/assets/marca/fu
 JetBrains Mono, de Google Fonts.
 
 **Estilo de título de diapositiva:** una afirmación corta en serif, en minúscula salvo la inicial y sin punto
-final (p. ej. «Seis modelos, una sola cadena»), con una línea de contexto en mono gris encima (`02 · ARQUITECTURA`)
-al estilo de la cabecera de la app. Un mensaje por diapositiva.
+final (p. ej. «Cada paso con el modelo que basta»), con una línea de contexto en mono gris encima
+(`03 · CADENA DE MODELOS`) al estilo de la cabecera de la app. Un mensaje por diapositiva.
 
 **Tono:** el de la marca: serio con los datos, cercano al contarlo. Nada de promesas de rentabilidad ni
-lenguaje de recomendación; el disclaimer y el aviso de voces sintéticas aparecen en la diapositiva de
-compliance y en la de la demo. Toro y Osa se pueden presentar como «los locutores» del producto.
+lenguaje de recomendación; el aviso legal (con el de voces sintéticas) va al pie de la diapositiva 7
+y la 6 resume los controles de compliance. Toro y Osa se pueden presentar como «los locutores» del producto.
