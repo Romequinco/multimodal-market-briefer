@@ -21,8 +21,10 @@ startup FinTech de IA multimodal: práctica MIAX, taller B5-T4.
 >
 > - Abre en **Demo · voces reales**: no hacen falta claves. «Hoy» enseña un briefing real ya generado (podcast,
 >   vídeo, portada, transcripción, gráficos y traza) y puedes generar briefings de demostración y preguntar.
-> - El modo **Real** (noticias de hoy, modelos de pago) pide contraseña (`BRIEFER_REAL_MODE_PASSWORD`). El
->   equipo se la facilita al profesor aparte.
+>   Lo que generes en Demo usa **datos de ejemplo y modelos simulados**: el contenido es básico y ficticio, y
+>   no cuesta nada.
+> - El modo **Real** (noticias de hoy, modelos reales; ≈ 0,03-0,15 € por briefing según las opciones) pide
+>   contraseña (`BRIEFER_REAL_MODE_PASSWORD`). El equipo se la facilita al profesor aparte.
 > - Desplegado en Railway desde la rama `entrega-v1`. La versión entregada es la etiqueta `v1.0`.
 
 Pitch técnico: [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf) · Arranque local: [2 comandos](#arranque) ·
@@ -95,7 +97,7 @@ La app tiene tres vistas en la barra superior. El chip de arriba a la derecha ca
 | Datos | Noticias (RSS + yfinance) y precios del día, con caché diaria | Noticias de ejemplo y precios sintéticos | Ídem |
 | IA | Claude Sonnet 5.5 / Haiku 4.5, visión, STT de OpenAI, modelos locales | Simulada (mock) | Simulada (mock) |
 | Voces | edge-tts o Gemini TTS | edge-tts real | WAV mudo |
-| Coste | p50 0,034 € por briefing; ≈ 0,0014-0,005 € por pregunta | 0 € | 0 € |
+| Coste | Por briefing: ≈ 0,03-0,04 € básico · ≈ 0,07 € completo con edge-tts · ≈ 0,11-0,15 € con voz Gemini. Por pregunta: ≈ 0,005 € (≈ 0,0013 € con caché de prompt) | 0 € | 0 € |
 | Necesita | `ANTHROPIC_API_KEY` (+ `OPENAI_API_KEY` para la voz) y red; en Railway, contraseña | Red | Nada |
 | CLI | `python scripts/demo.py` | `python scripts/demo.py --demo-voices` | `python scripts/demo.py --mock` |
 
@@ -298,21 +300,38 @@ Todo lo que no lleva la marca *estimación* está medido: tokens reales de cada 
 
 ### Briefing y pregunta
 
-Evaluación de **N = 6 briefings reales** (06-oct; 3 carteras y 3 listas de valores, una con PDF + gráfico;
-edge-tts; [`notebooks/eval/resumen.md`](notebooks/eval/resumen.md)).
+**Briefing básico.** Evaluación de **N = 6 briefings reales** (06-oct; 3 carteras y 3 listas de valores, una con
+PDF + gráfico; edge-tts, sin portada ni verificación; [`notebooks/eval/resumen.md`](notebooks/eval/resumen.md)).
 
 | Métrica | p50 | p95 |
 | --- | --- | --- |
-| Latencia del briefing (pared) | **52,7 s** | **68,2 s** |
-| Coste del briefing | **0,034 €** | **0,062 €** (0,069 € con PDF + gráfico) |
+| Latencia del briefing básico (pared) | **52,7 s** | **68,2 s** |
+| Coste del briefing básico | **0,034 €** | **0,062 €** (0,069 € con PDF + gráfico) |
 | Pregunta por voz de punta a punta (audio → STT → Haiku → voz), en frío | **6,4 s** (rango 5,7-14,4 s) | — |
 | Ídem, en caliente | **6,0 s** | — |
-| Coste por pregunta | ≈ 0,0014 € con caché de prompt · ≈ 0,0057 € sin ella | — |
+| Coste por pregunta | ≈ 0,005 € (Haiku con el briefing como contexto) · ≈ 0,0013-0,0014 € con caché de prompt | — |
 
 Calidad en los 6: 0 fallos, 0 sustitutos, **232/232** cifras trazables a una fuente, **0** frases con
 recomendación, 35/35 puntos clave con fuente, podcasts de 3,2-3,7 min. Juez Sonnet (1-5): fidelidad 3,3 ·
 claridad 4,0 · sin consejo 4,2 · utilidad 3,3. Lo que marcó el juez (causas demasiado firmes, tono valorativo)
 se corrigió después con puertas nuevas.
+
+**Medido en producción (07-oct).** Briefings completos en la app de Railway (modo Real), leídos de la traza
+«Cómo se hizo» de cada uno; el pregenerado se generó en local el 06-oct.
+
+| Briefing (07-oct, traza «Cómo se hizo») | Opciones | Coste | Suma de pasos | Lo que más pesa |
+| --- | --- | --- | --- | --- |
+| Micron, AMD, Repsol… (5 valores) | Sin subidas · voz Gemini TTS · portada local · vídeo · verificación STT | **0,113 €** | 146 s (12 pasos) | Gemini TTS 0,0556 € (24,7 s) · Analista 0,0261 € (15,9 s) · Guionista 0,0202 € (28,5 s, 1 reintento) · verificación 0,0111 € · portada 53,3 s y 0 € |
+| Gogoro y otros (5 valores + 1 gráfico) | Voz Gemini · portada · vídeo · Telegram | **0,151 €** | 173 s (14 pasos) | Analista 0,0605 € (31,8 s, con reintento) · Gemini TTS 0,0491 € · Guionista 0,0187 € · gráfico 0,0134 € · verificación 0,0098 € |
+| Santander / Ibex (6 valores + 1 gráfico) | Voz edge-tts (gratis) · portada · vídeo · Telegram | **0,068 €** | 165 s (14 pasos) | Analista 0,0281 € · Guionista 0,0187 € · gráfico 0,0122 € · verificación 0,0087 € · TTS 0 € |
+| Pregenerado de «Hoy» (06-oct, local) | PDF + gráfico · voz Gemini · FinBERT · portada · vídeo · verificación | **0,141 €** | 259 s (177 s de pared) | — |
+
+El coste depende sobre todo de las opciones: **básico** (solo valores o cartera, edge-tts, sin portada ni
+verificación) ≈ 0,03-0,04 €; **completo con voces gratis** ≈ 0,07 €; **completo con voz premium Gemini**
+≈ 0,11-0,15 €. La voz premium es el paso más caro (≈ 0,05 €), seguida del Analista (0,026-0,06 € según
+reintentos), el Guionista (≈ 0,02 €), la visión por subida (≈ 0,013 €) y la verificación STT (≈ 0,01 €). La
+portada local no cuesta dinero, pero añade ≈ 50 s. «Suma de pasos» no es tiempo de pared: varios pasos van en
+paralelo.
 
 <details>
 <summary><b>Coste y latencia por paso</b> (p50 de los 6 briefings y pasos opcionales medidos aparte)</summary>
@@ -335,9 +354,9 @@ se corrigió después con puertas nuevas.
 | Vídeo 9:16 | Pillow + ffmpeg | 6-9 s por episodio | 0 € |
 | Telegram | Bot API | 8,5 s (mensaje, audio, imagen y vídeo) | 0 € |
 
-El Analista es el paso caro (≈ 70 % del coste de texto); visión, cuando hay subidas. Otros briefings medidos:
-dentro de Docker con gráfico, vídeo, portada y Telegram, 0,061 € y 114 s; el pregenerado de «Hoy» (PDF +
-gráfico, voz Gemini, FinBERT, verificación, portada y vídeo), 0,141 € y 177 s; con Gemini 2.5 Flash como LLM,
+En el briefing básico el Analista es el paso caro (≈ 70 % del coste de texto); visión, cuando hay subidas. Con
+voz Gemini, la voz pasa a ser el paso más caro (≈ 0,05 €; ver la tabla de producción). Otros briefings medidos:
+dentro de Docker con gráfico, vídeo, portada y Telegram, 0,061 € y 114 s; con Gemini 2.5 Flash como LLM,
 0,021 € y 67,7 s.
 
 </details>
@@ -386,11 +405,11 @@ fijos y precios, *estimaciones* o tarifas públicas (marcadas allí una a una). 
 
 | | |
 | --- | --- |
-| **Coste variable** | IA 0,034 € por briefing (medido) + voz con contrato ≈ 0,049 € (*estimación*). Usuario Pro con episodio propio ≈ 2,1 €/mes; con segmentos por valor compartidos entre usuarios, ≈ 0,75 €/mes (*estimación*) |
+| **Coste variable** | IA 0,034 € por briefing básico (medido; el completo, 0,07-0,15 € según la voz) + voz con contrato ≈ 0,049 € (*estimación*). Usuario Pro con episodio propio ≈ 2,1 €/mes; con segmentos por valor compartidos entre usuarios, ≈ 0,75 €/mes (*estimación*) |
 | **Costes fijos** | ≈ 1.070 €/mes en lanzamiento B2C · ≈ 3.700 €/mes listo para B2B2C (datos y noticias con licencia, nube en la UE, cumplimiento) |
 | **Planes** | Free (3 valores de un catálogo compartido) · **Pro 6,99 €/mes** (cartera, voz, subidas, vídeo) · **Marca blanca**: alta 15.000 € + 1.500 €/mes + 0,30 €/MAU |
 | **Punto de equilibrio** | B2C: ≈ 9.200 registrados con un 4 % de conversión · B2B2C: **un** cliente de ≈ 10.000 MAU cubre el fijo |
-| **Latencia** | El briefing se prepara al cierre en segundo plano (≈ 1 min); la pregunta por voz, ≈ 6 s |
+| **Latencia** | El briefing se prepara al cierre en segundo plano (≈ 1 min el básico; el completo, 146-173 s de suma de pasos); la pregunta por voz, ≈ 6 s |
 | **Conclusión** | El B2B2C es el motor: un contrato cubre el fijo y la distribución la pone el banco o broker. El B2C es escaparate y laboratorio |
 
 ---

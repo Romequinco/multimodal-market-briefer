@@ -258,6 +258,30 @@ Calidad en los 6: 0 fallos y 0 sustitutos; **100 % de cifras trazables** (232/23
 4,0 · sin consejo 4,17 · utilidad 3,33. Los fallos de matiz que señaló el juez (causas más firmes que el análisis,
 tono valorativo, saludo de «noche» a mediodía) se corrigieron después con puertas nuevas (ver [06](06_estado_actual.md)).
 
+Estos seis son **briefings básicos** (solo valores o cartera, edge-tts, sin portada ni verificación STT, salvo
+uno con PDF + gráfico): son el suelo de coste, no el briefing completo.
+
+### Mediciones en producción (Railway, 07-oct-2026)
+
+Briefings completos generados en la app desplegada (modo Real) y leídos de la traza «Cómo se hizo» de cada uno
+(`StepMetric`: coste = tokens reales × tarifa de `costs.py`). «Suma de pasos» es la suma de latencias de los
+pasos, **no** el tiempo de pared: varios pasos van en paralelo. El pregenerado se generó en local el 06-oct.
+
+| Briefing (07-oct, traza «Cómo se hizo») | Opciones | Coste | Suma de pasos | Lo que más pesa |
+| --- | --- | --- | --- | --- |
+| Micron, AMD, Repsol… (5 valores) | Sin subidas · voz Gemini TTS · portada local · vídeo · verificación STT | **0,113 €** | 146 s (12 pasos) | Gemini TTS 0,0556 € (24,7 s) · Analista 0,0261 € (15,9 s) · Guionista 0,0202 € (28,5 s, 1 reintento) · verificación 0,0111 € · portada 53,3 s y 0 € |
+| Gogoro y otros (5 valores + 1 gráfico) | Voz Gemini · portada · vídeo · Telegram | **0,151 €** | 173 s (14 pasos) | Analista 0,0605 € (31,8 s, con reintento) · Gemini TTS 0,0491 € · Guionista 0,0187 € · gráfico 0,0134 € · verificación 0,0098 € |
+| Santander / Ibex (6 valores + 1 gráfico) | Voz edge-tts (gratis) · portada · vídeo · Telegram | **0,068 €** | 165 s (14 pasos) | Analista 0,0281 € · Guionista 0,0187 € · gráfico 0,0122 € · verificación 0,0087 € · TTS 0 € |
+| Pregenerado de «Hoy» (06-oct, local) | PDF + gráfico · voz Gemini · FinBERT · portada · vídeo · verificación | **0,141 €** | 259 s (177 s de pared) | — |
+
+**Conclusión por configuración.** El coste depende sobre todo de las opciones: **básico** (solo valores o cartera, edge-tts, sin portada ni
+verificación) ≈ 0,03-0,04 €; **completo con voces gratis** ≈ 0,07 €; **completo con voz premium Gemini**
+≈ 0,11-0,15 €. La voz premium es el paso más caro (≈ 0,05 €), seguida del Analista (0,026-0,06 € según
+reintentos), el Guionista (≈ 0,02 €), la visión por subida (≈ 0,013 €) y la verificación STT (≈ 0,01 €). La
+portada local no cuesta dinero, pero añade ≈ 50 s. «Suma de pasos» no es tiempo de pared: varios pasos van en
+paralelo. La pregunta por voz cuesta ≈ 0,005 €
+(≈ 0,0013 € con caché de prompt en caliente) y tarda p50 6,0 s en caliente.
+
 ### Q&A
 
 | Caso (medido el 05-oct) | Texto en pantalla | Texto + voz | Coste |

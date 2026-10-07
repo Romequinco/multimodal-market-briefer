@@ -9,7 +9,7 @@
   7 diapositivas de 1280 × 720 px; una página del PDF por diapositiva. La mitad del tiempo es demo en vivo:
   las diapositivas solo acompañan (poco texto, cifras grandes). La 6 (capturas) sirve de plan B.
   Exportar:  .venv/Scripts/python scripts/build_pitch.py [--preview carpeta] [--demo-url URL]
-  Cifras: docs/04 § 3 (evaluación N = 6, Q&A por voz) y notebooks/eval/resumen.md; todas medidas.
+  Cifras: docs/04 § 3 (evaluación N = 6, producción 07-oct, Q&A por voz) y notebooks/eval/resumen.md; todas medidas.
 -->
 <style>
 @font-face {
@@ -185,14 +185,17 @@ h2.title { font-size: 46px; line-height: 1.1; margin-bottom: 30px; }
 .viab { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; }
 .col-h { font-family: var(--mono); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-soft); margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
 table.m { width: 100%; border-collapse: collapse; }
-table.m th { font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; text-align: right; padding: 0 0 4px; }
-table.m td { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; vertical-align: middle; }
+table.m th { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 500; text-align: right; padding: 0 0 4px; }
+table.m th:first-child { text-align: left; }
+table.m td { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 15px; vertical-align: top; line-height: 1.25; }
 table.m td:nth-child(2), table.m td:nth-child(3) { text-align: right; font-family: var(--mono); white-space: nowrap; padding-left: 14px; }
-table.m td:nth-child(3) { color: var(--muted); font-size: 13.5px; }
-table.m td.big { font-size: 27px; color: var(--text-strong); font-weight: 500; letter-spacing: -.02em; }
-.weights { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 15.5px; }
-.weights .mono { font-size: 17px; display: inline-block; min-width: 62px; }
-.method { margin: 14px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+table.m td.big { font-size: 20px; color: var(--text-strong); font-weight: 500; letter-spacing: -.01em; }
+table.m .sub { display: block; font-family: var(--mono); font-size: 11px; color: var(--muted); letter-spacing: 0; font-weight: 400; margin-top: 2px; }
+table.m td:first-child .sub { font-family: var(--sans); font-size: 12.5px; }
+.weights { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.weights span { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; color: var(--text); }
+.weights b { font-family: var(--mono); font-weight: 500; color: var(--accent-soft); }
+.method { margin: 10px 0 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
 code { font-family: var(--mono); font-size: .88em; color: var(--amber); }
 ul.ctl { list-style: none; margin: 0; padding: 0; }
 ul.ctl li { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: baseline; padding: 9.5px 0; border-bottom: 1px solid var(--border); font-size: 15.5px; line-height: 1.35; }
@@ -230,6 +233,10 @@ ul.ctl b { color: var(--text-strong); font-weight: 600; }
 .qr.missing img { display: none; }
 .qr.missing::after { content: "QR: build_pitch.py --demo-url"; font-family: var(--mono); font-size: 12px; color: var(--amber); padding: 16px; text-align: center; }
 .qr-cap { font-family: var(--mono); font-size: 13px; color: var(--muted); text-align: center; margin-top: 8px; }
+.modes { margin-top: 26px; display: flex; flex-direction: column; gap: 8px; font-size: 16px; color: var(--text); }
+.modes div { border-left: 3px solid var(--border-strong); padding: 2px 0 2px 12px; }
+.modes div:last-child { border-left-color: var(--accent); }
+.modes b { color: var(--text-strong); font-family: var(--mono); font-weight: 500; }
 .motto { margin-top: auto; font-family: var(--serif); font-size: 34px; color: var(--text-strong); font-weight: 600; }
 .legal { font-size: 11.5px; color: var(--muted); max-width: 640px; line-height: 1.4; margin: 10px 0 0; }
 </style>
@@ -374,22 +381,22 @@ ul.ctl b { color: var(--text-strong); font-weight: 600; }
   <h2 class="title">Viabilidad: medida y en código</h2>
   <div class="viab">
     <div class="col">
-      <p class="col-h">Costes y latencias medidos</p>
+      <p class="col-h">Costes y tiempos medidos</p>
       <table class="m">
-        <thead><tr><th></th><th>p50</th><th>p95</th></tr></thead>
+        <thead><tr><th>Configuración</th><th>Coste</th><th>Tiempo</th></tr></thead>
         <tbody>
-          <tr><td>Coste por briefing</td><td class="big">0,034 €</td><td>0,062 €</td></tr>
-          <tr><td>Latencia del briefing</td><td class="big">52,7 s</td><td>68,2 s</td></tr>
-          <tr><td>Pregunta por voz, de punta a punta</td><td class="big">6,0 s</td><td>rango 5,9-7,5 s</td></tr>
-          <tr><td>Coste por pregunta</td><td class="big">0,0013 €</td><td>—</td></tr>
+          <tr><td>Básico · valores o cartera, edge-tts<span class="sub">N = 6, p50 (p95)</span></td><td class="big">0,034 €<span class="sub">(0,062 €)</span></td><td class="big">53 s<span class="sub">pared (68 s)</span></td></tr>
+          <tr><td>Completo · voces gratis<span class="sub">gráfico, portada, vídeo, Telegram</span></td><td class="big">0,068 €</td><td class="big">165 s<span class="sub">suma de pasos</span></td></tr>
+          <tr><td>Completo · voz premium Gemini<span class="sub">2 briefings</span></td><td class="big">0,11-0,15 €</td><td class="big">146-173 s<span class="sub">suma de pasos</span></td></tr>
+          <tr><td>Pregunta por voz<span class="sub">con caché de prompt: 0,0013 €</span></td><td class="big">0,005 €</td><td class="big">6,0 s<span class="sub">p50, en caliente</span></td></tr>
         </tbody>
       </table>
       <div class="weights">
-        <div><span class="mono soft">73 %</span> del coste: Analista Sonnet 5.5 (0,025 €)</div>
-        <div><span class="mono soft">17,1 s</span> el paso más lento: TTS de las dos voces</div>
+        <span>Voz Gemini <b>≈ 0,05 €</b></span><span>Analista <b>0,03-0,06 €</b></span><span>Guionista <b>≈ 0,02 €</b></span>
+        <span>Visión <b>≈ 0,013 €</b>/subida</span><span>Verificación STT <b>≈ 0,01 €</b></span><span>Portada local <b>0 €</b>, +50 s</span>
       </div>
-      <p class="method">N = 6 briefings reales (06-oct) · pared con <code>perf_counter</code> · coste = tokens reales × tarifa ·
-        pregunta: voz → STT → Q&amp;A → TTS, en caliente · <code>notebooks/eval/resumen.md</code>, <code>docs/04</code> § 3</p>
+      <p class="method">Producción 07-oct (Railway, traza de cada briefing) + evaluación N = 6 del 06-oct ·
+        tiempo = suma de pasos (salvo «pared») · coste = tokens reales × tarifa</p>
     </div>
     <div class="col">
       <p class="col-h">Regulación y privacidad implementadas</p>
@@ -430,6 +437,10 @@ ul.ctl b { color: var(--text-strong); font-weight: 600; }
       <h1>Demo en vivo</h1>
       <div class="url">https://multimodal-market-briefer-production.up.railway.app/</div>
       <div class="repo"><b>github.com/Romequinco/multimodal-market-briefer</b> · v1.0</div>
+      <div class="modes">
+        <div><b>Demo</b> · abre así: datos de ejemplo y modelos simulados; contenido básico y ficticio, 0 €</div>
+        <div><b>Real</b> · noticias de hoy y modelos reales; pide la contraseña del equipo</div>
+      </div>
     </div>
     <div>
       <div class="qr" id="qr"><img src="assets/qr_demo.png" alt="QR de la demo en vivo" onerror="document.getElementById('qr').classList.add('missing')"></div>

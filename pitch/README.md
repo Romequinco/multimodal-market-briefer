@@ -24,9 +24,9 @@ la monetización aparece solo como hipótesis en una línea.
 | 2 | Problema | Una frase y tres bloques: titulares dispersos, PDFs de 40 páginas, gráficos sin contexto |
 | 3 | Qué es Briefly | Captura real de la app en un portátil; entradas → salidas; por qué multimodal y no un chat |
 | 4 | Cadena de modelos | CLIP → Claude visión → Analista Sonnet 5.5 → Guionista Haiku 4.5 → TTS → vídeo + portada; rama Q&A por voz |
-| 5 | Viabilidad: medida y en código | Costes y latencias medidos (briefing p50/p95, pregunta por voz, paso que más pesa, método) · regulación y privacidad implementadas (guardrails, red-team, AI Act art. 50, cartera en memoria, fuentes, secretos) · monetización como hipótesis en una línea |
+| 5 | Viabilidad: medida y en código | Costes y tiempos medidos por configuración (básico N = 6 · completo con edge-tts · completo con voz Gemini, producción 07-oct), pregunta por voz, qué paso pesa y método · regulación y privacidad implementadas (guardrails, red-team, AI Act art. 50, cartera en memoria, fuentes, secretos) · monetización como hipótesis en una línea |
 | 6 | La app | 4 capturas reales (Hoy, Nuevo briefing, Preguntar, Cómo se hizo); también plan B si falla la demo |
-| 7 | Demo en vivo | Logo, URL + QR, repo · v1.0, lema y aviso legal |
+| 7 | Demo en vivo | Logo, URL + QR, repo · v1.0, nota de modos (Demo básica y ficticia; Real con contraseña), lema y aviso legal |
 
 **Regenerar el PDF** (Chrome o Edge del sistema en modo headless):
 
