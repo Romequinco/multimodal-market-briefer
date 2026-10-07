@@ -587,11 +587,9 @@ Criterios de [docs/00](docs/00_enunciado.md).
 
 ## Equipo
 
-| Integrante | Aportación destacada |
-| --- | --- |
-| Óscar Romero Quincoces | |
-| Daniel García López | «Impacto de la noticia» con FinBERT (PR #1) |
-| Fernando Dapena Tauste | |
+- Óscar Romero Quincoces
+- Daniel García López
+- Fernando Dapena Tauste
 
 El trabajo se repartió en tres carriles paralelos contra los mocks de `providers/mock.py` y los contratos de
 `schemas.py`: **A** entradas y procesado, **B** agentes y orquestación, **C** salidas, entrega y UI.
