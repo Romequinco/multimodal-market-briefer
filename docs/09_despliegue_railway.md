@@ -104,19 +104,32 @@ diálogo sale desactivado en modo Real. Dos formas de activarlo:
 |---|---|---|
 | Variables | `BRIEFER_IMAGE_GEN_PROVIDER=gemini` y `GEMINI_API_KEY=…` | `BRIEFER_IMAGE_GEN_PROVIDER=local` y `LOCAL_MODELS=true` |
 | Coste | ≈ 0,03 € por portada (estimación de [04](04_viabilidad_costes_latencia_compliance.md)); exige **facturación activa** en el proyecto de Google de la clave (sin ella responde 429 y el briefing sale sin portada) | 0 € de API, pero más Railway: imagen de ~3,4 GB, ~2-3 GB de RAM al generar (estimación) y ~1,8 GB de modelo que se descarga la primera vez |
-| Notas | Nada más que tocar | Añade un volumen en `/home/app/.cache/huggingface` (y `RAILWAY_RUN_UID=0`) para no volver a descargar el modelo en cada despliegue; la primera portada tarda más |
+| Notas | Nada más que tocar | Para no volver a descargar el modelo en cada despliegue, guárdalo en el volumen con `HF_HOME=/data/huggingface` (ver paso 7: Railway solo admite **un** volumen por servicio); la primera portada tarda más |
 
 La portada siempre lleva el rótulo «Imagen generada por IA» y es opcional: si falla, el briefing sigue sin ella.
 
 ## Paso 7 (opcional) · Que el Archivo no se borre en cada despliegue
 
 El disco del contenedor se vacía en cada despliegue: los briefings generados desaparecen (el pregenerado de
-«Hoy» no, porque viene en el repo). Para conservarlos:
+«Hoy» no, porque viene en el repo). Railway admite **un solo volumen por servicio**, así que se usa uno para
+todo (briefings y, si usas la portada local, los modelos de Hugging Face):
 
-1. En el servicio → **Add Volume** (o clic derecho → *Attach volume*), ruta de montaje `/app/data/outputs`.
-2. Añade la variable `RAILWAY_RUN_UID=0`: el contenedor corre con un usuario sin privilegios y, sin esto,
-   no podría escribir en el volumen.
+1. En el servicio → **Add Volume** (o clic derecho → *Attach volume*), ruta de montaje **`/data`**. Si ya
+   tenías un volumen con otra ruta (p. ej. `/app/data/outputs`), no crees otro: abre ese volumen → *Settings*
+   → cambia su **Mount path** a `/data`.
+2. Añade estas variables:
 
+   ```env
+   RAILWAY_RUN_UID=0
+   BRIEFER_OUTPUT_DIR=/data/outputs
+   HF_HOME=/data/huggingface
+   ```
+
+   - `RAILWAY_RUN_UID=0`: el contenedor corre con un usuario sin privilegios y, sin esto, no podría escribir en el volumen.
+   - `BRIEFER_OUTPUT_DIR`: los briefings generados se guardan en el volumen.
+   - `HF_HOME`: solo hace falta con la portada local (`LOCAL_MODELS=true`); el modelo (~1,8 GB) se descarga una vez.
+
+No montes el volumen en `/app/data`: taparía `data/samples/` (el briefing pregenerado de la portada).
 La cartera del usuario sigue sin guardarse nunca en disco (ADR-005), haya volumen o no.
 
 ## Paso 8 · Actualizar la app más adelante
