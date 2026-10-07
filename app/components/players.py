@@ -1,18 +1,21 @@
-"""Widgets comunes: disclaimer, avisos de "pendiente", barra lateral, progreso y reproductores.
+"""Piezas comunes de la UI: disclaimer, avisos de "pendiente" y errores, estado de los proveedores,
+progreso, puntos clave, traza «Cómo se hizo» y briefing activo.
 
 Carril C. Solo presentación: recibe schemas (``Briefing``, ``QAAnswer``) y los pinta. No
 instancia proveedores ni llama a modelos (eso es cosa de ``briefer.pipeline``); para saber qué
 está configurado usa ``registry.describe_providers`` y ``Settings.has_secret`` (solo lectura).
+El armazón (barra superior, chip del modo, pie) vive en ``components.shell`` y la vista de un
+briefing en ``components.briefing_view``.
 
-Estado de sesión (``st.session_state``) que comparten las páginas:
+Estado de sesión (``st.session_state``) que comparten las vistas:
 
-- ``"briefing"``: briefing activo (contexto de «Preguntar»). Lo fijan la portada (si no hay otro),
-  «Briefing» al generar, «Histórico» al abrir y el botón «Preguntar sobre este briefing».
-- ``"run_mode"`` / ``"use_mock"``: modo elegido en la barra lateral.
+- ``"briefing"``: briefing activo (lo pinta «Hoy» y es el contexto de «Preguntar»). Lo fijan «Hoy»
+  (el destacado, si no hay otro), «Nuevo briefing» al generar, «Archivo» al abrir y el botón
+  «Preguntar sobre este briefing».
+- ``"run_mode"`` / ``"use_mock"``: modo elegido en el chip de la barra superior.
 - ``"_goto"``: navegación pendiente pedida desde un callback (``handle_navigation``).
 
-Rendimiento: la portada se cachea con ``st.cache_data`` (``featured_briefing``) y las descargas
-leen el fichero solo al pulsar (``data`` perezoso), no en cada recarga.
+Rendimiento: el briefing destacado se cachea con ``st.cache_data`` (``featured_briefing``).
 """
 
 from __future__ import annotations
@@ -22,23 +25,20 @@ import traceback
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
+from urllib.parse import quote
 
 import streamlit as st
 from streamlit.errors import StreamlitAPIException
 
-from briefer import brand, costs, storage
+from briefer import brand, storage
 from briefer.config import Settings, get_settings
 from briefer.logging_utils import error_text, redact_secrets
 from briefer.providers import registry
 from briefer.schemas import DISCLAIMER_ES, Briefing, ChartAsset, NewsItem, QAAnswer, StepMetric
 
 from .theme import (
-    fmt_duration,
-    headline,
     keypoint_card,
     legend_html,
-    pill_html,
-    player_card,
     tech_label,
     ticker_tape,
 )
@@ -69,12 +69,6 @@ CHART_KIND_LABEL = {
     "price_line": "Cotización",
     "portfolio_pie": "Reparto de la cartera",
 }
-
-
-def show_disclaimer() -> None:
-    """Aviso MiFID II visible en todas las páginas (compacto, al pie, mono gris)."""
-    st.divider()
-    disclaimer_note()
 
 
 def pending(exc: BaseException, what: str) -> None:
@@ -205,73 +199,6 @@ def default_demo_mode(settings: Settings | None = None) -> str:
     return "mock" if explicit_mock else "demo_voices"
 
 
-def sidebar_mode() -> str:
-    """Barra lateral: modo de ejecución, insignias de proveedores y cartera. Devuelve el modo.
-
-    - Interruptor «Modo real»: solo se puede activar si hay claves (``real_mode_available``); si
-      no, queda bloqueado con el motivo.
-    - En demo, selector entre **«Demo sin claves (voces reales)»** (datos de ejemplo + modelos
-      simulados + edge-tts real, que no necesita clave) y **«Demo offline»** (todo mock, sin red).
-
-    El modo se recuerda en la sesión (``st.session_state["run_mode"]`` y ``["use_mock"]``).
-    """
-    with st.sidebar:
-        available, why = real_mode_available()
-        previous = st.session_state.get("run_mode")
-        want_real = st.toggle(
-            "Modo real (APIs de .env)",
-            value=available and previous == "real",
-            disabled=not available,
-            help="Desactivado = modo demo: noticias de ejemplo, precios sintéticos y modelos simulados "
-            "(sin claves). Activado = proveedores configurados en .env.",
-        )
-        if want_real and available:
-            mode = "real"
-            st.markdown(mode_line("MODO REAL", "APIs de .env", "ok"), unsafe_allow_html=True)
-        else:
-            demo_options = ["demo_voices", "mock"]
-            default = previous if previous in demo_options else default_demo_mode()
-            mode = st.radio(
-                "Tipo de demo",
-                demo_options,
-                index=demo_options.index(default),
-                format_func=lambda m: MODE_LABELS[m],
-                help="Voces reales: el podcast se lee con edge-tts (gratis, sin clave; necesita red). "
-                "Offline: todo simulado, sin red (el audio es un silencio de prueba).",
-            )
-            if mode == "demo_voices":
-                st.markdown(mode_line("MODO DEMO", "sin claves · voces reales (edge-tts)", "amber"),
-                            unsafe_allow_html=True)
-            else:
-                st.markdown(mode_line("MODO DEMO", "sin red ni claves", "amber"), unsafe_allow_html=True)
-            if not available:
-                st.caption(f"Modo real no disponible: {why}")
-        st.session_state["run_mode"] = mode
-        st.session_state["use_mock"] = mode != "real"
-        portfolio = st.session_state.get("portfolio")
-        if portfolio is not None:
-            st.caption(f"Cartera cargada: «{portfolio.name}» ({len(portfolio.positions)} posiciones)")
-        with st.expander("Proveedores de IA", expanded=False):
-            try:
-                for badge in provider_badges():
-                    color = {"real": "green", "mock": "orange", "off": "gray"}[badge.status]
-                    st.markdown(f"**{badge.family}:** :{color}[{badge.label}]")
-                if mode == "mock":
-                    st.caption("En modo demo offline el pipeline usa mocks en todas las familias.")
-                elif mode == "demo_voices":
-                    st.caption("En la demo sin claves todo es simulado salvo la voz (edge-tts real).")
-            except Exception as exc:  # .env mal formado
-                st.error(f"Configuración inválida: {error_text(exc)}")
-        st.caption("Voces sintéticas generadas por IA · no es asesoramiento financiero.")
-    return mode
-
-
-def sidebar_controls() -> bool:
-    """Compatibilidad: pinta la barra lateral (``sidebar_mode``) y devuelve ``use_mock``
-    (``True`` en cualquier modo demo)."""
-    return sidebar_mode() != "real"
-
-
 def _as_mode(mode: str | bool) -> str:
     """Acepta el modo o el antiguo ``use_mock`` (bool)."""
     if isinstance(mode, bool):
@@ -299,36 +226,6 @@ def mock_providers(mode: str | bool) -> list[str]:
         return [b.family for b in provider_badges() if b.status == "mock"]
     except Exception:  # .env mal formado: lo avisa ya la barra lateral
         return []
-
-
-def demo_mode_banner(mode: str | bool) -> None:
-    """Insignia visible del modo activo (DEMO / MIXTO / REAL) y qué proveedores están simulados.
-
-    Acepta el modo (``"real"``, ``"mock"``, ``"demo_voices"``) o el antiguo ``use_mock`` (bool).
-    """
-    mode = _as_mode(mode)
-    mocked = mock_providers(mode)
-    if mode == "mock":
-        st.markdown(mode_line("MODO DEMO (mock)", "sin red ni claves", "amber"), unsafe_allow_html=True)
-        st.caption(
-            "Proveedores en mock: " + ", ".join(mocked) + ". Noticias de ejemplo y precios "
-            "sintéticos: los contenidos son ficticios."
-        )
-    elif mode == "demo_voices":
-        st.markdown(mode_line("MODO DEMO SIN CLAVES", "voces reales (edge-tts)", "amber"),
-                    unsafe_allow_html=True)
-        st.caption(
-            "Proveedores en mock: " + ", ".join(mocked) + ". Noticias de ejemplo y precios "
-            "sintéticos (contenidos ficticios), pero el podcast se lee con voces sintéticas reales "
-            "de edge-tts (gratis, sin clave; necesita conexión)."
-        )
-    elif mocked:
-        st.markdown(mode_line("MODO MIXTO", "algunos proveedores son simulados", "amber"),
-                    unsafe_allow_html=True)
-        st.caption("Proveedores en mock (según `.env`): " + ", ".join(mocked) + ".")
-    else:
-        st.markdown(mode_line("MODO REAL", "noticias, precios y modelos reales", "ok"),
-                    unsafe_allow_html=True)
 
 
 def failed_steps(metrics: list[StepMetric]) -> list[StepMetric]:
@@ -379,25 +276,28 @@ def _news_index(briefing: Briefing) -> dict[str, NewsItem]:
     return index
 
 
-def format_source(source: str, news: dict[str, NewsItem]) -> str:
-    """Markdown de una fuente: enlace a la noticia si se conoce, si no el texto tal cual."""
-    item = news.get(source)
-    if item is not None:
-        title = item.title.replace("[", "(").replace("]", ")")
-        return f"[{title}]({item.url}) · {item.source}"
-    if source.startswith(("http://", "https://")):
-        return f"[{source}]({source})"
-    return source
+_MD_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+\-.!<>|~$])")
+
+
+def _md_escape(text: str) -> str:
+    """Texto literal en Markdown: sin enlaces, énfasis, HTML ni LaTeX inyectados por la fuente."""
+    return _MD_SPECIAL.sub(r"\\\1", " ".join(str(text).split()))
+
+
+def _safe_url(url: str | None) -> str | None:
+    """La URL solo si es http(s); codificada para no romper el ``(...)`` del enlace Markdown."""
+    url = (url or "").strip()
+    if not url.lower().startswith(("http://", "https://")):
+        return None
+    return quote(url, safe=":/?#@!&'*+,;=%~-._[]")
 
 
 def source_parts(source: str, news: dict[str, NewsItem]) -> tuple[str, str | None]:
-    """``(texto, url)`` de una fuente para las tarjetas HTML (el escape lo hace ``theme``)."""
+    """``(texto, url)`` de una fuente para las tarjetas HTML (el escape lo hace ``theme``; url solo http/s)."""
     item = news.get(source)
     if item is not None:
-        return f"{item.title} · {item.source}", item.url
-    if source.startswith(("http://", "https://")):
-        return source, source
-    return source, None
+        return f"{item.title} · {item.source}", _safe_url(item.url)
+    return source, _safe_url(source)
 
 
 def chart_caption(chart: ChartAsset) -> str:
@@ -406,28 +306,9 @@ def chart_caption(chart: ChartAsset) -> str:
     return f"{label} · {chart.ticker}" if chart.ticker else label
 
 
-def _fmt_duration(seconds: float) -> str:
-    mins, secs = divmod(int(round(seconds)), 60)
-    return f"{mins}:{secs:02d}"
-
-
 def _es(value: float, decimals: int, unit: str = "") -> str:
     """Número con coma decimal (formato español) y unidad, para las métricas de la UI."""
     return f"{value:.{decimals}f}".replace(".", ",") + unit
-
-
-def render_metrics(briefing: Briefing) -> None:
-    """Tabla de latencia y coste estimado por paso, con totales."""
-    if not briefing.metrics:
-        st.write("Sin métricas registradas.")
-        return
-    summary = costs.summarize_metrics(briefing.metrics)
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Pasos", int(summary.get("steps", len(briefing.metrics))))
-    c2.metric("Latencia total", _es(summary.get('total_latency_s', 0.0), 2, " s"))
-    c3.metric("Coste estimado", _es(summary.get('total_cost_eur', 0.0), 4, " €"))
-    render_metrics_table(briefing.metrics)
-    st.caption("Costes estimados con las tarifas de `costs.py` (no son facturas reales).")
 
 
 _STATUS_LABEL = {"fallback": "SUSTITUTO", "error": "ERROR"}
@@ -485,7 +366,7 @@ def render_trace(source: Briefing | QAAnswer | list[StepMetric], key: str = "tra
     try:
         st.graphviz_chart(build_trace_dot(metrics))
     except Exception as exc:  # el grafo es secundario: nunca rompe la página
-        st.caption(f"No se pudo dibujar el grafo ({exc}); se muestra solo la tabla.")
+        st.caption(f"No se pudo dibujar el grafo ({error_text(exc)}); se muestra solo la tabla.")
     st.html(legend_html(TRACE_LEGEND))
     st.caption("La latencia es la suma de pasos (algunos se ejecutan en paralelo). Costes estimados "
                "con `costs.py`.")
@@ -537,19 +418,13 @@ class StatusProgress:
             pass
 
 
-
-
 # ── Briefing activo, portada y navegación ──────────────────────────────────────────
 
 ACTIVE_BRIEFING_KEY = "briefing"
-PAGE_BRIEFING = "pages/1_Briefing.py"
-PAGE_ASK = "pages/2_Preguntar.py"
-PAGE_PORTFOLIO = "pages/3_Mi_cartera.py"
-PAGE_HISTORY = "pages/4_Historico.py"
-PAGE_ABOUT = "pages/5_Quienes_somos.py"
-#: Propuesta de valor y eslogan: fuente única en ``briefer.brand``.
-VALUE_PROPOSITION = brand.VALUE_PROPOSITION
-TAGLINE = brand.TAGLINE
+# Vistas registradas por ``components.shell`` (rutas relativas a ``app/main.py``).
+PAGE_HOY = "views/hoy.py"
+PAGE_ASK = "views/preguntar.py"
+PAGE_HISTORY = "views/archivo.py"
 #: Prefijo de los ficheros descargados (``briefly_<id>.mp3``).
 _FILE_PREFIX = brand.BRAND_NAME.lower()
 
@@ -581,7 +456,7 @@ def handle_navigation() -> None:
     try:
         st.switch_page(target)
     except StreamlitAPIException:
-        st.info("Abre la página **Preguntar** en el menú lateral: el briefing ya está seleccionado.")
+        st.info("Abre la pestaña **Preguntar** en la barra superior: el briefing ya está seleccionado.")
 
 
 def page_link(page: str, label: str, icon: str | None = None, container=None, width: str = "content") -> None:
@@ -590,7 +465,7 @@ def page_link(page: str, label: str, icon: str | None = None, container=None, wi
     try:
         target.page_link(page, label=label, icon=icon, width=width)
     except StreamlitAPIException:
-        target.markdown(f"{label} (menú lateral)")
+        target.markdown(f"{label} (barra superior)")
 
 
 def _featured_signature() -> tuple:
@@ -625,113 +500,13 @@ def featured_briefing() -> tuple[Briefing, str] | None:
     return _featured_cached(_featured_signature())
 
 
-def mode_badge(mode: str) -> None:
-    """Insignia compacta del modo activo (cabecera de las páginas)."""
-    if mode == "real":
-        body = pill_html("Modo real", "ok")
-    elif mode == "demo_voices":
-        body = pill_html("Demo sin claves · voces reales", "amber")
-    else:
-        body = pill_html("Demo offline · todo simulado", "amber")
-    st.markdown(body, unsafe_allow_html=True)
-
-
-def origin_badge(briefing: Briefing, origin: str) -> None:
-    """Insignia del origen del briefing destacado (pregenerado real, guardado, demo…)."""
-    demo = is_demo_run(briefing.metrics)
-    if origin == "pregenerado":
-        label = "Briefing de ejemplo pregenerado" + (" (simulado)" if demo else " con datos y modelos reales")
-    else:
-        label = "Último briefing guardado" + (" (demo)" if demo else "")
-    st.markdown(pill_html(label, "muted" if demo else "accent"), unsafe_allow_html=True)
-
-
 # ── Descargas y reproductor ────────────────────────────────────────────────────────
-
-
-def _reader(path: Path):
-    """Lectura perezosa para ``st.download_button``: el fichero solo se lee al pulsar."""
-    return lambda: Path(path).read_bytes()
-
-
-def render_downloads(briefing: Briefing, key: str = "briefing", *, zip_export: bool = True) -> None:
-    """Botones de descarga: audio, subtítulos (.srt) y el briefing completo en ZIP portable.
-
-    Los datos se generan al pulsar (``data`` perezoso) y la descarga no relanza la página
-    (``on_click="ignore"``): en cada recarga no se leen ni comprimen megas de audio.
-    """
-    cols = st.columns(3)
-    if briefing.audio and _exists(briefing.audio.path):
-        audio_path = Path(briefing.audio.path)
-        cols[0].download_button(
-            f"Descargar audio ({audio_path.suffix.lstrip('.')})",
-            _reader(audio_path),
-            file_name=f"{_FILE_PREFIX}_{briefing.id}{audio_path.suffix}",
-            mime="audio/mpeg" if audio_path.suffix.lower() == ".mp3" else "audio/wav",
-            key=f"{key}_dl_audio",
-            on_click="ignore",
-            icon=":material/download:",
-        )
-    if briefing.transcript and _exists(briefing.transcript.srt_path):
-        cols[1].download_button(
-            "Descargar subtítulos (.srt)",
-            _reader(Path(briefing.transcript.srt_path)),
-            file_name=f"{_FILE_PREFIX}_{briefing.id}.srt",
-            mime="application/x-subrip",
-            key=f"{key}_dl_srt",
-            on_click="ignore",
-            icon=":material/subtitles:",
-        )
-    if zip_export:
-        from briefer import storage
-
-        cols[2].download_button(
-            "Descargar todo (.zip)",
-            lambda: storage.export_briefing_zip(briefing),
-            file_name=f"{_FILE_PREFIX}_{briefing.id}.zip",
-            mime="application/zip",
-            key=f"{key}_dl_zip",
-            on_click="ignore",
-            icon=":material/folder_zip:",
-            help="Briefing autocontenido (JSON con rutas relativas, audio, SRT y gráficos): se puede "
-            "abrir en otra máquina copiándolo a data/outputs/.",
-        )
-
-
-def render_podcast_player(briefing: Briefing, key: str = "briefing", *, downloads: bool = True) -> None:
-    """Reproductor del podcast con el aviso de voz sintética y, opcionalmente, las descargas."""
-    if briefing.audio and _exists(briefing.audio.path):
-        a = briefing.analysis
-        player_card(
-            Path(briefing.audio.path),
-            key=key,
-            title="Podcast del día",
-            meta=[f"{a.date:%d/%m/%Y}", f"{fmt_duration(briefing.audio.duration_s)} min",
-                  "2 voces sintéticas"],
-            seed=briefing.id,
-        )
-        st.caption(
-            f":material/graphic_eq: {_fmt_duration(briefing.audio.duration_s)} min · "
-            f"{len(briefing.audio.segments)} intervenciones · {SYNTHETIC_VOICE_NOTE}"
-        )
-        if downloads:
-            render_downloads(briefing, key)
-    elif briefing.audio:
-        st.info("El audio de este briefing ya no está en disco (¿se movió o borró la carpeta?). "
-                "La transcripción y los gráficos siguen disponibles abajo.")
-    else:
-        st.info("Este briefing no tiene audio.")
 
 
 def disclaimer_note(text: str | None = None) -> None:
     """Disclaimer compacto (visible, sin ocupar la pantalla como un ``st.warning``), en mono gris."""
     body = escape(text or DISCLAIMER_ES)
     st.caption(f'<span class="mb-disclaimer"><b>Aviso:</b> {body}</span>', unsafe_allow_html=True)
-
-
-def mode_line(label: str, note: str, tone: str) -> str:
-    """Insignia de modo en mono (``MODO DEMO`` / ``MODO REAL``) + nota; HTML escapado."""
-    return f'{pill_html(label, tone)} <span class="mb-mode-note">· {escape(note)}</span>'
 
 
 def render_key_points(briefing: Briefing, max_points: int | None = None, *, compact: bool = False) -> None:
@@ -794,154 +569,6 @@ def trace_strip(briefing: Briefing) -> str:
     cost = f"{s['total_cost_eur']:.3f}".replace(".", ",")
     return (f"{s['ai_models']} modelos de IA encadenados · {s['steps']} pasos · "
             f"{s['total_latency_s']:.0f} s de proceso · {cost} € estimados")
-
-
-def briefing_tabs(briefing: Briefing) -> tuple:
-    """Pestañas del briefing; si hay vídeo, una pestaña «Vídeo» (segunda) con el reproductor.
-
-    Devuelve las cuatro fijas: puntos clave, transcripción, gráficos y «Cómo se hizo».
-    """
-    video = briefing.video if briefing.video and _exists(briefing.video.path) else None
-    names = ["Puntos clave"] + (["Vídeo"] if video else []) + ["Transcripción", "Gráficos", "Cómo se hizo"]
-    tabs = st.tabs(names)
-    if video:
-        with tabs[1]:
-            _, col, _ = st.columns([1, 2, 1])  # vertical 9:16: centrado, sin ocupar todo el ancho
-            col.video(str(video.path))
-            col.caption("Vídeo vertical con el podcast, los gráficos y subtítulos. Voces sintéticas generadas con IA.")
-    return tabs[0], tabs[-3], tabs[-2], tabs[-1]
-
-
-def render_briefing(briefing: Briefing, key: str = "briefing", *, ask_button: bool = True) -> None:
-    """Pinta un briefing completo: titular, audio, puntos clave, transcripción, gráficos y traza.
-
-    ``key`` distingue los widgets si se pinta más de un briefing en la misma página.
-    ``ask_button``: botón «Preguntar sobre este briefing» (lo deja como contexto y abre Preguntar).
-    """
-    a = briefing.analysis
-    headline(a.headline, [f"Sesión del {a.date:%d/%m/%Y}",
-                          f"generado el {briefing.created_at:%d/%m/%Y a las %H:%M}", f"id {briefing.id}"])
-    st.markdown(f"**Tono del mercado:** {a.market_mood}")
-    render_run_warnings(briefing)
-
-    if briefing.cover_path and _exists(briefing.cover_path):
-        st.image(str(briefing.cover_path), caption="Imagen generada por IA")
-
-    # ── Podcast ──
-    render_podcast_player(briefing, key)
-    if ask_button:
-        st.button("Preguntar sobre este briefing", key=f"{key}_ask", icon=":material/forum:",
-                  on_click=ask_about, args=(briefing,), type="primary")
-
-    tab_points, tab_transcript, tab_charts, tab_trace = briefing_tabs(briefing)
-
-    # ── Puntos clave ──
-    with tab_points:
-        render_key_points(briefing)
-
-    # ── Transcripción (texto original del guion, no el normalizado para la voz) ──
-    with tab_transcript:
-        if briefing.transcript and briefing.transcript.text.strip():
-            st.text(briefing.transcript.text)
-            st.caption("Transcripción del guion original; el audio lee cifras y tickers en forma hablada.")
-        else:
-            st.write("Este briefing no tiene transcripción.")
-
-    # ── Gráficos ──
-    with tab_charts:
-        images = [c for c in briefing.charts if _exists(c.path)]
-        if images:
-            cols = st.columns(2)
-            for i, chart in enumerate(images):
-                cols[i % 2].image(str(chart.path), caption=chart_caption(chart))
-        elif briefing.charts:
-            st.write("Los gráficos de este briefing ya no están en disco.")
-        else:
-            st.write("Este briefing no tiene gráficos.")
-
-    # ── Cómo se hizo: cadena de modelos, latencia y coste ──
-    with tab_trace:
-        render_trace(briefing, key=f"{key}_trace")
-
-    for d in briefing.deliveries:
-        if d.channel == "web" or not d.ok:  # las fallidas ya se avisan arriba (render_run_warnings)
-            continue
-        st.success(f"Entrega por {d.channel}: {d.detail or 'OK'}")
-
-    disclaimer_note(a.disclaimer)
-
-
-def render_featured_briefing(
-    briefing: Briefing, origin: str, key: str = "featured", max_points: int = 3
-) -> None:
-    """Portada: tarjeta con origen, titular, reproductor arriba, 3 puntos clave y botones de acción.
-
-    Debajo, las pestañas completas (puntos, transcripción, gráficos y «Cómo se hizo») con una franja
-    de resumen de la traza siempre visible.
-    """
-    a = briefing.analysis
-    origin_badge(briefing, origin)
-    meta = [f"{a.date:%d/%m/%Y}"]
-    if briefing.audio:
-        meta.append(f"{fmt_duration(briefing.audio.duration_s)} min")
-    meta += ["2 voces sintéticas", "valores: " + (", ".join(briefing.context.tickers) or "—")]
-    headline(a.headline, meta)
-    if briefing.cover_path and _exists(briefing.cover_path):
-        st.image(str(briefing.cover_path), caption="Imagen generada por IA")
-    render_podcast_player(briefing, key, downloads=False)
-    render_key_points(briefing, max_points, compact=True)
-    with st.container(key=f"mb-cta-{key}"):
-        c1, c2 = st.columns(2)
-        c1.button("Preguntar sobre este briefing", key=f"{key}_ask", icon=":material/forum:",
-                  on_click=ask_about, args=(briefing,), width="stretch", type="primary")
-        page_link(PAGE_BRIEFING, "Generar el tuyo", ":material/podcasts:", container=c2, width="stretch")
-    if briefing.metrics:
-        st.caption(f'{tech_label("Cómo se hizo:")} <span class="mb-strip">{escape(trace_strip(briefing))}'
-                   "</span> " + tech_label("(detalle en la pestaña «Cómo se hizo»)", "muted"),
-                   unsafe_allow_html=True)
-
-    tab_points, tab_transcript, tab_charts, tab_trace = briefing_tabs(briefing)
-    with tab_points:
-        render_key_points(briefing)
-    with tab_transcript:
-        if briefing.transcript and briefing.transcript.text.strip():
-            st.text(briefing.transcript.text)
-        else:
-            st.write("Este briefing no tiene transcripción.")
-    with tab_charts:
-        images = [c for c in briefing.charts if _exists(c.path)]
-        if images:
-            cols = st.columns(2)
-            for i, chart in enumerate(images):
-                cols[i % 2].image(str(chart.path), caption=chart_caption(chart))
-        else:
-            st.write("Este briefing no tiene gráficos.")
-    with tab_trace:
-        render_trace(briefing, key=f"{key}_trace")
-    render_downloads(briefing, key)
-
-
-def render_qa_answer(answer: QAAnswer, briefing: Briefing | None = None) -> None:
-    """Pinta la respuesta del Agente Q&A (texto, audio, fuentes enlazadas y latencia medida)."""
-    st.markdown(f"**Pregunta:** {answer.question}")
-    st.markdown(answer.answer_text)
-    if _exists(answer.audio_path):
-        st.audio(str(answer.audio_path))
-        st.caption("Respuesta leída con voz sintética generada por IA.")
-    if answer.sources:
-        news = _news_index(briefing) if briefing is not None else {}
-        st.caption("Fuentes: " + " · ".join(format_source(s, news) for s in answer.sources))
-    if answer.metrics:
-        total = sum(m.latency_s for m in answer.metrics)
-        detail = " · ".join(
-            f"{STEP_SHORT.get(m.step, m.step)} {_es(m.latency_s, 1, ' s')}" + (" (error)" if m.error else "")
-            for m in answer.metrics
-        )
-        target = " ✓ < 10 s" if total < 10 else ""
-        st.caption(tech_label(f"Latencia total {_es(total, 1, ' s')}{target}", "ok" if total < 10 else "amber")
-                   + " " + tech_label(f"({detail})", "muted"), unsafe_allow_html=True)
-        with st.expander("Cómo se hizo (voz → texto → respuesta → voz)"):
-            render_trace(answer)
 
 
 def pick_question(suggestion: str | None, typed: str, has_audio: bool, last: str | None) -> str:

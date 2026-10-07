@@ -39,7 +39,7 @@ y los envíos: **no se repiten a mano** en ningún otro sitio.
 | Tipografía | **Source Serif 4** (marca y titulares) · **Inter** (texto) · **JetBrains Mono** (datos y rótulos) | Google Fonts, ya cargadas en la app |
 | Locutores | **Toro** (voz A, el optimista) y **Osa** (voz B, la prudente, cierra con el aviso legal) | Guiño a *bull & bear*. Voces sintéticas: edge-tts por defecto, Gemini TTS en la versión premium de la demo |
 | Logo | **LG1-A · velas-ecualizador** | Ver [Logo](#logo) |
-| «Quiénes somos» | Texto de broma corto (misión, valores, equipo) | Página `app/pages/5_Quienes_somos.py`; texto [abajo](#quiénes-somos) |
+| «Quiénes somos» | Texto de broma corto (misión, valores, equipo) | Diálogo del menú ⚙ de la barra superior (`about_dialog` en `app/components/shell.py`); texto [abajo](#quiénes-somos) |
 | Formatos | Ahora: guía de marca, logo SVG y favicon, marca en la app, banner del README. Después: portada, vídeo 9:16, tarjeta de Telegram y pitch | Ver [Formatos](#formatos) |
 
 ## Logo
@@ -204,7 +204,7 @@ la versión automática de esta tabla.
 | --- | --- | --- |
 | Guía de marca (este documento) | Hecho | |
 | Logo SVG, icono y favicon | Hecho | `docs/assets/marca/` |
-| Marca en la app (cabecera, tema, «Quiénes somos») | Hecho | `app/components/theme.py`, `app/pages/5_Quienes_somos.py` |
+| Marca en la app (cabecera, tema, «Quiénes somos») | Hecho | `app/components/theme.py`, `app/components/shell.py` (barra superior y diálogo «Quiénes somos») |
 | Banner del README | Hecho | `docs/assets/marca/briefly_banner.png` (1280 × 320) |
 | Portada del episodio | **PENDIENTE** | Fondo `bg`, logo oscuro, titular del día en serif, fecha en mono. La portada generada por IA (texto → imagen) va en D2 |
 | Vídeo corto 9:16 | **PENDIENTE** | Icono arriba, gráfico del día, subtítulos en Inter sobre placa `surface`, nombre del locutor que habla en mono. Disclaimer en el último plano |
@@ -225,7 +225,7 @@ la versión automática de esta tabla.
 
 ## Quiénes somos
 
-Texto de la página «Quiénes somos» de la app. Es **de broma** y así se presenta: la startup es ficticia.
+Texto del diálogo «Quiénes somos» de la app (menú ⚙). Es **de broma** y así se presenta: la startup es ficticia.
 
 > **Briefly** nació en un atasco de la M-30, cuando tres estudiantes de MIAX se dieron cuenta de que llegaban a
 > casa sin saber qué había hecho su cartera. Nuestra misión: que lo sepas antes de quitarte los zapatos.

@@ -1,0 +1,207 @@
+/* Diálogo «Nuevo briefing» (components/new_briefing.py). Selectores: stDialog + st-key-nb-*. */
+
+[data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-form),
+[data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-run) {
+  max-width: 760px; margin-left: auto; margin-right: auto; position: relative;
+  background: var(--mb-surface);
+  border: 1px solid var(--mb-border-strong);
+  border-radius: 10px;
+}
+/* El contenedor de Streamlit del diálogo «large» (1280 px, con fondo propio) se ajusta al ancho de la
+   tarjeta: si no, a partir de ~800 px asomaba un panel oscuro más ancho detrás del diálogo (E2E). */
+[data-testid="stDialog"] div:has(> [role="dialog"] .st-key-nb-form),
+[data-testid="stDialog"] div:has(> [role="dialog"] .st-key-nb-run) {
+  max-width: min(760px, calc(100% - 32px)) !important; margin-left: auto !important; margin-right: auto !important;
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+}
+[data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-form) h2,
+[data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-run) h2 {
+  font-family: var(--mb-serif); font-weight: 600; color: var(--mb-text-strong);
+}
+
+/* Secciones numeradas */
+[class*="st-key-nb-sec"] {
+  padding: 1rem 0 1.1rem;
+  border-bottom: 1px solid var(--mb-border);
+  gap: .6rem !important;
+}
+.st-key-nb-sec1 { padding-top: .2rem; }
+.mb-nb-sec {
+  display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap;
+  font: 500 12px/1.4 var(--mb-mono); letter-spacing: .06em; color: var(--mb-amber);
+}
+.mb-nb-num {
+  font: 500 12px var(--mb-mono); color: var(--mb-bg); background: var(--mb-amber);
+  border-radius: 4px; padding: 0 6px;
+}
+.mb-nb-title { color: var(--mb-amber); }
+.mb-nb-opt {
+  font-family: var(--mb-sans); font-size: 12.5px; letter-spacing: 0; text-transform: none;
+  color: var(--mb-muted); margin-left: .15rem;
+}
+
+/* Valores: atajos pequeños y línea de cartera */
+.st-key-nb_short button, [class*="st-key-nb_short"] button { font-size: 12.5px; min-height: 1.8rem; padding: .1rem .7rem; }
+.mb-nb-pfline { font-size: 13px; color: var(--mb-text); }
+.mb-nb-pfline b { font-family: var(--mb-mono); font-weight: 500; font-size: 12.5px; color: var(--mb-accent-soft); }
+
+/* Cartera */
+[class*="st-key-nb-pf-card"] {
+  border: 1px solid var(--mb-border); border-radius: 8px; padding: .6rem .75rem .75rem;
+  background: var(--mb-bg);
+}
+.mb-nb-pfname { font-weight: 600; color: var(--mb-text-strong); font-size: 14.5px; }
+.mb-nb-pfname span { font-weight: 400; color: var(--mb-muted); font-size: 13px; }
+.mb-nb-privacy { display: flex; gap: .45rem; align-items: center; font-size: 12.5px; color: var(--mb-muted); }
+/* Candado dibujado con máscara SVG (el emoji no se ve en todas las fuentes) */
+.mb-nb-privacy::before {
+  content: ""; flex: none; width: 12px; height: 12px; background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17 9V7a5 5 0 0 0-10 0v2H5v13h14V9h-2zm-8-2a3 3 0 0 1 6 0v2H9V7z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M17 9V7a5 5 0 0 0-10 0v2H5v13h14V9h-2zm-8-2a3 3 0 0 1 6 0v2H9V7z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+/* Documentos subidos con el tipo detectado */
+/* Chips en fila (el uploader ya lista los ficheros): solo añaden el tipo detectado, sin duplicar altura */
+.mb-nb-files { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mb-nb-files::before { content: "Tipo detectado:"; font-size: 12.5px; color: var(--mb-muted); margin-right: 2px; }
+.mb-nb-files li {
+  display: inline-flex; align-items: center; gap: .45rem; min-width: 0; max-width: 100%; margin: 0;
+  border: 1px solid var(--mb-border); border-radius: 8px; padding: 3px 8px 3px 4px; background: var(--mb-surface-2);
+}
+.mb-nb-ft {
+  flex: none; font: 500 12px var(--mb-mono); letter-spacing: .05em; border-radius: 4px; padding: 2px 7px;
+  border: 1px solid var(--mb-border-strong); color: var(--mb-text-strong);
+}
+.mb-nb-ft--pdf { border-color: var(--mb-accent); color: var(--mb-accent-soft); }
+.mb-nb-ft--img { border-color: rgba(93,202,165,.5); color: var(--mb-up); }
+.mb-nb-ft--aud { border-color: rgba(239,159,39,.55); color: var(--mb-amber); }
+.mb-nb-fn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--mb-text-strong); }
+
+/* Opciones: cada toggle como una tarjeta */
+.st-key-nb-sec4 [data-testid="stColumn"] {
+  border: 1px solid var(--mb-border); border-radius: 8px; padding: .55rem .7rem; background: var(--mb-bg);
+}
+.st-key-nb-sec4 [data-testid="stColumn"]:has(input:checked) { border-color: var(--mb-accent-soft); }
+.st-key-nb-sec4 [data-testid="stColumn"]:has(input:disabled) { opacity: .7; }
+
+/* Pie: resumen mono + botón ancho */
+.st-key-nb-foot {
+  padding: .9rem 0 .2rem; gap: .5rem !important;
+}
+/* El pie (resumen + «Generar») queda fijo abajo mientras se desplaza el diálogo: siempre alcanzable
+   en pantallas bajas (1280x720, 1366x768, móvil) sin tener que bajar hasta el final. */
+[data-testid="stDialog"] div:has(> [role="dialog"] .st-key-nb-form) { overflow: clip !important; }
+[data-testid="stDialog"] .st-key-nb-form > [data-testid="stLayoutWrapper"]:has(> .st-key-nb-foot) {
+  position: sticky; bottom: 0; z-index: 5;
+}
+/* Sin padding inferior en el overlay: si no, el «sticky» se queda 32px por encima del borde y el
+   contenido desplazado asoma por debajo del pie */
+[data-testid="stDialog"]:has(.st-key-nb-form) { padding-bottom: 0 !important; }
+[data-testid="stDialog"] .st-key-nb-foot {
+  background: var(--mb-surface);
+  border-top: 1px solid var(--mb-border);
+  margin-top: -1px;
+  padding: .7rem 0 .8rem;
+}
+.mb-nb-sum { font: 12.5px var(--mb-mono); color: var(--mb-muted); }
+
+/* Generación en curso */
+.st-key-nb-run { gap: .6rem !important; }
+
+/* Ningún contenido desborda el diálogo */
+[data-testid="stDialog"] .st-key-nb-form, [data-testid="stDialog"] .st-key-nb-form * { min-width: 0; }
+[data-testid="stDialog"] .st-key-nb-form [data-testid="stFileUploaderFileName"] { overflow-wrap: anywhere; }
+
+/* Móvil: el diálogo ocupa casi toda la pantalla y las opciones se apilan */
+@media (max-width: 640px) {
+  [data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-form),
+  [data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-run) {
+    width: 100% !important; max-width: 100% !important;
+    margin: 0 !important; min-height: calc(100dvh - 16px);
+  }
+  [data-testid="stDialog"] div:has(> [role="dialog"] .st-key-nb-form),
+  [data-testid="stDialog"] div:has(> [role="dialog"] .st-key-nb-run) {
+    padding: 6px !important; margin: 0 !important; width: 100% !important; max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  [data-testid="stDialog"]:has(.st-key-nb-form), [data-testid="stDialog"]:has(.st-key-nb-run) { padding: 4px 0 0 !important; }
+}
+@media (max-width: 640px) {
+  .st-key-nb-sec2 [data-testid="stHorizontalBlock"] { flex-wrap: wrap; gap: .4rem; }
+  .st-key-nb-sec2 [data-testid="stColumn"] { width: 100% !important; flex: 1 1 100% !important; }
+}
+/* Opciones apiladas en cuanto no caben en fila */
+@media (max-width: 720px) {
+  .st-key-nb-sec4 [data-testid="stHorizontalBlock"] { flex-direction: column; gap: .5rem; }
+  .st-key-nb-sec4 [data-testid="stColumn"] { width: 100% !important; flex: 1 1 auto !important; }
+}
+
+/* Streamlit da margin-bottom negativo al último hijo del markdown: aquí no (si no, se solapan) */
+[data-testid="stDialog"] div:has(> .mb-nb-sec), [data-testid="stDialog"] div:has(> .mb-nb-privacy),
+[data-testid="stDialog"] div:has(> .mb-nb-sum), [data-testid="stDialog"] div:has(> .mb-nb-pfline),
+[data-testid="stDialog"] div:has(> .mb-nb-files), [data-testid="stDialog"] div:has(> .mb-nb-pfname) { margin-bottom: 0 !important; }
+
+/* Tabla compacta de la cartera */
+.mb-nb-pftable { width: 100%; border-collapse: collapse; font-size: 13px; margin: .2rem 0 0; display: table; }
+.mb-nb-pftable th {
+  text-align: left; font: 500 12px var(--mb-mono); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--mb-muted); padding: 4px 8px; border-bottom: 1px solid var(--mb-border); background: transparent;
+}
+.mb-nb-pftable td { padding: 5px 8px; border-bottom: 1px solid var(--mb-border); color: var(--mb-text); vertical-align: middle; border-left: 0; border-right: 0; }
+.mb-nb-pftable tr:last-child td { border-bottom: 0; }
+.mb-nb-pftable th:last-child, .mb-nb-qty { text-align: right; width: 5.5rem; }
+.mb-nb-tk { font-family: var(--mb-mono); font-size: 12.5px; color: var(--mb-text-strong); width: 6.5rem; white-space: nowrap; }
+.mb-nb-qty { font-family: var(--mb-mono); font-size: 12.5px; }
+.mb-nb-bar { display: inline-block; vertical-align: middle; width: calc(100% - 4.2rem); max-width: 220px; height: 6px; border-radius: 999px; background: var(--mb-surface-2); overflow: hidden; margin-right: .5rem; }
+.mb-nb-bar i { display: block; height: 100%; background: var(--mb-accent); }
+.mb-nb-pct { font-family: var(--mb-mono); font-size: 12px; color: var(--mb-muted); white-space: nowrap; }
+[data-testid="stDialog"] div:has(> .mb-nb-pftable) { margin-bottom: 0 !important; }
+/* Las etiquetas de los toggles parten línea en vez de cortarse con «…» */
+.st-key-nb-sec4 [data-testid="stColumn"] label, .st-key-nb-sec4 [data-testid="stColumn"] label * {
+  white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
+}
+
+/* Uploaders del diálogo en español (Streamlit pinta «Upload» y «50MB per file • …» en inglés) */
+[data-testid="stDialog"] .st-key-nb-form [data-testid="stFileUploaderDropzone"] > span > button [data-testid="stMarkdownContainer"] p {
+  font-size: 0 !important; line-height: 0;
+}
+[data-testid="stDialog"] .st-key-nb-form [data-testid="stFileUploaderDropzone"] > span > button [data-testid="stMarkdownContainer"] p::after {
+  content: "Subir"; font-size: 14px; line-height: 1.4;
+}
+[data-testid="stDialog"] .st-key-nb-form [data-testid="stFileUploaderDropzoneInstructions"] span {
+  font-size: 0 !important; white-space: normal !important; overflow: visible !important; text-overflow: clip !important;
+}
+[data-testid="stDialog"] .st-key-nb-form [data-testid="stFileUploaderDropzoneInstructions"] span::after {
+  content: "Arrastra el fichero aquí · máx. 50 MB"; font-size: 12.5px; color: var(--mb-muted);
+}
+[data-testid="stDialog"] .st-key-nb_pf_csv [data-testid="stFileUploaderDropzoneInstructions"] span::after {
+  content: "Arrastra tu CSV aquí · máx. 50 MB";
+}
+[data-testid="stDialog"] .st-key-nb_pf_shot [data-testid="stFileUploaderDropzoneInstructions"] span::after {
+  content: "PNG o JPG · máx. 50 MB";
+}
+[data-testid="stDialog"] .st-key-nb_docs [data-testid="stFileUploaderDropzoneInstructions"] span::after {
+  content: "PDF, imágenes (PNG, JPG, WEBP) o audio · máx. 50 MB por fichero";
+}
+
+/* Los valores elegidos se ven todos (sin scroll interno en la caja del multiselect) */
+[data-testid="stDialog"] .st-key-nb-form [data-testid="stMultiSelectTagsContainer"],
+[data-testid="stDialog"] .st-key-nb-form [data-testid="stMultiSelect"] div:has(> [data-testid="stMultiSelectTagsContainer"]) {
+  max-height: none !important; height: auto !important; overflow: visible !important;
+}
+
+/* Móvil: objetivos táctiles de al menos 40 px */
+@media (max-width: 640px) {
+  [data-testid="stDialog"] .st-key-nb-form [data-testid="stButtonGroup"] button,
+  [data-testid="stDialog"] .st-key-nb-form .st-key-nb_short button { min-height: 40px !important; }
+  [data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-form) button[aria-label="Close"],
+  [data-testid="stDialog"] [role="dialog"]:has(.st-key-nb-run) button[aria-label="Close"] { min-width: 40px; min-height: 40px; }
+  [data-testid="stDialog"] .st-key-nb-form [data-testid="stFileChipDeleteBtn"] button,
+  [data-testid="stDialog"] .st-key-nb-form [data-testid="stFileUploaderDropzone"] button { min-width: 40px; min-height: 40px; }
+  [data-testid="stDialog"] .st-key-nb-form [data-testid="stMultiSelectTagsContainer"] [data-tag] { min-height: 32px; height: auto; }
+  [data-testid="stDialog"] .st-key-nb-form [data-testid="stMultiSelectTagsContainer"] [data-tag] > span {
+    white-space: normal; text-overflow: clip; overflow: visible; line-height: 1.25;
+  }
+  [data-testid="stDialog"] .st-key-nb-form [data-testid="stMultiSelectTagsContainer"] [data-tag] > button {
+    min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  }
+}

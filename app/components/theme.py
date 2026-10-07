@@ -254,14 +254,12 @@ input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 .mb-strip { font-family: var(--mb-mono); font-size: 12px; color: var(--mb-text); }
 .mb-legend { font-family: var(--mb-mono); font-size: 11.5px; color: var(--mb-muted); display: flex; flex-wrap: wrap; gap: .3rem 1rem; }
 .mb-legend i { display: inline-block; width: 10px; height: 10px; border: 2px solid; border-radius: 2px; margin-right: .35rem; vertical-align: -1px; }
-.mb-disclaimer { font-family: var(--mb-mono); font-size: 11.5px; color: var(--mb-muted); }
+.mb-disclaimer { font-family: var(--mb-mono); font-size: 12px; color: var(--mb-muted); }
 
 @media (prefers-reduced-motion: reduce) {
   .mb-onair__dot { animation: none; }
   * { scroll-behavior: auto !important; }
 }
-[data-testid="stSidebarNav"] li:first-child a p { font-size: 0; line-height: 1.4rem; }
-[data-testid="stSidebarNav"] li:first-child a p::after { content: "Portada"; font-size: 0.875rem; }
 @media (max-width: 640px) {
   .mb-tape { gap: 1rem; }
   .st-key-mb-masthead h1 { font-size: 1.7rem; }
@@ -269,10 +267,31 @@ input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 """
 
 
+#: Hojas de estilo por área del rediseño (``styles/NN_area.css``), en orden de nombre. Usan las
+#: variables ``--mb-*`` de ``_CSS`` y no llevan ``%`` de formato (se añaden tal cual).
+STYLES_DIR = Path(__file__).resolve().parent / "styles"
+
+
+def area_css(styles_dir: Path | None = None) -> str:
+    """CSS de las áreas (barra superior, Hoy, nuevo briefing, Preguntar, Archivo) concatenado."""
+    folder = styles_dir or STYLES_DIR
+    try:
+        files = sorted(folder.glob("*.css"))
+    except OSError:
+        return ""
+    parts = []
+    for path in files:
+        try:
+            parts.append(f"/* {path.name} */\n{path.read_text(encoding='utf-8')}")
+        except OSError:  # el CSS es decorativo: un fichero ilegible no rompe la app
+            continue
+    return "\n".join(parts)
+
+
 def theme_css() -> str:
     """CSS completo del tema (función pura, útil en tests)."""
     values = dict(TOKENS, serif=FONT_SERIF, sans=FONT_SANS, mono=FONT_MONO)
-    return _FONTS_IMPORT + (_CSS % values)
+    return _FONTS_IMPORT + (_CSS % values) + "\n" + area_css()
 
 
 def apply_theme() -> bool:

@@ -1,5 +1,6 @@
 """Tema «Noticiero nocturno» (``app/components/theme.py``): escape de HTML en los helpers,
-``apply_theme`` idempotente y las 5 páginas con el tema aplicado sin excepciones (AppTest, sin red)."""
+``apply_theme`` idempotente, las 3 vistas (vía ``main.py`` y su armazón) con el tema aplicado sin
+excepciones y el CSS por áreas de ``components/styles/`` (AppTest, sin red)."""
 
 from __future__ import annotations
 
@@ -23,8 +24,8 @@ if str(APP_DIR) not in sys.path:
 from components import theme  # noqa: E402
 
 EVIL = '<script>alert("x")</script>'
-PAGES = ["main.py", "pages/1_Briefing.py", "pages/2_Preguntar.py", "pages/3_Mi_cartera.py",
-         "pages/4_Historico.py"]
+#: Vistas registradas por ``components.shell`` (se navega a ellas desde ``main.py``).
+VIEWS = ["views/hoy.py", "views/preguntar.py", "views/archivo.py"]
 
 
 def _styles(at: AppTest) -> list[str]:
@@ -126,18 +127,79 @@ def demo_samples(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     return samples
 
 
-@pytest.mark.parametrize("page", PAGES)
-def test_every_page_applies_theme_without_errors(page: str, demo_samples: Path) -> None:
-    at = AppTest.from_file(str(APP_DIR / page), default_timeout=60).run()
+@pytest.mark.parametrize("view", VIEWS)
+def test_every_view_applies_theme_without_errors(view: str, demo_samples: Path) -> None:
+    at = AppTest.from_file(str(APP_DIR / "main.py"), default_timeout=60).run()
+    at.switch_page(view).run()
     assert not at.exception, at.exception
-    assert len(_styles(at)) == 1, "el CSS del tema se inyecta una vez por página"
+    assert len(_styles(at)) == 1, "el CSS del tema se inyecta una vez por vista"
+    assert "mb-brand" in "".join(h.proto.body for h in at.get("html"))  # barra superior en todas
 
 
 def test_home_themed_elements(demo_samples: Path) -> None:
     at = AppTest.from_file(str(APP_DIR / "main.py"), default_timeout=60).run()
     assert not at.exception
-    bodies = "\n".join(h.proto.body for h in at.get("html"))
-    assert "mb-tape" in bodies and "en antena" in bodies and "mb-headline" in bodies
+    bodies = "\n".join(h.proto.body for h in at.get("html") if "<style>" not in h.proto.body)
+    assert "mb-tape" in bodies and "en antena" in bodies and "mb-hero__title" in bodies
     assert "mb-player" in bodies and "mb-kp" in bodies
     ask = next(b for b in at.button if b.label == "Preguntar sobre este briefing")
     assert ask.proto.type == "primary"
+
+
+# ── CSS por áreas (``components/styles/*.css``) ────────────────────────────────────
+
+STYLE_FILES = sorted(theme.STYLES_DIR.glob("*.css"))
+
+
+def test_area_css_loads_every_file_in_order() -> None:
+    names = [p.name for p in STYLE_FILES]
+    assert names == sorted(names) and len(names) >= 5
+    assert {"10_shell.css", "20_hoy.css", "30_nuevo.css", "40_preguntar.css", "50_archivo.css"} <= set(names)
+    css = theme.area_css()
+    positions = [css.index(f"/* {name} */") for name in names]
+    assert positions == sorted(positions), "las hojas se concatenan por orden de nombre"
+    assert css in theme.theme_css()  # van tras el CSS base del tema
+
+
+def test_area_css_custom_dir_order_and_missing(tmp_path: Path) -> None:
+    (tmp_path / "20_b.css").write_text(".b{}", encoding="utf-8")
+    (tmp_path / "10_a.css").write_text(".a{}", encoding="utf-8")
+    (tmp_path / "notas.txt").write_text("no es css", encoding="utf-8")
+    css = theme.area_css(tmp_path)
+    assert css.index(".a{}") < css.index(".b{}") and "no es css" not in css
+    assert theme.area_css(tmp_path / "no_existe") == ""
+
+
+@pytest.mark.parametrize("path", STYLE_FILES, ids=lambda p: p.name)
+def test_area_css_has_no_broken_format_percent(path: Path) -> None:
+    """Las hojas se añaden tal cual (sin ``%``-formato): ``%%`` o ``%(`` quedarían rotos en el navegador."""
+    css = path.read_text(encoding="utf-8")
+    assert "%%" not in css and "%(" not in css
+
+
+@pytest.mark.parametrize("path", STYLE_FILES, ids=lambda p: p.name)
+def test_area_css_has_no_html_tags(path: Path) -> None:
+    """El tema va dentro de ``st.html("<style>…")``: una etiqueta HTML (aunque sea en un comentario,
+    p. ej. «<p>») hace que el saneador descarte TODO el CSS y la app sale sin tema (visto en el E2E)."""
+    import re
+
+    css = path.read_text(encoding="utf-8")
+    assert not re.search(r"</?[A-Za-z!]", css), re.findall(r"</?[A-Za-z!][^>]{0,20}", css)
+
+
+@pytest.mark.parametrize("path", STYLE_FILES, ids=lambda p: p.name)
+def test_area_css_has_no_shadows(path: Path) -> None:
+    """Regla de marca: sin sombras (solo se admite ``box-shadow: none`` para quitar las de Streamlit)."""
+    import re
+
+    css = re.sub(r"/\*.*?\*/", "", path.read_text(encoding="utf-8"), flags=re.S)
+    values = re.findall(r"box-shadow\s*:\s*([^;}]+)", css)
+    assert all(v.strip().removesuffix("!important").strip() == "none" for v in values), values
+
+
+@pytest.mark.parametrize("path", STYLE_FILES, ids=lambda p: p.name)
+def test_area_css_uses_stable_selectors(path: Path) -> None:
+    """Selectores estables (``data-testid`` / ``st-key-*``), nunca clases hash de emotion (``st-emotion-cache-*``)."""
+    css = path.read_text(encoding="utf-8")
+    assert "emotion-cache" not in css
+    assert css.count("{") == css.count("}"), "llaves desequilibradas"

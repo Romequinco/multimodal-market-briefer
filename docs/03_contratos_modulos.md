@@ -184,7 +184,7 @@ def get_stt(settings: Settings | None = None, *, force_mock: bool = False) -> ST
 def get_tts(settings: Settings | None = None, *, force_mock: bool = False) -> TTSProvider: ...
 def get_image_gen(settings: Settings | None = None, *, force_mock: bool = False) -> ImageGenProvider | None: ...
 def get_image_classifier(settings: Settings | None = None, *, force_mock: bool = False) -> ImageClassifier | None: ...
-def describe_providers(settings: Settings | None = None) -> dict[str, str]: ...  # resumen para la barra lateral de la UI
+def describe_providers(settings: Settings | None = None) -> dict[str, str]: ...  # resumen para el chip del modo de la UI
 
 class ProviderConfigError(RuntimeError): ...  # proveedor desconocido, sin clave o sin dependencias
 ```
@@ -303,7 +303,7 @@ def process_upload(path: Path, providers: Providers, metrics: list[StepMetric],
     # enruta por extensión: PDF / imagen / audio; extensión no soportada -> ValueError
     # (registrado como paso "ingest.upload"). Propaga errores: run_briefing decide omitir la subida.
     # (v0.3.5) imagen: validate_image -> chart_reader.route_image (CLIP; nunca lanza) -> si es captura de
-    # cartera, ValueError «súbela en «Mi cartera»» SIN llamar a visión (los tickers ya están fijados);
+    # cartera, ValueError «súbela en «Tu cartera» → «Captura del broker»» (diálogo «Nuevo briefing») SIN llamar a visión (los tickers ya están fijados);
     # si es no financiera, read_chart lanza ValueError sin llamar a visión; si no, read_chart con la pista.
     # StepMetric.detail de ingest.chart = format_route_stats (p. ej. «CLIP: gráfico de velas japonesas
     # (99 %) · 0,08 s»), también si la subida se rechaza.
@@ -314,7 +314,7 @@ def portfolio_from_screenshot(image: bytes, *, name: str = "Mi cartera", use_moc
     # Paso "ingest.portfolio_image" (latencia + coste de visión y LLM). Solo resuelve esos dos proveedores.
     # Privacidad (ADR-005): todo en memoria; detail sin nombres ni cifras («5 filas leídas, pesos por
     # valor»). stats_out recibe las filas descartadas (para avisar en la UI). Raises: ValueError (imagen
-    # no válida o sin posiciones reconocibles; mensaje apto para la UI). Lo usa la página «Mi cartera».
+    # no válida o sin posiciones reconocibles; mensaje apto para la UI). Lo usa la sección «Tu cartera» del diálogo «Nuevo briefing».
 def run_briefing(tickers: Sequence[str], portfolio: Portfolio | None = None,
                  uploads: Sequence[Path] | None = None, make_video: bool = False,
                  deliver: Sequence[str] | None = None, *, make_cover: bool = False,
@@ -346,7 +346,7 @@ def speak_answer(answer: QAAnswer, briefing: Briefing | None = None, *, use_mock
     # si ya tiene audio, la devuelve tal cual. `mode` debe ser el de la pregunta
 ```
 
-**Q&A en dos tiempos (v0.3.1).** La página «Preguntar» llama a `warmup` en un hilo al cargar
+**Q&A en dos tiempos (v0.3.1).** La vista «Preguntar» (`app/views/preguntar.py`) llama a `warmup` en un hilo al cargar
 (`st.cache_resource`, una vez por proceso y modo), después a `answer_question(..., speak=False)` para pintar el
 texto y por último a `speak_answer`. Medido en [04](04_viabilidad_costes_latencia_compliance.md#3-latencias).
 
@@ -392,7 +392,7 @@ class BriefingSummary:                                                          
     demo: bool = False; error: str | None = None
 def briefing_summaries(base_dir: Path | None = None,
                        limit: int = 50) -> list[BriefingSummary]: ...                 # (v0.3.1)
-    # filas ligeras para el Histórico (json sin Pydantic); un JSON corrupto sale con `error`, sin lanzar
+    # filas ligeras para la vista Archivo (json sin Pydantic); un JSON corrupto sale con `error`, sin lanzar
 def demo_briefing_dir(samples_dir: Path | None = None) -> Path: ...                 # (v0.3) data/samples/demo_briefing
 def load_demo_briefing(samples_dir: Path | None = None) -> Briefing | None: ...      # (v0.3)
     # None si no existe; JSON corrupto o fuera de contrato -> ValueError / ValidationError (falla alto)
@@ -418,7 +418,7 @@ def load_news_impact(briefing_or_dir: Briefing | Path | str,
     # contrato Briefing, junto a briefing.json. Tolerante: sin fichero o JSON corrupto -> {}
 def export_briefing_zip(briefing: Briefing) -> bytes: ...                            # (v0.3.1)
     # ZIP portable <id>/briefing.json + ficheros (vía export_briefing en un temporal que se borra);
-    # se descomprime en data/outputs/ de otra máquina y se abre en el Histórico
+    # se descomprime en data/outputs/ de otra máquina y se abre en la vista Archivo
 @dataclass(frozen=True)
 class DeletionReport:                                                                 # (D · RGPD)
     briefings: int = 0; output_files: int = 0; cache_files: int = 0; failed: tuple[str, ...] = ()
@@ -1200,7 +1200,7 @@ flowchart LR
         B1["MarketContext → Analysis<br/>Analysis → PodcastScript<br/>pregunta + Briefing → respuesta<br/>run_briefing / answer_question"]
     end
     subgraph C["Carril C · Salidas, entrega y UI"]
-        C1["AudioAsset · Transcript<br/>ChartAsset[] · VideoAsset<br/>DeliveryResult · páginas Streamlit"]
+        C1["AudioAsset · Transcript<br/>ChartAsset[] · VideoAsset<br/>DeliveryResult · vistas Streamlit"]
     end
     A -- "MarketContext" --> B
     B -- "PodcastScript, Analysis" --> C
@@ -1238,6 +1238,8 @@ flowchart LR
    (local y gratis con SDXS, verificada en real; `GeminiImage`, de pago, sin prueba real por falta de facturación) y `delivery.telegram` (sin prueba real: falta
    crear el bot), activos en «Opciones avanzadas» de la UI. Router CLIP en `process_upload` y cartera desde
    captura (`portfolio_from_screenshot`, página «Mi cartera»). `delivery.email` retirado el 06-oct (v0.3.7).
+   *(Desde el 07-oct, «Opciones avanzadas» y «Mi cartera» viven en el diálogo «Nuevo briefing»: secciones
+   «Opciones» y «Tu cartera».)*
 
 ---
 

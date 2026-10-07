@@ -72,14 +72,20 @@ def test_m2_voice_uploads_have_unique_names(tmp_path: Path) -> None:
     assert a != b and a.parent == b.parent == tmp_path
 
 
-@pytest.mark.parametrize("fail", [False, True])
-def test_m2_briefing_page_deletes_uploads(monkeypatch: pytest.MonkeyPatch, fail: bool) -> None:
-    """Las subidas van a una carpeta única por ejecución y se borran al terminar (también si falla)."""
-    import streamlit as st
-    from streamlit.testing.v1 import AppTest
+def _ui():
+    """Helpers de AppTest (``tests/ui_helpers.py``; añade ``app/`` al ``sys.path``)."""
+    import ui_helpers
 
-    if str(APP_DIR) not in sys.path:
-        sys.path.insert(0, str(APP_DIR))
+    return ui_helpers
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_m2_new_briefing_deletes_uploads(monkeypatch: pytest.MonkeyPatch, fail: bool) -> None:
+    """Las subidas del diálogo «Nuevo briefing» van a una carpeta única por ejecución y se borran al
+    terminar (también si falla)."""
+    import streamlit as st
+
+    ui = _ui()
     files = [SimpleNamespace(name="resultados.pdf", getvalue=lambda: b"%PDF-1.4 fake"),
              SimpleNamespace(name="../../nota.wav", getvalue=lambda: b"RIFF")]
     monkeypatch.setattr(st, "file_uploader", lambda *a, **k: files)  # AppTest no simula subidas
@@ -96,9 +102,12 @@ def test_m2_briefing_page_deletes_uploads(monkeypatch: pytest.MonkeyPatch, fail:
         return real_run(tickers, **kw)
 
     monkeypatch.setattr(pipeline, "run_briefing", fake_run)
-    at = AppTest.from_file(str(APP_DIR / "pages" / "1_Briefing.py"), default_timeout=60).run()
-    at.button[0].click().run()
-    at.button[0].click().run()
+    at = ui.form_app()
+    at.session_state[f"{ui.FORM_KEY}_docs"] = files  # lo que el callback de «Generar» lee del widget
+    at.run()
+    assert "nota.wav" in "\n".join(m.value for m in at.markdown)  # lista de documentos con su tipo
+    ui.button(at, "Generar briefing").click().run()
+    ui.button(at, "Generar briefing").click().run()
     assert not at.exception
     assert len(seen) == 2 and seen[0][0].parent != seen[1][0].parent  # carpeta única por ejecución
     assert not any(p.exists() or p.parent.exists() for run in seen for p in run)  # borradas
@@ -133,20 +142,25 @@ def _wav_bytes(seconds: float = 0.5, amplitude: int = 0) -> bytes:
     return buf.getvalue()
 
 
-def test_m3_ask_page_text_after_voice_uses_text(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Preguntar por voz y luego por texto: la 2.ª pregunta es el texto, no la grabación vieja,
-    y la grabación temporal se borra."""
+def _fake_chat_input(monkeypatch: pytest.MonkeyPatch) -> dict:
+    """``st.chat_input`` falso: devuelve UNA vez lo que se deje en ``pending["value"]``.
+
+    Igual que el real: el valor enviado (texto o ``ChatInputValue`` con ``.text``/``.audio``) solo
+    llega en la ejecución siguiente al envío y después vuelve a ser ``None``.
+    """
     import streamlit as st
-    from streamlit.testing.v1 import AppTest
 
-    if str(APP_DIR) not in sys.path:
-        sys.path.insert(0, str(APP_DIR))
+    pending: dict = {}
+    monkeypatch.setattr(st, "chat_input", lambda *a, **k: pending.pop("value", None))
+    return pending
+
+
+def test_m3_ask_voice_then_text_uses_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Preguntar por voz y luego por texto: la 2.ª pregunta es el texto, no la grabación vieja,
+    y la grabación temporal se borra tras transcribirla (RGPD)."""
+    ui = _ui()
+    pending = _fake_chat_input(monkeypatch)
     recording = SimpleNamespace(getvalue=lambda: _wav_bytes(amplitude=3000))
-
-    def fake_audio_input(label, *, key=None, **_kw):  # Streamlit vacía el widget al cambiar la clave
-        return recording if key == "qa_audio_0" else None
-
-    monkeypatch.setattr(st, "audio_input", fake_audio_input)
     questions: list[object] = []
     real_answer = pipeline.answer_question
 
@@ -157,34 +171,55 @@ def test_m3_ask_page_text_after_voice_uses_text(monkeypatch: pytest.MonkeyPatch)
         return real_answer(question, *args, **kwargs)
 
     monkeypatch.setattr(pipeline, "answer_question", spy)
-    at = AppTest.from_file(str(APP_DIR / "pages" / "2_Preguntar.py"), default_timeout=60).run()
-    at.checkbox[0].uncheck().run()
-    preguntar = next(b for b in at.button if b.label == "Preguntar")
-    preguntar.click().run()  # 1.ª: por voz (solo hay grabación)
+    at = ui.app(ui.ASK).run()
+    at.toggle(key="qa_speak").set_value(False).run()
+    pending["value"] = SimpleNamespace(text="", audio=recording)
+    at.run()  # 1.ª: por voz
     assert not at.exception
     assert isinstance(questions[0], Path) and not questions[0].exists()  # borrada tras transcribir
     assert at.session_state["qa_answers"][0].question.startswith("[MOCK]")
-    at.text_input[0].input("¿Qué ha pasado con Inditex?").run()
-    next(b for b in at.button if b.label == "Preguntar").click().run()
+    assert at.session_state["qa_voice"][0] is True
+    pending["value"] = "¿Qué ha pasado con Inditex?"
+    at.run()
     assert not at.exception
-    assert questions[1] == "¿Qué ha pasado con Inditex?"
+    assert len(questions) == 2 and questions[1] == "¿Qué ha pasado con Inditex?"
     assert at.session_state["qa_answers"][0].question == "¿Qué ha pasado con Inditex?"
 
 
-def test_m3_stale_recording_loses_to_typed_text(monkeypatch: pytest.MonkeyPatch) -> None:
-    import streamlit as st
-    from streamlit.testing.v1 import AppTest
-
-    if str(APP_DIR) not in sys.path:
-        sys.path.insert(0, str(APP_DIR))
+def test_m3_recording_is_never_resent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Una grabación ya enviada no se reenvía en recargas ni al tocar otros controles; si en el mismo
+    envío llegan texto y audio, gana el audio (lo último que hizo el usuario en la barra única)."""
+    ui = _ui()
+    pending = _fake_chat_input(monkeypatch)
     recording = SimpleNamespace(getvalue=lambda: _wav_bytes(amplitude=3000))
-    monkeypatch.setattr(st, "audio_input", lambda *a, **k: recording)  # la grabación sigue ahí
-    at = AppTest.from_file(str(APP_DIR / "pages" / "2_Preguntar.py"), default_timeout=60).run()
-    at.checkbox[0].uncheck().run()
-    at.text_input[0].input("¿Y Repsol?").run()
-    next(b for b in at.button if b.label == "Preguntar").click().run()
+    questions: list[object] = []
+    real_answer = pipeline.answer_question
+
+    def spy(question, *args, **kwargs):
+        questions.append(question)
+        return real_answer(question, *args, **kwargs)
+
+    monkeypatch.setattr(pipeline, "answer_question", spy)
+    at = ui.app(ui.ASK).run()
+    pending["value"] = SimpleNamespace(text="¿Y Repsol?", audio=recording)
+    at.run()
+    assert not at.exception and len(questions) == 1 and isinstance(questions[0], Path)
+    at.run()
+    at.toggle(key="qa_speak").set_value(False).run()
     assert not at.exception
-    assert at.session_state["qa_answers"][0].question == "¿Y Repsol?"
+    assert len(questions) == 1, "la grabación vieja no se reenvía"
+    assert len(at.session_state["qa_answers"]) == 1
+
+
+def test_m3_empty_recording_shows_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    ui = _ui()
+    pending = _fake_chat_input(monkeypatch)
+    at = ui.app(ui.ASK).run()
+    pending["value"] = SimpleNamespace(text="", audio=SimpleNamespace(getvalue=lambda: b""))
+    at.run()
+    assert not at.exception
+    assert "vacío" in "\n".join(w.value for w in at.warning)
+    assert at.session_state["qa_answers"] == []
 
 
 # ── M4: WhisperAPI y STT mock ─────────────────────────────────────────────────────
@@ -318,19 +353,22 @@ def test_m5_only_simulated_saved_falls_back_to_pregenerated(sample_briefing: Bri
 
 
 def test_m6_pending_features_disabled_in_ui() -> None:
-    from streamlit.testing.v1 import AppTest
-
-    if str(APP_DIR) not in sys.path:
-        sys.path.insert(0, str(APP_DIR))
-    at = AppTest.from_file(str(APP_DIR / "pages" / "1_Briefing.py"), default_timeout=60).run()
+    ui = _ui()
+    at = ui.form_app().run()
     assert not at.exception
-    labels = {c.label: c for c in at.checkbox}
-    assert not labels["Vídeo corto"].disabled
-    # Telegram sin configurar en los tests: la casilla está desactivada.
-    assert labels["Enviar por Telegram"].disabled
-    at.button[0].click().run()  # generar: sin avisos de pasos fallidos ni entregas fallidas
+    toggles = {t.label: t for t in at.toggle}
+    assert not toggles["Vídeo corto"].disabled
+    # Telegram sin configurar en los tests: el interruptor está desactivado.
+    assert toggles["Enviar por Telegram"].disabled
+    ui.button(at, "Generar briefing").click().run()
     assert not at.exception
-    warnings = "\n".join(w.value for w in at.warning)
+    briefing = at.session_state["briefing"]
+    # Hoy (que muestra el briefing nuevo): sin avisos de pasos fallidos ni entregas fallidas.
+    hoy = ui.app(ui.HOY)
+    hoy.session_state["briefing"] = briefing
+    hoy.run()
+    assert not hoy.exception
+    warnings = "\n".join(w.value for w in hoy.warning)
     assert "fallaron" not in warnings and "Entregas fallidas" not in warnings
 
 
@@ -385,20 +423,34 @@ def test_m7_log_output_is_redacted(secret_env, capsys) -> None:
 
 
 def test_m7_show_error_hides_traceback_and_secrets(secret_env, monkeypatch: pytest.MonkeyPatch) -> None:
-    from streamlit.testing.v1 import AppTest
-
-    if str(APP_DIR) not in sys.path:
-        sys.path.insert(0, str(APP_DIR))
+    ui = _ui()
 
     def boom(*_a, **_k):
         raise pipeline.PipelineStepError("media.podcast", ConnectionError(f"https://x/bot{FAKE_TG}/y"))
 
     monkeypatch.setattr(pipeline, "run_briefing", boom)
-    at = AppTest.from_file(str(APP_DIR / "pages" / "1_Briefing.py"), default_timeout=60).run()
-    at.button[0].click().run()
+    at = ui.form_app().run()
+    ui.button(at, "Generar briefing").click().run()
     shown = "\n".join(e.value for e in at.error) + "\n".join(c.value for c in at.code)
+    shown += "\n".join(s.label for s in at.status)
     assert "media.podcast" in shown and FAKE_TG not in shown
     assert not at.code  # sin traceback salvo BRIEFER_LOG_LEVEL=DEBUG
+
+
+def test_m7_ask_error_is_redacted(secret_env, monkeypatch: pytest.MonkeyPatch) -> None:
+    ui = _ui()
+
+    def boom(*_a, **_k):
+        raise ConnectionError(f"https://api.telegram.org/bot{FAKE_TG}/x key={FAKE_OPENAI}")
+
+    monkeypatch.setattr(pipeline, "answer_question", boom)
+    at = ui.app(ui.ASK).run()
+    at.chat_input[0].set_value("¿Qué tal?").run()
+    assert not at.exception
+    shown = "\n".join(e.value for e in at.error)
+    assert "No se pudo completar la respuesta" in shown
+    assert FAKE_TG not in shown and FAKE_OPENAI not in shown and not at.code
+    assert at.session_state["qa_answers"] == []
 
 
 # ── Peticiones cruzadas: gráficos con precios sintéticos y stats de noticias ─────

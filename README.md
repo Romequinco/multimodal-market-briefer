@@ -11,7 +11,7 @@ convertidos en un podcast, un vídeo y un agente al que se le pregunta hablando.
 - **Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf) (12 diapositivas)
 - **Arranque:** [en 2 comandos](#arranca-en-2-comandos), sin claves (modo demo) o con claves (modo real)
 
-![Portada de Briefly: propuesta de valor y briefing del día con su reproductor](docs/assets/capturas/01_portada.png)
+![Vista «Hoy» de Briefly: el briefing del día con su portada y su reproductor](docs/assets/capturas/01_portada.png)
 
 Briefly es el MVP de una startup FinTech de IA multimodal (práctica MIAX, taller B5-T4). Cada tarde, al cierre
 de la sesión, recoge las noticias de mercado relevantes para los valores que sigue el usuario, las interpreta y
@@ -87,7 +87,7 @@ ya los trae.
   gráficos y traza) que se ve y se escucha sin red, y deja generar briefings de demostración: con red, el podcast
   suena con voces reales (edge-tts, gratis); sin red, todo simulado.
 - **Con claves = modo real.** Pon `ANTHROPIC_API_KEY` en `.env` (y `OPENAI_API_KEY` para preguntar por voz) y
-  activa «Modo real (APIs de .env)» en la barra lateral. Un briefing real cuesta unos 3-7 céntimos.
+  elige «Real (APIs de .env)» en el chip del modo (arriba a la derecha). Un briefing real cuesta unos 3-7 céntimos.
 
 Opciones, modos de ejecución, CLI y detalles de Docker en el [Anexo A](#anexo-a--arranque-en-detalle-modos-y-cli);
 variables de entorno en el [Anexo B](#anexo-b--configuración).
@@ -100,14 +100,14 @@ Capturas reales de la app (1440 × 900, tema oscuro «Noticiero nocturno»).
 
 | | |
 | --- | --- |
-| **Portada** · propuesta de valor, briefing destacado con reproductor y franja «Cómo se hizo» | **Briefing del día** · puntos clave con fuente enlazada e «impacto de la noticia» (FinBERT); pestañas de vídeo, transcripción, gráficos y traza |
-| ![Portada](docs/assets/capturas/01_portada.png) | ![Briefing del día](docs/assets/capturas/02_briefing.png) |
-| **Vídeo corto 9:16** · diapositivas alineadas con el audio, subtítulos por locutor y rótulo de voz sintética | **Preguntar** · pregunta por voz o por texto, respuesta con fuentes y leída con voz sintética |
-| ![Vídeo corto](docs/assets/capturas/03_video.png) | ![Preguntar por voz](docs/assets/capturas/04_preguntar.png) |
-| **Subidas** · PDF de resultados y captura de gráfico, con las opciones de vídeo, portada y Telegram | **Mi cartera** · cartera leída desde una captura del broker (no se guarda en disco) |
-| ![Subida de PDF y gráfico](docs/assets/capturas/05_subidas.png) | ![Mi cartera](docs/assets/capturas/06_cartera.png) |
-| **Histórico** · briefings guardados para reabrir, escuchar de nuevo o borrar | **Quiénes somos** · la historia (ficticia) de la startup y sus locutores |
-| ![Histórico y métricas](docs/assets/capturas/07_historico.png) | ![Quiénes somos](docs/assets/capturas/08_quienes_somos.png) |
+| **Hoy** · el briefing del día sin pulsar nada: portada, titular, reproductor, locutores y cinta de cotizaciones; barra superior con las tres pestañas y el chip del modo | **Puntos clave** · cada noticia con su fuente enlazada e «impacto de la noticia» (FinBERT); pestañas de transcripción, gráficos, vídeo y «Cómo se hizo» |
+| ![Hoy](docs/assets/capturas/01_portada.png) | ![Puntos clave del briefing](docs/assets/capturas/02_briefing.png) |
+| **Vídeo corto 9:16** · diapositivas alineadas con el audio, subtítulos por locutor y rótulo de voz sintética | **Preguntar** · chat con Toro y Osa en una sola barra (texto o voz); respuesta con fuentes y leída con voz sintética |
+| ![Vídeo corto](docs/assets/capturas/03_video.png) | ![Preguntar](docs/assets/capturas/04_preguntar.png) |
+| **Nuevo briefing** · diálogo con valores (búsqueda y atajos), cartera, documentos (PDF y gráfico subidos, con el tipo detectado) y opciones de vídeo, portada y Telegram | **Tu cartera** · en el mismo diálogo: CSV, captura del broker o ejemplo; solo vive en la sesión, no se guarda en disco |
+| ![Nuevo briefing con PDF y gráfico](docs/assets/capturas/05_subidas.png) | ![Cartera en el diálogo Nuevo briefing](docs/assets/capturas/06_cartera.png) |
+| **Archivo** · briefings guardados con búsqueda y filtros (todos, con audio, demo) para reabrir o borrar; «Privacidad y datos» (RGPD) | **Quiénes somos** · diálogo desde el menú ⚙: la historia (ficticia) de la startup y sus locutores |
+| ![Archivo](docs/assets/capturas/07_historico.png) | ![Quiénes somos](docs/assets/capturas/08_quienes_somos.png) |
 
 ---
 
@@ -207,10 +207,10 @@ flowchart LR
     PO --> TG
 ```
 
-> La cartera puede entrar por **imagen** (captura de la pantalla de posiciones del broker, página «Mi cartera»:
+> La cartera puede entrar por **imagen** (captura de la pantalla de posiciones del broker, sección «Tu cartera» del diálogo «Nuevo briefing»:
 > visión transcribe, Haiku estructura y un mapeo determinista da los tickers) o como CSV; en ambos casos sus
-> tickers alimentan el filtro de noticias. Si la captura de cartera se sube junto a las de gráficos en «Generar
-> briefing», el router CLIP la desvía (sin gastar en visión) con el aviso de subirla en «Mi cartera»; sin CLIP, el
+> tickers alimentan el filtro de noticias. Si la captura de cartera se sube junto a las de gráficos en «Documentos»,
+> el router CLIP la desvía (sin gastar en visión) con el aviso de subirla en «Tu cartera»; sin CLIP, el
 > propio prompt de visión la reconoce y se desvía igual, sin estructurarla ni guardar nada. El agente Q&A usa
 > como contexto el briefing ya generado. La entrega es por **web y Telegram** (el email se retiró).
 
@@ -240,7 +240,7 @@ flowchart TB
     UP --> RT{"¿Imagen?<br/>router CLIP local"}
     RT -- "gráfico / tabla" --> VIS["Claude visión → Haiku<br/>DocumentInsight"]
     RT -- "no financiera" --> REJ["Rechazada · 0 €"]
-    RT -- "captura de cartera" --> DES["Desviada a «Mi cartera» · 0 €"]
+    RT -- "captura de cartera" --> DES["Desviada a «Tu cartera» · 0 €"]
     UP -- "PDF" --> PDF["pypdf + visión en páginas pobres → Haiku"]
     UP -- "audio" --> STT1["STT gpt-4o-mini-transcribe"]
 
@@ -293,9 +293,9 @@ La columna **«Activo en la demo»** dice qué se ve funcionar y en qué modo: *
 | 2 | Texto → texto | Razonamiento → guion | Análisis → diálogo a dos voces (Agente Guionista) con puertas de cifras, cobertura, duración y gramática | Claude Haiku 4.5 (`BRIEFER_LLM_MODEL_CHEAP`; `BRIEFER_SCRIPTWRITER_MODEL` para cambiarlo) | Sonnet 5.5, Gemini, `mock` | **Sí** (real); simulado en sin claves/offline |
 | 3 | Texto → texto | Conversación | Preguntas sobre el briefing (Agente Q&A) | Claude Haiku 4.5 | Gemini, `mock` | **Sí** (real, por texto y por voz); simulado en sin claves/offline |
 | 4 | Imagen → texto | Entrada | Captura de gráfico de cotización → descripción y cifras | Claude Sonnet 5.5 visión + Haiku (estructura) | `mock` | **Sí** (real) |
-| 4b | Imagen → datos | Entrada | **Cartera desde una captura del broker** (página «Mi cartera»): visión transcribe la tabla → Haiku la estructura → mapeo determinista a tickers y pesos; nada a disco | Claude Sonnet 5.5 visión + Claude Haiku 4.5 | `mock` | **Sí** (real: 5/5 posiciones de `data/samples/cartera_ejemplo.png`, 8,5 s, ≈ 0,005 €; botón «Usar captura de ejemplo») |
+| 4b | Imagen → datos | Entrada | **Cartera desde una captura del broker** (sección «Tu cartera» de «Nuevo briefing»): visión transcribe la tabla → Haiku la estructura → mapeo determinista a tickers y pesos; nada a disco | Claude Sonnet 5.5 visión + Claude Haiku 4.5 | `mock` | **Sí** (real: 5/5 posiciones de `data/samples/cartera_ejemplo.png`, 8,5 s, ≈ 0,005 €; botón «Usar captura de ejemplo») |
 | 5 | Documento → texto | Entrada | PDF de resultados → cifras clave y resumen | `pypdf` + Claude visión en páginas con poco texto + Claude Haiku | `mock` | **Sí** (real) |
-| 6 | Imagen → etiqueta | Enrutado | Router de las imágenes subidas (zero-shot): gráfico / tabla → visión con la etiqueta como pista; no financiera → rechazada **sin llamar a visión**; captura de cartera → «súbela en Mi cartera» | CLIP `openai/clip-vit-base-patch32` local en CPU, 0 € | `none`, `mock` | **Sí** (con `clip`: 5/5 imágenes de prueba; 70-85 ms por imagen) |
+| 6 | Imagen → etiqueta | Enrutado | Router de las imágenes subidas (zero-shot): gráfico / tabla → visión con la etiqueta como pista; no financiera → rechazada **sin llamar a visión**; captura de cartera → desviada a «Tu cartera» (diálogo «Nuevo briefing») | CLIP `openai/clip-vit-base-patch32` local en CPU, 0 € | `none`, `mock` | **Sí** (con `clip`: 5/5 imágenes de prueba; 70-85 ms por imagen) |
 | 7 | Audio → texto | Entrada | Pregunta por voz y notas de voz subidas | OpenAI `gpt-4o-mini-transcribe` | `whisper-1`, `mock` | **Sí** (real, con `OPENAI_API_KEY`); simulada y marcada `[MOCK]` en sin claves/offline |
 | 8 | Texto → audio | Salida | Podcast a dos voces (Toro y Osa) y respuesta hablada del Q&A | `edge-tts` (gratis: Álvaro / Ximena a +10 %, pausas variables) + normalización para locución | **Gemini TTS multi-locutor** (`gemini-3.8-flash-tts`, de pago; cae a edge-tts si falla; el Q&A habla siempre con edge-tts), `mock` | **Sí** (real y sin claves); silencio en offline |
 | 8b | Texto → etiqueta | Enriquecimiento | «Impacto de la noticia»: tono de cada noticia (▲ positiva · ▼ negativa · ● neutral) junto a su fuente; nunca agregado por valor ni como recomendación | Claude Haiku 4.5 (traduce) → **FinBERT** (`ProsusAI/finbert`, local en CPU) | `BRIEFER_FINBERT=true` (desactivado por defecto) | **Sí** (real, en el pregenerado). Aportación de Daniel García (PR #1) |
@@ -315,7 +315,7 @@ falla durante un briefing, el paso se completa con un sustituto **marcado** en l
 
 ```mermaid
 flowchart TB
-    UI["<b>UI</b> · app/ (Streamlit multipágina)<br/>Briefing · Preguntar · Mi cartera · Histórico · Quiénes somos"]
+    UI["<b>UI</b> · app/ (Streamlit, 3 vistas sin barra lateral)<br/>Hoy (+ diálogo Nuevo briefing) · Preguntar · Archivo"]
     PL["<b>Orquestación</b> · src/briefer/pipeline.py<br/>run_briefing() · answer_question() · portfolio_from_screenshot() · métricas por paso"]
     subgraph BIZ["<b>Lógica de negocio</b> · src/briefer/"]
         ING["ingest/<br/>noticias, precios, PDF,<br/>gráfico, cartera, voz, FinBERT"]
@@ -350,9 +350,12 @@ decisiones de arquitectura en [docs/decisiones/](docs/decisiones/README.md) (ADR
 ```text
 .
 ├── app/                         # UI Streamlit (solo presentación; llama a briefer.pipeline / storage)
-│   ├── main.py                  # portada (propuesta de valor + briefing destacado) y navegación
-│   ├── pages/                   # 1_Briefing.py · 2_Preguntar.py · 3_Mi_cartera.py · 4_Historico.py · 5_Quienes_somos.py
-│   └── components/              # theme.py (tema «Noticiero nocturno») · players.py (modos, insignias, reproductores) · trace.py («Cómo se hizo»)
+│   ├── main.py                  # arranca el armazón (components/shell.py): st.navigation oculta, barra superior, vista y pie
+│   ├── views/                   # hoy.py (briefing del día) · preguntar.py (chat por voz o texto) · archivo.py (briefings, RGPD)
+│   └── components/              # shell.py (barra superior, chip del modo, menú ⚙ con «Quiénes somos») · briefing_view.py (vista única
+│                                # del briefing) · new_briefing.py (diálogo «Nuevo briefing») · qa_view.py (chat) · theme.py (tema
+│                                # «Noticiero nocturno») · players.py (modos, insignias, reproductores) · trace.py («Cómo se hizo»)
+│                                # · styles/*.css (CSS por área, cargado por theme.area_css)
 ├── src/briefer/                 # paquete con el nombre técnico interno (la marca visible es Briefly)
 │   ├── brand.py                 # identidad: nombre, eslogan, edición, locutores Toro y Osa (fuente única)
 │   ├── config.py                # Settings desde .env (pydantic-settings)
@@ -465,7 +468,7 @@ Cada control está en el código y tiene tests; la tabla riesgo → control → 
   cartera; [ADR-005](docs/decisiones/ADR-005-privacidad-cartera-no-persistida.md)); al LLM solo van tickers y
   pesos. La captura del broker va entera al modelo de visión, en memoria y sin guardarse (la app recomienda
   recortar nombre y nº de cuenta). Las subidas se procesan en una carpeta temporal que se borra y el audio de la
-  pregunta se borra tras transcribirlo. «Borrar mis datos» en el Histórico.
+  pregunta se borra tras transcribirlo. «Borrar mis datos» en «Archivo» (sección «Privacidad y datos»).
 - **Secretos.** Las claves se redactan en errores, métricas, logs y UI; la app escucha solo en `localhost`
   salvo que se pida lo contrario.
 
@@ -499,7 +502,7 @@ transcripción, los gráficos y los metadatos del audio. Guía completa en
   gráfico, vídeo, portada y Telegram → «Puntos clave», transcripción y vídeo → «Cómo se hizo» → cartera desde
   captura → pregunta por voz → llegada a Telegram. Guion con tiempos, locución y checklist en
   [pitch/demo_guion.md](pitch/demo_guion.md).
-- **Sin vídeo también se ve:** la portada de la app enseña el briefing real pregenerado de
+- **Sin vídeo también se ve:** la vista «Hoy» de la app enseña el briefing real pregenerado de
   `data/samples/demo_briefing/` (podcast, vídeo, portada, «impacto de la noticia» y traza) sin claves ni red.
 - **Pitch técnico:** [pitch/pitch_briefly.pdf](pitch/pitch_briefly.pdf), 12 diapositivas (problema, propuesta,
   demo, cadena de modelos, resultados medidos, costes, compliance, monetización, roadmap, equipo). Fuente en
@@ -610,20 +613,20 @@ relativas** en `.env` (p. ej. `BRIEFER_SDXL_MODEL=data/cache/models/sdxs-512-dre
 
 ### Lo primero que se ve: el briefing pregenerado
 
-Al abrir la app, la portada muestra el **último briefing real guardado** o, si no hay ninguno, el **briefing
+Al abrir la app, la vista «Hoy» muestra (sin pulsar nada) el **último briefing real guardado** o, si no hay ninguno, el **briefing
 real pregenerado** del repo (`data/samples/demo_briefing/`: cinco valores del IBEX y de EE. UU. con un PDF y un
 gráfico de ejemplo, voz premium de Gemini TTS, «impacto de la noticia» con FinBERT, portada local, vídeo y traza
 «Cómo se hizo»). Un briefing de ensayo en modo demo (mock, datos de ejemplo o sustitutos) **nunca** lo tapa. Desde
-la portada, «Preguntar sobre este briefing» lleva al Agente Q&A y «Generar el tuyo» abre el formulario. Se
+«Hoy», «Preguntar sobre este briefing» lleva al Agente Q&A y «Nuevo briefing» abre el diálogo para generar el tuyo. Se
 regenera con `storage.export_briefing`, no se edita a mano.
 
 ### Modos de ejecución
 
 | Modo | Qué hace | Necesita | UI | CLI |
 | --- | --- | --- | --- | --- |
-| **Real** | Noticias y precios reales (caché diaria en `data/cache/`), Claude para análisis, guion, visión y Q&A, STT de OpenAI para la voz, edge-tts (o Gemini TTS con `BRIEFER_TTS_PROVIDER=gemini`); FinBERT si `BRIEFER_FINBERT=true` | `ANTHROPIC_API_KEY` + red (`OPENAI_API_KEY` para preguntar por voz) | Interruptor «Modo real (APIs de .env)» en la barra lateral (bloqueado si faltan claves, con el motivo) | `python scripts/demo.py` |
-| **Demo sin claves (voces reales)** | Noticias de ejemplo, precios sintéticos y modelos simulados, pero el podcast y la respuesta del Q&A **suenan** con edge-tts | Red (edge-tts es gratis y sin clave) | «Tipo de demo» → demo sin claves | `python scripts/demo.py --demo-voices` |
-| **Mock offline** | Todo simulado y determinista; el audio es un WAV mudo | Nada | «Tipo de demo» → demo offline | `python scripts/demo.py --mock` |
+| **Real** | Noticias y precios reales (caché diaria en `data/cache/`), Claude para análisis, guion, visión y Q&A, STT de OpenAI para la voz, edge-tts (o Gemini TTS con `BRIEFER_TTS_PROVIDER=gemini`); FinBERT si `BRIEFER_FINBERT=true` | `ANTHROPIC_API_KEY` + red (`OPENAI_API_KEY` para preguntar por voz) | Chip del modo (arriba a la derecha) → «Real (APIs de .env)» (no aparece si faltan claves; el popover dice el motivo) | `python scripts/demo.py` |
+| **Demo sin claves (voces reales)** | Noticias de ejemplo, precios sintéticos y modelos simulados, pero el podcast y la respuesta del Q&A **suenan** con edge-tts | Red (edge-tts es gratis y sin clave) | Chip del modo → «Demo · voces reales» (por defecto) | `python scripts/demo.py --demo-voices` |
+| **Mock offline** | Todo simulado y determinista; el audio es un WAV mudo | Nada | Chip del modo → «Demo offline» | `python scripts/demo.py --mock` |
 
 En modo real, si un proveedor falla en un paso núcleo, el briefing termina igualmente con un sustituto (datos de
 ejemplo o mock) **y la UI lo avisa** (insignias, avisos y nodo naranja en «Cómo se hizo»). El botón «Refrescar
@@ -682,8 +685,8 @@ queda al copiar la plantilla. La pregunta por voz real necesita `OPENAI_API_KEY`
 (transcripción marcada `[MOCK]`).
 
 Sin `ANTHROPIC_API_KEY` (u otra clave necesaria) la app sigue arrancando: con `BRIEFER_FALLBACK_TO_MOCK=true`
-el `registry` cae a `mock` y lo deja en el log; la barra lateral muestra una insignia por familia («real» o
-«MOCK (falta X)») y bloquea el modo real con el motivo. Solo se aceptan proveedores implementados: un `.env`
+el `registry` cae a `mock` y lo deja en el log; el popover del chip del modo muestra una insignia por familia
+(«real» o «MOCK (falta X)») y bloquea el modo real con el motivo. Solo se aceptan proveedores implementados: un `.env`
 antiguo que nombre uno retirado (`openai` como LLM, `qwen_local`, `whisper_local`, `elevenlabs`) pasa esa familia
 a `mock` con un aviso; cualquier otro nombre no válido hace fallar la configuración al arrancar.
 
@@ -764,8 +767,8 @@ imagen y vídeo en 8,5 s). Para configurar tu propio bot, una sola vez:
    añade `--chat-id <id>`.
 5. `python scripts/telegram_setup.py --test` envía un mensaje de prueba.
 
-Con las dos variables rellenas, la casilla de envío por Telegram aparece en «Opciones avanzadas» de la página del
-briefing (o `python scripts/demo.py --deliver telegram`). Se envía: el resumen (HTML, con fuentes y aviso legal),
+Con las dos variables rellenas, la casilla «Enviar por Telegram» se activa en «Opciones» del diálogo
+«Nuevo briefing» (o `python scripts/demo.py --deliver telegram`). Se envía: el resumen (HTML, con fuentes y aviso legal),
 el podcast, la portada (con el pie «Imagen generada por IA») o, si no hay, el gráfico general, y el vídeo si se
 generó (límites de la Bot API: 50 MB audio y vídeo, 10 MB foto; lo que se pasa se omite y se avisa). Si falla el
 mensaje, el envío falla; si falla una pieza posterior, el resto cuenta como enviado y el detalle dice qué faltó.

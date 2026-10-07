@@ -172,7 +172,7 @@ probs = model(**inputs).logits_per_image.softmax(dim=1)   # dim=1: 1 imagen vs N
 - **No usar CLIP para leer cifras ni contar** (velas, barras, número de picos): es justo donde falla. Para eso, VLM (`claude_vision` / `qwen_vl_local`) y, si es posible, datos estructurados de `yfinance`.
 - **Coste/latencia**: CLIP/SigLIP base (~150–200M parámetros) corre en CPU en <1 s por imagen (estimación, no viene de clase); cargar el modelo una sola vez (caché a nivel de proveedor en `registry.py`) y con `.eval()` + `torch.no_grad()`.
 - **Mock**: `providers/mock.py` debe devolver un `dict` de probabilidades fijo para que tests y UI no dependan de descargar pesos.
-- **Ideas futuras** (roadmap): búsqueda semántica en el histórico (`app/pages/4_Historico.py`) con embeddings texto↔imagen de los gráficos generados; deduplicar noticias con embeddings de texto.
+- **Ideas futuras** (roadmap): búsqueda semántica en el histórico (`app/views/archivo.py`) con embeddings texto↔imagen de los gráficos generados; deduplicar noticias con embeddings de texto.
 
 ## Glosario rápido
 

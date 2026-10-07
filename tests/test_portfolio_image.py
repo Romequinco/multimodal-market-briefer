@@ -367,14 +367,15 @@ def test_friendly_value_errors_still_reach_the_ui(png: bytes) -> None:
         pipeline.portfolio_from_screenshot(b"no es una imagen", mode="mock")
 
 
-# ── Página «Mi cartera» ───────────────────────────────────────────────────────────
+# ── Sección cartera del diálogo «Nuevo briefing» (antes página «Mi cartera») ──────
 
 pytest.importorskip("streamlit")
-from streamlit.testing.v1 import AppTest  # noqa: E402
 
 APP_DIR = ROOT_DIR / "app"
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
+
+from ui_helpers import button, form_app  # noqa: E402
 
 
 def _fake_pipeline_fn(image: bytes, *, name: str = "Mi cartera", stats_out: dict | None = None, **_kw):
@@ -383,37 +384,39 @@ def _fake_pipeline_fn(image: bytes, *, name: str = "Mi cartera", stats_out: dict
     return portfolio, StepMetric(step="ingest.portfolio_image", provider="mock", model="mock", latency_s=0.0)
 
 
-def _button(at: AppTest, label: str):
-    return next(b for b in at.button if b.label == label)
-
-
-def test_page_reads_sample_screenshot(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_form_reads_sample_screenshot(monkeypatch: pytest.MonkeyPatch) -> None:
     from briefer import pipeline
 
     monkeypatch.setattr(pipeline, "portfolio_from_screenshot", _fake_pipeline_fn, raising=False)
-    at = AppTest.from_file(str(APP_DIR / "pages" / "3_Mi_cartera.py"), default_timeout=60).run()
+    at = form_app().run()
     assert not at.exception
-    assert at.button[0].label == "Usar cartera de ejemplo"  # el CSV sigue primero
-    _button(at, "Usar captura de ejemplo").click().run()
+    source = at.segmented_control[0]
+    assert source.options == ["Sin cartera", "CSV", "Captura del broker", "Ejemplo"]  # el CSV va antes
+    source.set_value("shot").run()
+    button(at, "Usar captura de ejemplo").click().run()
     assert not at.exception and not at.error
     portfolio = at.session_state["portfolio"]
     assert [p.ticker for p in portfolio.positions] == ["SAN.MC", "ITX.MC", "IBE.MC", "AAPL", "NVDA"]
-    assert len(at.dataframe) == 1
+    body = "\n".join(m.value for m in at.markdown)
+    assert "mb-nb-pftable" in body  # tabla ticker / peso / cantidad
+    assert any("Modo demo" in i.value for i in at.info)  # en demo se usa la captura de ejemplo
 
 
-def test_page_shows_friendly_error_for_unreadable_screenshot(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_form_shows_friendly_error_for_unreadable_screenshot(monkeypatch: pytest.MonkeyPatch) -> None:
     from briefer import pipeline
 
     def failing(image: bytes, **_kw):
         raise ValueError(portfolio_mod._NO_POSITIONS_MSG)
 
     monkeypatch.setattr(pipeline, "portfolio_from_screenshot", failing, raising=False)
-    at = AppTest.from_file(str(APP_DIR / "pages" / "3_Mi_cartera.py"), default_timeout=60).run()
-    _button(at, "Usar captura de ejemplo").click().run()
+    at = form_app().run()
+    at.segmented_control[0].set_value("shot").run()
+    button(at, "Usar captura de ejemplo").click().run()
     assert not at.exception
     errors = "\n".join(str(e.value) for e in at.error)
     assert "No se pudo leer la captura" in errors and "Traceback" not in errors
     assert "portfolio" not in at.session_state
+    assert any("Qué captura sirve" in e.label for e in at.expander)
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,70 @@
+/* Vista «Archivo» (app/views/archivo.py): cabecera con buscador, rejilla de tarjetas y privacidad. */
+
+/* ── Cabecera ── */
+.st-key-mb-arch-head { margin-bottom: .6rem; row-gap: .6rem; }
+.mb-arch-h { margin: 0; font: 600 28px/1.2 var(--mb-serif); color: var(--mb-text-strong); padding: 0; }
+.mb-arch-sub { margin: 4px 0 0; color: var(--mb-muted); font-size: 14px; }
+.st-key-mb-arch-title { min-width: min(100%, 24rem); }
+.st-key-mb-arch-tools { max-width: 100%; }
+.st-key-mb-arch-tools [data-testid="stTextInput"] { width: 300px !important; max-width: 100%; }
+.st-key-mb-arch-tools [data-testid="stButtonGroup"] { width: auto; }
+
+/* ── Rejilla: 1 columna (< 620 px de rejilla), 2 (620-1099 px) y 3 (≥ 1100 px). Se mide el ancho
+   real de la rejilla (container query), no el de la ventana: el contenido está centrado y acotado. ── */
+.st-key-mb-arch-grid { gap: .75rem !important; align-items: stretch; container-type: inline-size; }
+.st-key-mb-arch-grid > div { flex: 1 1 100% !important; min-width: 0 !important; max-width: 100%; width: auto !important; }
+@container (min-width: 620px) {
+  .st-key-mb-arch-grid > div { flex: 0 1 calc((100% - .75rem) / 2) !important; max-width: calc((100% - .75rem) / 2); }
+}
+@container (min-width: 1100px) {
+  .st-key-mb-arch-grid > div { flex: 0 1 calc((100% - 1.5rem) / 3) !important; max-width: calc((100% - 1.5rem) / 3); }
+}
+
+/* ── Tarjeta ── */
+[class*="st-key-mb-card-arch-"] { height: 100%; justify-content: space-between; gap: .7rem; transition: border-color .15s; }
+[class*="st-key-mb-card-arch-"]:hover { border-color: var(--mb-border-strong); }
+[class*="st-key-mb-card-arch-"][class*="-on"] { border-color: var(--mb-accent) !important; }
+.mb-arch__meta { font: 12px/1.5 var(--mb-mono); color: var(--mb-muted); display: flex; column-gap: 12px; row-gap: 2px; flex-wrap: wrap; }
+.mb-arch__meta > span { white-space: nowrap; }
+.mb-arch__open { color: var(--mb-accent-soft); }
+.mb-arch__title { margin: 4px 0 8px; padding: 0; font: 600 18px/1.3 var(--mb-serif); color: var(--mb-text-strong);
+  overflow-wrap: anywhere; }
+.mb-arch__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mb-arch__tk { font: 12px/1.5 var(--mb-mono); white-space: nowrap; color: var(--mb-text); background: var(--mb-surface-2);
+  border: 1px solid var(--mb-border); border-radius: 4px; padding: 1px 6px; }
+.mb-arch__tag { font: 12px/1.5 var(--mb-mono); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; color: var(--mb-amber);
+  border: 1px solid var(--mb-amber); border-radius: 999px; padding: 1px 8px; }
+.mb-arch__tag--warn { color: var(--mb-muted); border-color: var(--mb-border-strong); }
+.mb-arch__tag--bad { color: var(--mb-down); border-color: var(--mb-down); }
+.mb-arch__note { margin: 8px 0 0; font-size: 13px; color: var(--mb-muted); }
+
+/* Estado vacío y «sin resultados»: tarjeta de lectura, no de rejilla */
+.st-key-mb-card-arch-empty, .st-key-mb-card-arch-none { height: auto; max-width: 46rem; justify-content: flex-start; }
+.st-key-mb-card-arch-empty { padding: 1.4rem 1.6rem !important; }
+.st-key-mb-card-arch-empty p { max-width: 62ch; }
+
+/* Acciones pequeñas */
+[class*="st-key-mb-arch-act-"] { justify-content: flex-end; }
+[class*="st-key-mb-arch-act-"] [data-testid="stBaseButton-primary"],
+[class*="st-key-mb-arch-act-"] [data-testid="stPopover"] button { min-height: 2rem; padding: .15rem .75rem; font-size: 14px; }
+[class*="st-key-mb-arch-act-"] [data-testid="stPopover"] button { background: transparent; }
+
+/* ── Privacidad y datos (borde rojo suave; .st-key-mb-danger ya tiene borde en theme.py) ── */
+.st-key-mb-danger { border-color: rgba(240, 149, 149, .35) !important; margin-top: 1.2rem; }
+.st-key-mb-danger [data-testid="stMarkdownContainer"] p { font-size: 14px; max-width: 80ch; }
+
+/* ── Móvil ── */
+@media (max-width: 760px) {
+  .mb-arch-h { font-size: 24px; }
+  .st-key-mb-arch-tools, .st-key-mb-arch-tools [data-testid="stTextInput"] { width: 100% !important; }
+  [class*="st-key-mb-arch-act-"] { justify-content: flex-start; }
+  .st-key-mb-arch-tools [data-testid="stButtonGroup"] { width: 100%; }
+}
+/* Objetivos táctiles ≥ 40 px (móvil y pantallas táctiles) */
+@media (max-width: 760px), (pointer: coarse) {
+  [class*="st-key-mb-arch-act-"] [data-testid="stBaseButton-primary"],
+  [class*="st-key-mb-arch-act-"] [data-testid="stPopover"] button,
+  .st-key-mb-arch-tools [data-testid="stButtonGroup"] button,
+  .st-key-mb-danger button { min-height: 40px; }
+  .st-key-mb-arch-tools [data-testid="stTextInput"] [data-baseweb="input"] { min-height: 40px; }
+}

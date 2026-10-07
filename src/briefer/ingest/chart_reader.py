@@ -100,11 +100,12 @@ class ImageRoute:
 # «MPO» es el JPEG multi-imagen de muchas cámaras de móvil: sus bytes empiezan por un JPEG válido.
 SUPPORTED_FORMATS = {"PNG", "JPEG", "WEBP", "GIF", "MPO"}
 
-#: Mensaje (apto para la UI) con el que se desvía una captura de cartera a «Mi cartera», tanto
-#: por el router CLIP (``pipeline.process_upload``) como por la clasificación de visión.
+#: Mensaje (apto para la UI) con el que se desvía una captura de cartera a «Tu cartera» (sección del
+#: diálogo «Nuevo briefing»), tanto por el router CLIP (``pipeline.process_upload``) como por la
+#: clasificación de visión.
 PORTFOLIO_REDIRECT_MSG = (
-    "La imagen parece una captura de cartera: súbela en «Mi cartera» para usar sus posiciones en "
-    "el briefing."
+    "La imagen parece una captura de cartera: súbela en «Tu cartera» → «Captura del broker» para usar "
+    "sus posiciones en el briefing."
 )
 #: Respuesta completa que pide ``CHART_PROMPT`` para una captura de cartera.
 PORTFOLIO_MARKER = "TIPO: cartera"

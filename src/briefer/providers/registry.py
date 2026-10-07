@@ -161,7 +161,7 @@ def get_image_classifier(
 
 
 def describe_providers(settings: Settings | None = None) -> dict[str, str]:
-    """Resumen de la configuración activa (para la barra lateral de la UI)."""
+    """Resumen de la configuración activa (para el chip del modo de la UI)."""
     s = settings or get_settings()
     return {
         "LLM": f"{s.briefer_llm_provider} ({s.briefer_llm_model})",

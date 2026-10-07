@@ -102,7 +102,7 @@ La multimodalidad no es decorativa: cada modalidad resuelve una fricción concre
 | CU4 | Pregunta por voz sobre el briefing | audio → texto → texto → audio | «¿Por qué ha caído Inditex hoy?» → respuesta hablada con fuentes |
 | CU5 | Recibirlo sin abrir la app | entrega | Telegram con el audio, el resumen y el vídeo (además de la web) |
 | CU6 | Compartir un resumen visual | imagen + audio → vídeo | Vídeo corto con gráficos, subtítulos y audio |
-| CU7 | Consultar días anteriores | — | Histórico de briefings guardados |
+| CU7 | Consultar días anteriores | — | Vista «Archivo»: briefings guardados con búsqueda y filtros, para reabrir o borrar |
 
 ## Competencia y alternativas
 

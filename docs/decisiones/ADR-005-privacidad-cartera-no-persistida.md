@@ -3,7 +3,8 @@
 - **Estado:** Aceptado
 - **Fecha:** 05-oct-2026
 - **Ámbito:** `src/briefer/storage.py` (`save_briefing`, `export_briefing`), `src/briefer/pipeline.py`
-  (gráfico de cartera temporal), `app/pages/3_Mi_cartera.py`; contrato v0.3.1
+  (gráfico de cartera temporal), `app/pages/3_Mi_cartera.py` (desde el 07-oct, sección «Tu cartera» de
+  `app/components/new_briefing.py`); contrato v0.3.1
   ([03](../03_contratos_modulos.md#registro-de-cambios-de-contrato)). Transversal
 
 ## Contexto

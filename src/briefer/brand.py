@@ -25,7 +25,7 @@ GREETING = "Buenas noches"
 #: Se pueden cambiar con ``BRIEFER_SPEAKER_A_NAME`` / ``BRIEFER_SPEAKER_B_NAME``.
 SPEAKER_A_NAME = "Toro"
 SPEAKER_B_NAME = "Osa"
-#: Papel de cada locutor (prompt del Guionista y página «Quiénes somos»). Personalidad, nunca opinión:
+#: Papel de cada locutor (prompt del Guionista y diálogo «Quiénes somos»). Personalidad, nunca opinión:
 #: los dos se ciñen a los hechos del análisis y ninguno recomienda comprar ni vender.
 SPEAKER_A_ROLE = "el optimista: abre el episodio y se fija primero en lo que sube"
 SPEAKER_B_ROLE = "la prudente: pone el contexto y los riesgos, y cierra con el aviso legal"

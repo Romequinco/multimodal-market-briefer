@@ -1,6 +1,6 @@
 """Persistencia de briefings: ``data/outputs/<id>/briefing.json`` + ficheros generados.
 
-Transversal (lo usa el pipeline y la página "Histórico"). Cada briefing vive en su carpeta
+Transversal (lo usa el pipeline y la vista "Archivo"). Cada briefing vive en su carpeta
 con el audio, SRT, gráficos, portada y vídeo; ``briefing.json`` es ``Briefing.model_dump_json``.
 ``data/outputs/`` está en ``.gitignore``.
 

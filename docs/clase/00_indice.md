@@ -33,12 +33,12 @@ Documentación derivada de la clase **Modelos Fundacionales y Multimodales** (MI
 
 Leer siempre primero [`CLAUDE.md`](../../CLAUDE.md), [`docs/02_arquitectura_y_flujo_datos.md`](../02_arquitectura_y_flujo_datos.md) y
 [`docs/03_contratos_modulos.md`](../03_contratos_modulos.md); después, según la tarea. Las rutas de módulos de las tablas
-son relativas a [`src/briefer/`](../../src/briefer/) (todas existen en el repo; `app/pages/*` está en la raíz).
+son relativas a [`src/briefer/`](../../src/briefer/) (todas existen en el repo; `app/views/*` y `app/components/*` están en la raíz).
 
 | Tarea en el repo | Leer |
 |---|---|
 | TTS / podcast a 2 voces (`providers/tts/*`, `media/podcast.py`) | 07 + 11 (NB6) + 12 §9 |
-| Voz a texto, pregunta por voz (`providers/stt/*`, `ingest/voice.py`, `app/pages/2_Preguntar.py`) | 07 + 11 (NB7, NB8) + 12 §9 |
+| Voz a texto, pregunta por voz (`providers/stt/*`, `ingest/voice.py`, `app/views/preguntar.py`) | 07 + 11 (NB7, NB8) + 12 §9 |
 | Lectura de gráficos / capturas (`ingest/chart_reader.py`, `providers/vision/*`) | 03 + 04 + 09 + 11 (NB1-3, NB10) + 12 §3-4 |
 | Lectura de PDF de resultados (`ingest/pdf_reader.py`) | 04 + 11 (NB1 DocVQA, NB3) + 12 §4-5 |
 | Clasificar/enrutar imagen subida (`providers/image/clip_classifier.py`) | 03 + 11 (NB2) + 12 §4 |

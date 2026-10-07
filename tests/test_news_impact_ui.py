@@ -129,27 +129,3 @@ def test_render_key_points_with_and_without_impact(sample_briefing: Briefing, tm
     body = _html(at)
     assert "impacto de la noticia: ▼ negativa · FinBERT" in body
     assert "no es una recomendación" in body
-
-
-def _tabs(briefing_json: str) -> None:
-    import streamlit as st
-
-    from briefer.schemas import Briefing as B
-    from components import players as p
-
-    tabs = p.briefing_tabs(B.model_validate_json(briefing_json))
-    st.write(len(tabs))
-
-
-def test_briefing_tabs_show_video_tab_only_with_video(sample_briefing: Briefing, tmp_path: Path) -> None:
-    """El vídeo 9:16 tiene su propia pestaña (antes quedaba escondido al final de «Gráficos»)."""
-    from briefer.schemas import VideoAsset
-
-    at = AppTest.from_function(_tabs, args=(sample_briefing.model_dump_json(),), default_timeout=30).run()
-    assert not at.exception and [t.label for t in at.tabs] == ["Puntos clave", "Transcripción", "Gráficos", "Cómo se hizo"]
-
-    mp4 = tmp_path / "briefing.mp4"
-    mp4.write_bytes(b"\x00")
-    with_video = sample_briefing.model_copy(update={"video": VideoAsset(path=mp4, duration_s=1.0)})
-    at = AppTest.from_function(_tabs, args=(with_video.model_dump_json(),), default_timeout=30).run()
-    assert not at.exception and [t.label for t in at.tabs][:2] == ["Puntos clave", "Vídeo"]

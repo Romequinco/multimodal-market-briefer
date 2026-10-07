@@ -408,16 +408,16 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
       </figure>
       <div class="thumbs">
         <figure class="shot" data-name="01_portada.png">
-          <img src="../docs/assets/capturas/01_portada.png" alt="Portada" onerror="this.parentElement.classList.add('missing')">
-          <figcaption>Portada</figcaption>
+          <img src="../docs/assets/capturas/01_portada.png" alt="Hoy" onerror="this.parentElement.classList.add('missing')">
+          <figcaption>Hoy</figcaption>
         </figure>
         <figure class="shot" data-name="04_preguntar.png">
-          <img src="../docs/assets/capturas/04_preguntar.png" alt="Preguntar por voz" onerror="this.parentElement.classList.add('missing')">
-          <figcaption>Preguntar por voz</figcaption>
+          <img src="../docs/assets/capturas/04_preguntar.png" alt="Preguntar por voz o texto" onerror="this.parentElement.classList.add('missing')">
+          <figcaption>Preguntar por voz o texto</figcaption>
         </figure>
         <figure class="shot" data-name="06_cartera.png">
-          <img src="../docs/assets/capturas/06_cartera.png" alt="Mi cartera" onerror="this.parentElement.classList.add('missing')">
-          <figcaption>Mi cartera</figcaption>
+          <img src="../docs/assets/capturas/06_cartera.png" alt="Tu cartera" onerror="this.parentElement.classList.add('missing')">
+          <figcaption>Tu cartera</figcaption>
         </figure>
       </div>
     </div>
@@ -434,7 +434,7 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
         <li><b>Portada</b> generada con IA, rotulada</li>
         <li><b>Telegram</b>: resumen, audio, imagen y vídeo</li>
         <li><b>Q&amp;A por voz</b>: preguntas y responde hablando, con citas</li>
-        <li><b>Mi cartera</b> desde una captura del broker</li>
+        <li><b>Tu cartera</b> desde una captura del broker</li>
         <li><b>«Cómo se hizo»</b>: modelo, latencia y coste de cada paso</li>
       </ul>
     </div>
@@ -529,7 +529,7 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
   <p class="lede" style="margin-bottom:16px">Cambiar de modelo es configuración (<span class="mono" style="font-size:15px">.env</span>), no código. Repo <span class="mono" style="font-size:15px">multimodal-market-briefer</span>, paquete <span class="mono" style="font-size:15px">briefer</span>.</p>
   <div class="arch">
     <div class="layers">
-      <div class="layer"><div class="ln">UI · app/</div><div class="lt">Streamlit multipágina</div><div class="ld">Portada · Briefing · Preguntar · Mi cartera · Histórico. Nunca llama a un modelo.</div></div>
+      <div class="layer"><div class="ln">UI · app/</div><div class="lt">Streamlit · 3 vistas, sin barra lateral</div><div class="ld">Hoy (+ Nuevo briefing) · Preguntar · Archivo. Nunca llama a un modelo.</div></div>
       <div class="down-arrow">▼</div>
       <div class="layer"><div class="ln">Orquestación · pipeline.py</div><div class="lt">run_briefing() · answer_question()</div><div class="ld">Paralelismo, métricas por paso (latencia, coste), tolerancia a fallos.</div></div>
       <div class="down-arrow">▼</div>
@@ -716,11 +716,11 @@ ol.steps li .t { font-family: var(--mono); font-size: 12px; color: var(--muted);
       <div class="run"><span class="c"># arrancar en local</span><br>scripts\run.ps1 · scripts/run.sh<br>docker compose up --build<br><span class="c"># → http://localhost:8501</span></div>
     </div>
     <ol class="steps">
-      <li><span><b>Portada</b>: el episodio pregenerado suena; propuesta de valor y «Cómo se hizo» en una línea.</span><span class="t">0:00</span></li>
-      <li><span><b>Briefing</b>: valores, opciones avanzadas (vídeo, portada, Telegram) y un gráfico de velas.</span><span class="t">0:25</span></li>
+      <li><span><b>Hoy</b>: el episodio pregenerado suena; propuesta de valor y «Cómo se hizo» en una línea.</span><span class="t">0:00</span></li>
+      <li><span><b>Nuevo briefing</b>: valores, un gráfico de velas y opciones (vídeo, portada, Telegram).</span><span class="t">0:25</span></li>
       <li><span><b>Resultado</b>: puntos clave con fuente, podcast Toro/Osa, transcripción y gráficos.</span><span class="t">1:00</span></li>
       <li><span><b>Vídeo 9:16</b> y <b>«Cómo se hizo»</b>: modelo, latencia y coste de cada paso.</span><span class="t">1:25</span></li>
-      <li><span><b>Mi cartera</b>: captura del broker → 5/5 posiciones, sin guardar nada.</span><span class="t">2:00</span></li>
+      <li><span><b>Tu cartera</b>: captura del broker → 5/5 posiciones, sin guardar nada.</span><span class="t">2:00</span></li>
       <li><span><b>Preguntar por voz</b>: «¿Por qué ha subido hoy el Santander?» y Osa responde, con fuentes.</span><span class="t">2:30</span></li>
       <li><span><b>Telegram</b> en el móvil: resumen, audio, portada y vídeo.</span><span class="t">3:15</span></li>
     </ol>

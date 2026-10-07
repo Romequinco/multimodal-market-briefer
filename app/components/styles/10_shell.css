@@ -1,0 +1,132 @@
+/* Armazón: sin barra lateral, contenido centrado y barra superior fija (components/shell.py). */
+[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], [data-testid="stExpandSidebarButton"] { display: none !important; }
+[data-testid="stHeader"] { display: none; }
+[data-testid="stMain"] { overflow-x: clip; }
+[data-testid="stMainBlockContainer"] {
+  max-width: 1240px; padding: 0 2rem 2.5rem; margin: 0 auto;
+}
+
+/* ── Barra superior ── */
+/* Fija al hacer scroll: el «sticky» va en el envoltorio (stLayoutWrapper), que es el hijo directo del
+   bloque principal; en la propia barra no funcionaría (su padre mide lo mismo que ella). */
+[data-testid="stLayoutWrapper"]:has(> .st-key-mb-topbar) {
+  position: sticky; top: 0; z-index: 990; margin-bottom: 1.4rem;
+}
+/* La barra ocupa el ancho del contenido (alineada con él); el fondo y el filete inferior se extienden a
+   sangre con pseudo-elementos (100vw desplazaba la barra 5 px por la barra de scroll). */
+.st-key-mb-topbar {
+  position: relative; padding: .55rem 0; margin: 0 !important;
+  min-height: 3.6rem; overflow: visible !important;
+}
+.st-key-mb-topbar::before, .st-key-mb-topbar::after {
+  content: ""; position: absolute; left: -100vmax; right: -100vmax; pointer-events: none;
+}
+.st-key-mb-topbar::before { top: 0; bottom: 0; background: var(--mb-bg-sidebar); z-index: -1; }
+.st-key-mb-topbar::after { bottom: 0; height: 1px; background: var(--mb-border); }
+.mb-brand { display: inline-flex; align-items: center; gap: .5rem; text-decoration: none !important; margin-right: 1.4rem; }
+.mb-brand .mb-mark { height: 28px; width: auto; }
+.mb-brand__name { font-family: var(--mb-serif); font-weight: 600; font-size: 1.45rem; color: var(--mb-text-strong); letter-spacing: -0.01em; line-height: 1; }
+
+/* Pestañas: page_link con aspecto de pestaña; la activa con subrayado acento */
+.st-key-mb-tabs { gap: .15rem !important; }
+.st-key-mb-tabs [data-testid="stPageLink"] a {
+  border-radius: 8px; padding: .4rem .8rem; background: transparent;
+  border-bottom: 2px solid transparent; border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+}
+.st-key-mb-tabs [data-testid="stPageLink"] a [data-testid="stMarkdownContainer"], .st-key-mb-tabs [data-testid="stPageLink"] a p {
+  font-family: var(--mb-sans); font-size: 15px; font-weight: 500; color: var(--mb-muted);
+}
+.st-key-mb-tabs [data-testid="stPageLink"] a:hover { background: var(--mb-surface); }
+.st-key-mb-tabs [data-testid="stPageLink"] a:hover [data-testid="stMarkdownContainer"], .st-key-mb-tabs [data-testid="stPageLink"] a:hover p { color: var(--mb-text-strong); }
+[class*="st-key-mb-tab-"][class*="-on"] [data-testid="stPageLink"] a { border-bottom-color: var(--mb-accent-soft); background: transparent; }
+[class*="st-key-mb-tab-"][class*="-on"] [data-testid="stPageLink"] a [data-testid="stMarkdownContainer"],
+[class*="st-key-mb-tab-"][class*="-on"] [data-testid="stPageLink"] a p { color: var(--mb-text-strong); font-weight: 600; }
+
+/* Chip del modo (popover) */
+[class*="st-key-mb-modechip-"] [data-testid="stPopover"] button {
+  min-height: 2rem; padding: .2rem .7rem; border-radius: 999px;
+  font-family: var(--mb-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+  background: transparent;
+}
+.st-key-mb-modechip-demo [data-testid="stPopover"] button { color: var(--mb-amber); border: 1px solid var(--mb-amber); }
+.st-key-mb-modechip-real [data-testid="stPopover"] button { color: var(--mb-up); border: 1px solid var(--mb-up); }
+[class*="st-key-mb-modechip-"] [data-testid="stPopover"] button p { font-family: var(--mb-mono); font-size: 12px; white-space: nowrap; }
+/* Al abrir «Quiénes somos» desde el menú ⚙, el popover seguía abierto encima del diálogo (tapaba la ✕) */
+body:has([data-testid="stDialog"]) [data-testid="stPopoverBody"]:has(.st-key-mb-menu-pop) { display: none; }
+/* Cuerpo del popover del modo: ancho contenido (no media pantalla) y filas compactas */
+[data-testid="stPopoverBody"]:has(.st-key-mb-mode-pop) { width: min(26rem, calc(100vw - 1.5rem)) !important; min-width: 0 !important; }
+[data-testid="stPopoverBody"]:has(.st-key-mb-menu-pop) { width: 15.5rem !important; min-width: 0 !important; padding: .6rem; }
+.st-key-mb-menu-pop [data-testid="stButton"] button, .st-key-mb-menu-pop [data-testid="stPageLink"] a { min-height: 2.5rem; justify-content: flex-start; }
+.st-key-mb-mode-pop [data-testid="stMarkdownContainer"] p { margin-bottom: 0; }
+.st-key-mb-mode-pop [data-testid="stRadio"] label { min-height: 2rem; }
+.st-key-mb-menu [data-testid="stPopover"] button { min-height: 2.2rem; width: 2.4rem; padding: 0; justify-content: center; border-radius: 8px; }
+
+/* Pie */
+.st-key-mb-footer { margin-top: 2rem; }
+.st-key-mb-footer [data-testid="stCaptionContainer"], .st-key-mb-footer .mb-disclaimer { font-size: 12px; }
+.st-key-mb-footer [data-testid="stCaptionContainer"] p { max-width: 110ch; }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  [data-testid="stMainBlockContainer"] { padding: 0 1.25rem 2rem; }
+}
+@media (max-width: 900px) {
+  /* Tableta: sin el nombre junto al logo (a 768 px el menú ⚙ quedaba fuera de pantalla) */
+  .mb-brand { margin-right: .6rem; }
+  .mb-brand__name { display: none; }
+  .st-key-mb-tabs [data-testid="stPageLink"] a { padding: .4rem .6rem; }
+}
+@media (max-width: 760px) {
+  [data-testid="stMainBlockContainer"] { padding: 0 1rem 1.5rem; }
+  .st-key-mb-topbar { padding-top: .45rem; padding-bottom: .45rem; }
+  [data-testid="stLayoutWrapper"]:has(> .st-key-mb-topbar) { margin-bottom: 1rem; }
+  .mb-brand { margin-right: .4rem; }
+  .mb-brand__name { display: none; }
+  /* Objetivos táctiles ≥ 40 px */
+  [class*="st-key-mb-modechip-"] [data-testid="stPopover"] button,
+  .st-key-mb-menu [data-testid="stPopover"] button { min-height: 2.5rem; }
+  .st-key-mb-tabs [data-testid="stPageLink"] a { min-height: 2.5rem; }
+  .st-key-mb-tabs [data-testid="stPageLink"] a { padding: .35rem .5rem; }
+  .st-key-mb-tabs [data-testid="stPageLink"] a span:has(> [data-testid="stIconMaterial"]),
+  .st-key-mb-tabs [data-testid="stPageLink"] a [data-testid="stIconMaterial"] { display: none; }
+}
+@media (max-width: 560px) {
+  .st-key-mb-topbar { gap: .35rem !important; }
+  .st-key-mb-tabs [data-testid="stPageLink"] a { padding: .35rem .45rem; }
+  .st-key-mb-tabs [data-testid="stPageLink"] a [data-testid="stMarkdownContainer"], .st-key-mb-tabs [data-testid="stPageLink"] a p { font-size: 14px; }
+  /* Chip del modo abreviado: «DEMO» / «REAL» (el detalle está dentro del popover) */
+  [class*="st-key-mb-modechip-"] [data-testid="stPopover"] button { padding: .2rem .45rem; gap: .25rem; }
+  [class*="st-key-mb-modechip-"] [data-testid="stPopover"] button span:has(> [data-testid="stIconMaterial"]),
+  [class*="st-key-mb-modechip-"] [data-testid="stPopover"] button [data-testid="stIconMaterial"] { display: none; }
+  [class*="st-key-mb-modechip-"] [data-testid="stPopover"] button [data-testid="stMarkdownContainer"] p { font-size: 0 !important; }
+  .st-key-mb-modechip-demo [data-testid="stPopover"] button [data-testid="stMarkdownContainer"] p::after { content: "Demo"; font-size: 12px; }
+  .st-key-mb-modechip-real [data-testid="stPopover"] button [data-testid="stMarkdownContainer"] p::after { content: "Real"; font-size: 12px; }
+  .st-key-mb-menu [data-testid="stPopover"] button { width: 2.1rem; }
+}
+@media (max-width: 480px) {
+  .mb-brand { margin-right: 0; }
+  .mb-brand .mb-mark { height: 22px; }
+  .st-key-mb-tabs [data-testid="stPageLink"] a { padding: .35rem .4rem; }
+  [class*="st-key-mb-modechip-"] [data-testid="stPopover"] button { padding: .2rem .35rem; }
+}
+@media (min-width: 1800px) {
+  [data-testid="stMainBlockContainer"] { max-width: 1380px; }
+}
+
+/* Diálogo «Quiénes somos»: mínimo 12 px y párrafos con ancho de lectura */
+[data-testid="stDialog"] .mb-host__voice { font-size: 12px; }
+[data-testid="stDialog"] .mb-about, [data-testid="stDialog"] .mb-values { max-width: 75ch; }
+
+/* «Quiénes somos»: párrafos y lista con clase propia van con margin 0, pero Streamlit resta 1rem al
+   contenedor de markdown (compensa el margen del último párrafo) y el texto invadía el bloque siguiente
+   (títulos pegados; detectado en el E2E a todas las resoluciones). */
+[data-testid="stMarkdownContainer"]:has(> .mb-tagline:last-child, > .mb-about:last-child,
+  > .mb-values:last-child, > .mb-team:last-child) { margin-bottom: 0; }
+/* Título de «Quiénes somos» en la serif de marca, como «Nuevo briefing», y las dos tarjetas de
+   locutor con la misma altura aunque el texto de una ocupe más líneas. */
+[data-testid="stDialog"] [role="dialog"]:has([class*="st-key-mb-card-host-"]) h2 {
+  font-family: var(--mb-serif); font-weight: 600; color: var(--mb-text-strong);
+}
+[data-testid="stColumn"]:has([class*="st-key-mb-card-host-"]) > [data-testid="stVerticalBlock"],
+[data-testid="stColumn"] [data-testid="stLayoutWrapper"]:has(> [class*="st-key-mb-card-host-"]),
+[data-testid="stColumn"] [class*="st-key-mb-card-host-"] { height: 100%; }

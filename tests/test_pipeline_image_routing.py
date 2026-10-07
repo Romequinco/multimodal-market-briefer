@@ -54,7 +54,7 @@ def _providers(settings: Settings, label: str) -> tuple[pipeline.Providers, Coun
 def test_portfolio_screenshot_is_diverted_without_vision(settings: Settings, chart_png: Path) -> None:
     providers, vision = _providers(settings, chart_reader.PORTFOLIO_LABEL)
     metrics: list[StepMetric] = []
-    with pytest.raises(ValueError, match="Mi cartera"):
+    with pytest.raises(ValueError, match="Tu cartera"):
         pipeline.process_upload(chart_png, providers, metrics)
     assert vision.calls == 0
     assert metrics[-1].step == "ingest.chart" and "cartera" in (metrics[-1].detail or "")
@@ -171,7 +171,7 @@ def test_portfolio_upload_without_router_is_never_persisted(
     base = pipeline.get_providers(settings, use_mock=True)
     providers = replace(base, classifier=None, vision=ScriptedVision(LEAKY_PORTFOLIO_ANSWER))  # type: ignore[arg-type]
     metrics: list[StepMetric] = []
-    with pytest.raises(ValueError, match="Mi cartera"):
+    with pytest.raises(ValueError, match="Tu cartera"):
         pipeline.process_upload(chart_png, providers, metrics)
     assert metrics[-1].error and "Santander" not in metrics[-1].error
 

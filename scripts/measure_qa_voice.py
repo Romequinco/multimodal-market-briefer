@@ -1,7 +1,7 @@
 """Mide la cadena de voz completa del Q&A: audio -> STT -> Agente Q&A -> TTS.
 
-Reproduce lo que hace la página «Preguntar» (``app/pages/2_Preguntar.py``):
-``pipeline.warmup(mode=…)`` al cargar la página, ``answer_question(Path, briefing, speak=False)``
+Reproduce lo que hace la vista «Preguntar» (``app/views/preguntar.py``):
+``pipeline.warmup(mode=…)`` al cargar la vista, ``answer_question(Path, briefing, speak=False)``
 (el texto se pinta en cuanto llega) y después ``speak_answer(answer, briefing)`` (la voz).
 
 Uso::

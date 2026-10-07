@@ -110,19 +110,49 @@ def test_no_old_brand_name_left_in_app() -> None:
         assert "Market Briefer" not in path.read_text(encoding="utf-8"), path
 
 
-# ── Página «Quiénes somos» ──────────────────────────────────────────────────────────
 
 
-def test_about_page_renders_hosts_and_synthetic_voice_note() -> None:
-    at = AppTest.from_file(str(APP_DIR / "pages" / "5_Quienes_somos.py"), default_timeout=60).run()
+# ── «Quiénes somos» (diálogo del menú ⚙ de la barra superior) ─────────────────────
+
+
+def _about(app_dir: str) -> None:
+    import sys
+
+    if app_dir not in sys.path:
+        sys.path.insert(0, app_dir)
+    from components.shell import about_body
+
+    about_body()
+
+
+def test_about_renders_hosts_and_synthetic_voice_note() -> None:
+    at = AppTest.from_function(_about, args=(str(APP_DIR),), default_timeout=60).run()
     assert not at.exception
-    assert at.title[0].value == "Quiénes somos"
-    html = "\n".join(str(getattr(e, "proto", e)) for e in at.get("html"))
+    html = "\n".join(h.proto.body for h in at.get("html"))
     markdown = "\n".join(str(m.value) for m in at.markdown)
     for name in (brand.SPEAKER_A_NAME, brand.SPEAKER_B_NAME):
         assert name in html
     assert "sintética (IA)" in html
+    assert brand.TAGLINE in markdown
     assert "M-30" in markdown and brand.COMPLIANCE_MOTTO in markdown
     assert "un toro y una osa" in markdown
     assert any("voces sintéticas generadas por IA" in i.value for i in at.info)
-    assert any("Aviso:" in c.value for c in at.caption), "el aviso legal va en todas las páginas"
+
+
+def test_host_html_escapes_and_marks_synthetic_voice() -> None:
+    from components.shell import host_html
+
+    out = host_html('<script>x</script>', "Voz A", "el optimista: abre", " mb-host__badge--b")
+    assert "<script>" not in out and "&lt;script&gt;" in out
+    assert "Voz A · sintética (IA)" in out
+    assert "El optimista: abre." in out  # frase con mayúscula y punto final
+    assert 'class="mb-host__badge mb-host__badge--b"' in out
+
+
+def test_about_dialog_from_menu_keeps_single_disclaimer() -> None:
+    """«Quiénes somos» se abre desde el menú ⚙ (diálogo) y el aviso legal sigue saliendo una vez."""
+    at = AppTest.from_file(str(APP_DIR / "main.py"), default_timeout=60).run()
+    next(b for b in at.button if b.label == "Quiénes somos").click().run()
+    assert not at.exception
+    assert any("voces sintéticas generadas por IA" in i.value for i in at.info)
+    assert sum("mb-disclaimer" in c.value for c in at.caption) == 1, "el aviso legal va en todas las vistas"

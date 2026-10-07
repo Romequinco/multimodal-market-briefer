@@ -114,7 +114,7 @@ y CLAP ~615 MB.
 
 ## Aplicación a nuestro MVP
 
-- **STT** → `src/briefer/providers/stt/whisper_local.py` y `whisper_api.py`, usados por `src/briefer/ingest/voice.py` y la página `app/pages/2_Preguntar.py`.
+- **STT** → `src/briefer/providers/stt/whisper_local.py` y `whisper_api.py`, usados por `src/briefer/ingest/voice.py` y la vista `app/views/preguntar.py`.
   - Decisión (alineada con `.env.example`): **Whisper API por defecto** (`BRIEFER_STT_PROVIDER=whisper_api`) y local `whisper_local` (`faster-whisper`, modelo `base` por defecto, o `small`) como alternativa sin coste, **forzando `language="es"`**. Siempre pasar la **ruta del fichero** (evita el error de frecuencia) y tener ffmpeg en el Dockerfile para el audio del navegador/Telegram (webm/ogg).
 - **TTS 2 voces** → `src/briefer/providers/tts/edge_tts_provider.py` (por defecto, dos voces es-ES distintas para A y B) y premium `elevenlabs_tts.py`. Un `bark_tts.py` (modo expresivo local) **no existe**: habría que crearlo y añadir su nombre a `TTSProviderName` en `config.py`.
   - Si se usa Bark: presets fijos por locutor (p. ej. A = `v2/es_speaker_1`, B = `v2/es_speaker_6`), síntesis **línea a línea** (cada `ScriptLine` < ~13 s) y semilla fija.

@@ -30,7 +30,7 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 
 | Capa | Elección | Alternativa por config |
 |---|---|---|
-| UI | Streamlit multipágina (`app/`) | — |
+| UI | Streamlit, 3 vistas sin barra lateral (`app/`: Hoy · Preguntar · Archivo) | — |
 | LLM (analista, guionista, Q&A) | Anthropic Claude (Sonnet 5.5 analista; Haiku 4.5 guionista y Q&A; ADR-006) | Gemini, mock; `BRIEFER_SCRIPTWRITER_MODEL` |
 | Visión (gráficos, páginas PDF, captura de cartera) | Claude visión (cartera: visión transcribe → Haiku estructura) | mock |
 | Router de imágenes subidas | CLIP local `clip-vit-base-patch32` (`BRIEFER_IMAGE_CLASSIFIER_PROVIDER=clip`): no financiera → rechazada sin visión | none, mock |
@@ -46,7 +46,10 @@ repo `multimodal-market-briefer`, variables `BRIEFER_*`, servicio de Docker.
 ## Mapa del repo
 
 ```
-app/                      UI Streamlit (solo presentación; llama a briefer.pipeline)
+app/main.py               UI Streamlit (solo presentación; llama a briefer.pipeline): arranca components/shell.py
+app/views/                hoy.py (briefing del día) · preguntar.py (chat voz/texto) · archivo.py (briefings, RGPD)
+app/components/           shell (barra superior, chip del modo, menú ⚙/Quiénes somos) · briefing_view · new_briefing
+                          (diálogo «Nuevo briefing») · qa_view · players · theme · trace · styles/*.css (CSS por área)
 src/briefer/schemas.py    CONTRATOS Pydantic entre módulos  ← no cambiar sin acordarlo entre los 3
 src/briefer/pipeline.py   orquestación: run_briefing(), answer_question()
 src/briefer/brand.py      marca visible (Briefly, eslogan, locutores): fuente única, no repetir textos
