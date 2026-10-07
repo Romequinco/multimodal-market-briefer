@@ -1,0 +1,170 @@
+ticker,name,aliases,market
+ACS.MC,ACS,Grupo ACS|Actividades de Construcción y Servicios,IBEX
+ACX.MC,Acerinox,,IBEX
+AENA.MC,Aena,Aeropuertos Españoles,IBEX
+AMS.MC,Amadeus,Amadeus IT,IBEX
+ANA.MC,Acciona,,IBEX
+ANE.MC,Acciona Energía,Acciona Energia,IBEX
+BBVA.MC,BBVA,Banco Bilbao Vizcaya Argentaria,IBEX
+BKT.MC,Bankinter,,IBEX
+CABK.MC,CaixaBank,La Caixa|Caixa,IBEX
+CLNX.MC,Cellnex,Cellnex Telecom,IBEX
+COL.MC,Inmobiliaria Colonial,Colonial,IBEX
+ELE.MC,Endesa,,IBEX
+ENG.MC,Enagás,Enagas,IBEX
+FDR.MC,Fluidra,,IBEX
+FER.MC,Ferrovial,,IBEX
+GRF.MC,Grifols,,IBEX
+IAG.MC,IAG,International Airlines Group|Iberia|British Airways|Vueling,IBEX
+IBE.MC,Iberdrola,,IBEX
+IDR.MC,Indra,Indra Sistemas,IBEX
+ITX.MC,Inditex,Zara|Industria de Diseño Textil,IBEX
+LOG.MC,Logista,,IBEX
+MAP.MC,Mapfre,,IBEX
+MRL.MC,Merlin Properties,Merlin,IBEX
+MTS.MC,ArcelorMittal,Arcelor,IBEX
+NTGY.MC,Naturgy,Gas Natural Fenosa,IBEX
+PUIG.MC,Puig,Puig Brands,IBEX
+RED.MC,Redeia,Red Eléctrica|Red Electrica|REE,IBEX
+REP.MC,Repsol,,IBEX
+ROVI.MC,Laboratorios Rovi,Rovi,IBEX
+SAB.MC,Banco Sabadell,Sabadell,IBEX
+SAN.MC,Banco Santander,Santander,IBEX
+SCYR.MC,Sacyr,,IBEX
+SLR.MC,Solaria,Solaria Energía,IBEX
+TEF.MC,Telefónica,Telefonica|Movistar,IBEX
+UNI.MC,Unicaja,Unicaja Banco,IBEX
+ASML.AS,ASML,ASML Holding,EUROPA
+SAP.DE,SAP,,EUROPA
+MC.PA,LVMH,Louis Vuitton|Moët Hennessy,EUROPA
+SIE.DE,Siemens,,EUROPA
+TTE.PA,TotalEnergies,,EUROPA
+AIR.PA,Airbus,,EUROPA
+ALV.DE,Allianz,,EUROPA
+NOVO-B.CO,Novo Nordisk,Ozempic|Wegovy,EUROPA
+NESN.SW,Nestlé,Nestle,EUROPA
+RO.SW,Roche,Roche Holding,EUROPA
+NOVN.SW,Novartis,,EUROPA
+SHEL.L,Shell,,EUROPA
+AZN.L,AstraZeneca,,EUROPA
+HSBA.L,HSBC,,EUROPA
+BP.L,BP,British Petroleum,EUROPA
+ULVR.L,Unilever,,EUROPA
+BMW.DE,BMW,,EUROPA
+VOW3.DE,Volkswagen,VW,EUROPA
+MBG.DE,Mercedes-Benz,Mercedes|Daimler,EUROPA
+BNP.PA,BNP Paribas,,EUROPA
+OR.PA,L'Oréal,L'Oreal|Loreal,EUROPA
+RMS.PA,Hermès,Hermes,EUROPA
+SAN.PA,Sanofi,,EUROPA
+SU.PA,Schneider Electric,Schneider,EUROPA
+DTE.DE,Deutsche Telekom,T-Mobile,EUROPA
+DBK.DE,Deutsche Bank,,EUROPA
+ENEL.MI,Enel,,EUROPA
+ISP.MI,Intesa Sanpaolo,Intesa,EUROPA
+UCG.MI,UniCredit,,EUROPA
+RACE.MI,Ferrari,,EUROPA
+STLAM.MI,Stellantis,Fiat|Peugeot,EUROPA
+INGA.AS,ING,ING Group,EUROPA
+ADS.DE,Adidas,,EUROPA
+SAF.PA,Safran,,EUROPA
+RHM.DE,Rheinmetall,,EUROPA
+AAPL,Apple,iPhone,EEUU
+MSFT,Microsoft,,EEUU
+NVDA,Nvidia,,EEUU
+AMZN,Amazon,,EEUU
+GOOGL,Alphabet,Google|YouTube,EEUU
+META,Meta Platforms,Facebook|Instagram|WhatsApp,EEUU
+TSLA,Tesla,,EEUU
+BRK-B,Berkshire Hathaway,Berkshire|Warren Buffett,EEUU
+JPM,JPMorgan Chase,JPMorgan|JP Morgan,EEUU
+V,Visa Inc,,EEUU
+MA,Mastercard,,EEUU
+KO,Coca-Cola,Coca Cola|Coke,EEUU
+PEP,PepsiCo,Pepsi,EEUU
+MCD,McDonald's,McDonalds,EEUU
+DIS,Walt Disney,Disney,EEUU
+NFLX,Netflix,,EEUU
+AMD,AMD,Advanced Micro Devices,EEUU
+INTC,Intel,,EEUU
+ORCL,Oracle,,EEUU
+CRM,Salesforce,,EEUU
+ADBE,Adobe,,EEUU
+AVGO,Broadcom,,EEUU
+QCOM,Qualcomm,,EEUU
+IBM,IBM,,EEUU
+BA,Boeing,,EEUU
+NKE,Nike,,EEUU
+WMT,Walmart,,EEUU
+COST,Costco,,EEUU
+PG,Procter & Gamble,Procter and Gamble|P&G,EEUU
+JNJ,Johnson & Johnson,Johnson and Johnson|J&J,EEUU
+PFE,Pfizer,,EEUU
+LLY,Eli Lilly,Lilly,EEUU
+MRK,Merck & Co,MSD,EEUU
+UNH,UnitedHealth,UnitedHealth Group,EEUU
+XOM,ExxonMobil,Exxon,EEUU
+CVX,Chevron,,EEUU
+BAC,Bank of America,,EEUU
+GS,Goldman Sachs,Goldman,EEUU
+MS,Morgan Stanley,,EEUU
+C,Citigroup,Citi|Citibank,EEUU
+WFC,Wells Fargo,,EEUU
+PYPL,PayPal,,EEUU
+UBER,Uber,,EEUU
+ABNB,Airbnb,,EEUU
+SPOT,Spotify,,EEUU
+PLTR,Palantir,,EEUU
+COIN,Coinbase,,EEUU
+SHOP,Shopify,,EEUU
+SBUX,Starbucks,,EEUU
+T,AT&T,ATT,EEUU
+VZ,Verizon,,EEUU
+CSCO,Cisco,Cisco Systems,EEUU
+TXN,Texas Instruments,,EEUU
+MU,Micron,Micron Technology,EEUU
+ARM,Arm Holdings,,EEUU
+SMCI,Super Micro Computer,Supermicro,EEUU
+F,Ford,Ford Motor,EEUU
+GM,General Motors,,EEUU
+CAT,Caterpillar,,EEUU
+HD,Home Depot,,EEUU
+LOW,Lowe's,Lowes,EEUU
+TGT,Target Corp,,EEUU
+TSM,TSMC,Taiwan Semiconductor,EEUU
+NVO,Novo Nordisk ADR,,EEUU
+ABBV,AbbVie,,EEUU
+AXP,American Express,Amex,EEUU
+BLK,BlackRock,,EEUU
+GE,GE Aerospace,General Electric,EEUU
+LMT,Lockheed Martin,Lockheed,EEUU
+RTX,RTX Corp,Raytheon,EEUU
+PM,Philip Morris,Marlboro,EEUU
+BABA,Alibaba,,EEUU
+MSTR,Strategy,MicroStrategy,EEUU
+SNOW,Snowflake,,EEUU
+CRWD,CrowdStrike,,EEUU
+^IBEX,IBEX 35,Ibex|Ibex35,INDICE
+^GSPC,S&P 500,SP500|S&P|Standard & Poor's,INDICE
+^IXIC,Nasdaq Composite,Nasdaq,INDICE
+^NDX,Nasdaq 100,,INDICE
+^DJI,Dow Jones,Dow Jones Industrial Average|Dow,INDICE
+^STOXX50E,Euro Stoxx 50,EuroStoxx|Eurostoxx 50,INDICE
+^GDAXI,DAX,DAX 40,INDICE
+^FCHI,CAC 40,CAC,INDICE
+^FTSE,FTSE 100,Footsie,INDICE
+^N225,Nikkei 225,Nikkei,INDICE
+^VIX,VIX,Índice del miedo|Indice del miedo,INDICE
+GC=F,Oro,Gold,MATERIAS
+SI=F,Plata,Silver,MATERIAS
+CL=F,Petróleo WTI,WTI|Petroleo WTI|Crudo WTI,MATERIAS
+BZ=F,Brent,Petróleo Brent|Petroleo Brent|Crudo Brent,MATERIAS
+NG=F,Gas natural,Natural gas|Henry Hub,MATERIAS
+HG=F,Cobre,Copper,MATERIAS
+BTC-USD,Bitcoin,BTC,CRIPTO
+ETH-USD,Ethereum,ETH|Ether,CRIPTO
+SOL-USD,Solana,,CRIPTO
+EURUSD=X,Euro / Dólar,EUR/USD|EURUSD|Euro Dolar,DIVISAS
+EURGBP=X,Euro / Libra,EUR/GBP|EURGBP,DIVISAS
+USDJPY=X,Dólar / Yen,USD/JPY|USDJPY|Dolar Yen,DIVISAS
+EURCHF=X,Euro / Franco suizo,EUR/CHF|EURCHF,DIVISAS

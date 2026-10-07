@@ -235,13 +235,14 @@ def _fold(text: str) -> str:
 def _focus_names(tickers: set[str]) -> list[str]:
     """Nombres, alias y raíz (``TEF``) de los tickers, plegados (sin tildes, minúsculas)."""
     try:
-        from briefer.ingest.tickers import TICKER_UNIVERSE
+        from briefer.ingest.tickers import ticker_info
     except Exception:  # pragma: no cover - el universo es una ayuda
-        TICKER_UNIVERSE = {}  # noqa: N806
+        def ticker_info(_t: str) -> None:  # type: ignore[misc]
+            return None
     names: set[str] = set()
     for t in tickers:
         names.add(t.split(".", 1)[0])
-        info = TICKER_UNIVERSE.get(t)
+        info = ticker_info(t)
         if info:
             names.add(str(info["name"]))
             names.update(str(a) for a in info["aliases"])

@@ -52,7 +52,7 @@ from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from briefer.config import get_settings
 from briefer.ingest import article_meta, cache
-from briefer.ingest.tickers import TICKER_UNIVERSE, extract_tickers, normalize_ticker
+from briefer.ingest.tickers import TICKER_UNIVERSE, extract_tickers, normalize_ticker, ticker_name
 from briefer.logging_utils import get_logger
 from briefer.schemas import NewsItem
 
@@ -458,8 +458,7 @@ def google_news_query(ticker: str) -> str:
     ``"SAN.MC"`` -> ``'"Banco Santander" (acciones OR bolsa OR …)'``. Un ticker fuera del universo
     usa su símbolo sin sufijo.
     """
-    info = TICKER_UNIVERSE.get(ticker)
-    name = str(info["name"]) if info else ticker.lstrip("^").split(".", 1)[0]
+    name = ticker_name(ticker)
     return f'"{name}" {GOOGLE_MARKET_TERMS}'
 
 

@@ -47,12 +47,12 @@ def vocabulary_hint(tickers: list[str] | None, max_names: int = 20) -> str:
     oyó «Yabel» y el Q&A respondió que Apple no estaba en el briefing). Devuelve ``""`` si no
     hay tickers. Solo nombres públicos de empresas: nada de la cartera (pesos) ni del usuario.
     """
-    from briefer.ingest.tickers import TICKER_UNIVERSE, normalize_ticker
+    from briefer.ingest.tickers import normalize_ticker, ticker_info
 
     names: list[str] = []
     for raw in tickers or []:
         ticker = normalize_ticker(raw)
-        info = TICKER_UNIVERSE.get(ticker)
+        info = ticker_info(ticker)
         name = str(info["name"]) if info else ticker.split(".")[0].lstrip("^")
         if name and name not in names:
             names.append(name)

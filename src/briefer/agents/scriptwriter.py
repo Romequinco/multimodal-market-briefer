@@ -143,11 +143,11 @@ def _render_system(
 
 def _ticker_names(analysis: Analysis) -> dict[str, str]:
     try:
-        from briefer.ingest.tickers import TICKER_UNIVERSE
+        from briefer.ingest.tickers import ticker_info
     except Exception:
         return {}
     tickers = {t for kp in analysis.key_points for t in kp.tickers}
-    return {t: str(TICKER_UNIVERSE[t].get("name", t)) for t in tickers if t in TICKER_UNIVERSE}
+    return {t: str(info.get("name", t)) for t in tickers if (info := ticker_info(t))}
 
 
 def build_user_message(analysis: Analysis) -> str:

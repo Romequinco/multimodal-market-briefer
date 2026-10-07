@@ -1415,6 +1415,30 @@ def speak_answer(
     return result
 
 
+def search_assets(query: str, *, online: bool = False, limit: int = 10) -> list[tickers_mod.TickerMatch]:
+    """Buscador de activos de la UI: catálogo local y, si ``online``, Yahoo Finance.
+
+    Primero lo que hay en el catálogo (sin red, instantáneo); con ``online=True`` añade lo que encuentre
+    Yahoo Finance (gratis, sin clave) que no esté ya, para valores fuera del catálogo («Coca-Cola» →
+    ``KO``). Sin coste de IA: no usa ningún modelo.
+
+    Raises:
+        RuntimeError: solo si ``online`` y falla la búsqueda en Yahoo (mensaje apto para la UI).
+    """
+    found = tickers_mod.search_catalog(query, limit=limit)
+    if not online:
+        return found
+    seen = {m.ticker for m in found}
+    extra = [m for m in tickers_mod.search_online(query, limit=limit) if m.ticker not in seen]
+    return found + extra[:limit]
+
+
+def remember_asset(ticker: str, name: str, market: str = "") -> str:
+    """Registra en el catálogo un activo elegido de la búsqueda online (su nombre sirve para buscar
+    noticias y para la UI). Devuelve el ticker normalizado."""
+    return tickers_mod.register_ticker(ticker, name, market)
+
+
 __all__ = [
     "DELIVERY_CHANNELS",
     "DIALOGUE_TTS_PROVIDERS",
@@ -1433,9 +1457,11 @@ __all__ = [
     "portfolio_from_screenshot",
     "process_upload",
     "qa_tts",
+    "remember_asset",
     "resolve_mode",
     "run_briefing",
     "scriptwriter_llm",
+    "search_assets",
     "speak_answer",
     "tts_cost_eur",
     "warmup",

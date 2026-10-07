@@ -216,9 +216,9 @@ def display_name(ticker: str) -> str:
     Usa ``ingest.tickers.TICKER_UNIVERSE`` (solo lectura); si no lo conoce, el ticker sin ``^``.
     """
     try:
-        from briefer.ingest.tickers import TICKER_UNIVERSE
+        from briefer.ingest.tickers import ticker_info
 
-        info = TICKER_UNIVERSE.get(ticker.strip().upper()) or TICKER_UNIVERSE.get(ticker.strip())
+        info = ticker_info(ticker.strip().upper()) or ticker_info(ticker.strip())
         if info and info.get("name"):
             return str(info["name"])
     except Exception:  # pragma: no cover - el universo es opcional para dibujar

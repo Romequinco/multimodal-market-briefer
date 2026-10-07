@@ -34,8 +34,8 @@ import streamlit as st
 
 import components  # noqa: F401  (añade src/ al sys.path)
 from briefer.config import get_settings
-from briefer.ingest.tickers import TICKER_UNIVERSE
-from briefer.logging_utils import get_logger
+from briefer.ingest.tickers import CATALOG, TICKER_UNIVERSE, ticker_info
+from briefer.logging_utils import error_text, get_logger
 from components.players import (
     StatusProgress,
     pending,
@@ -96,7 +96,7 @@ PRIVACY_DETAIL = (
 
 def ticker_label(ticker: str) -> str:
     """``"SAN.MC"`` → ``"Banco Santander · SAN.MC"``; texto libre tal cual."""
-    info = TICKER_UNIVERSE.get(ticker)
+    info = ticker_info(ticker)
     return f"{info['name']} · {ticker}" if info else str(ticker)
 
 
@@ -389,6 +389,60 @@ def _on_shortcut(key: str, defaults: list[str], universe: list[str]) -> None:
     st.session_state[f"{key}_short"] = None
 
 
+def _on_add_found(key: str, ticker: str, name: str, market: str) -> None:
+    """``on_click`` de «Añadir» en la búsqueda de Yahoo: lo registra y lo suma a la selección."""
+    from briefer.pipeline import remember_asset  # perezoso: solo al añadir
+
+    symbol = remember_asset(ticker, name, market)
+    current = list(st.session_state.get(f"{key}_tickers") or [])
+    if symbol not in current:
+        st.session_state[f"{key}_tickers"] = [*current, symbol]
+    st.session_state[f"{key}_yahoo_added"] = symbol
+
+
+def _yahoo_search(key: str, mode: str) -> None:
+    """«¿No está en la lista?»: busca cualquier activo en Yahoo Finance (gratis, sin IA) y lo añade."""
+    with st.expander("¿No está en la lista? Buscar cualquier valor en Yahoo Finance", icon=":material/travel_explore:"):
+        if mode == "mock":
+            st.caption("En la demo offline no hay conexión: elige del catálogo o escribe el ticker exacto.")
+            return
+        with st.form(key=f"{key}_yahoo_form", border=False, enter_to_submit=True):
+            c1, c2 = st.columns([4, 1], vertical_alignment="bottom")
+            query = c1.text_input("Nombre o ticker", placeholder="p. ej. Coca-Cola, Ryanair, Nintendo…",
+                                  key=f"{key}_yahoo_q")
+            submitted = c2.form_submit_button("Buscar", icon=":material/search:", width="stretch")
+        results_key = f"{key}_yahoo_results"
+        if submitted:
+            from briefer.pipeline import search_assets  # perezoso: solo al buscar
+
+            try:
+                st.session_state[results_key] = [m for m in search_assets(query, online=True, limit=8)]
+                st.session_state.pop(f"{key}_yahoo_error", None)
+            except RuntimeError as exc:
+                st.session_state[results_key] = []
+                st.session_state[f"{key}_yahoo_error"] = error_text(exc)
+        if st.session_state.get(f"{key}_yahoo_error"):
+            st.warning(st.session_state[f"{key}_yahoo_error"])
+        results = st.session_state.get(results_key)
+        if results is None:
+            st.caption("Busca por nombre o ticker; los resultados vienen de Yahoo Finance.")
+            return
+        if not results:
+            st.caption("Sin resultados. Prueba con otro nombre o con el ticker.")
+            return
+        chosen = set(st.session_state.get(f"{key}_tickers") or [])
+        for i, m in enumerate(results):
+            row = st.container(key=f"{key}-yrow-{i}", horizontal=True, vertical_alignment="center")
+            row.markdown(f"**{md_escape(m.name)}** · `{m.ticker}`" + (f" · {md_escape(m.market)}" if m.market else ""))
+            row.button("Añadido" if m.ticker in chosen else "Añadir", key=f"{key}_yadd_{i}",
+                       icon=":material/check:" if m.ticker in chosen else ":material/add:",
+                       disabled=m.ticker in chosen, on_click=_on_add_found,
+                       args=(key, m.ticker, m.name, m.market))
+        if mode != "real":
+            st.caption("En modo demo los datos son de ejemplo: un valor nuevo solo tendrá noticias y precios "
+                       "reales en modo Real.")
+
+
 def _on_generate(key: str, deliver: list[str], make_cover: bool, refresh_allowed: bool) -> None:
     """``on_click`` de «Generar»: deja la petición con lo que hay en los widgets (se consume una vez)."""
     ss = st.session_state
@@ -513,12 +567,14 @@ def new_briefing_form(*, key: str = "nb") -> None:
 
     defaults = list(dict.fromkeys(settings.default_tickers))
     context = list(settings.context_tickers)
+    # Atajos («Solo IBEX»…): universo curado; buscador: catálogo completo (+ lo añadido desde Yahoo).
     universe = [t for t in TICKER_UNIVERSE if t not in set(context)]
+    catalog = [t for t in CATALOG if t not in set(context)]
     tickers_key = f"{key}_tickers"
     if tickers_key not in st.session_state:
         st.session_state[tickers_key] = list(st.session_state.get(LAST_TICKERS_KEY) or defaults)
     current = list(st.session_state.get(tickers_key) or [])
-    options = list(dict.fromkeys([*universe, *defaults, *current]))
+    options = list(dict.fromkeys([*defaults, *catalog, *current]))
 
     with form_parent, st.container(key=f"{key}-form"):
         # 1 · Valores
@@ -531,15 +587,17 @@ def new_briefing_form(*, key: str = "nb") -> None:
                 key=tickers_key,
                 accept_new_options=True,
                 filter_mode="fuzzy",
-                placeholder="Busca: Santander, Apple, NVDA…",
+                placeholder="Busca: Santander, Coca-Cola, Bitcoin, oro, DAX…",
                 label_visibility="collapsed",
-                help="Puedes escribir cualquier ticker de Yahoo Finance o el nombre de la empresa "
-                     "(se normaliza: «santander» → SAN.MC).",
+                help="Escribe el nombre o el ticker: el catálogo incluye el IBEX 35, grandes valores europeos y "
+                     "de EE. UU., índices, materias primas, cripto y divisas. ¿No está? Búscalo abajo en "
+                     "Yahoo Finance o escribe su ticker exacto de Yahoo.",
             )
             st.pills(
                 "Atajos", options=list(SHORTCUTS), format_func=SHORTCUTS.get, key=f"{key}_short",
                 label_visibility="collapsed", on_change=_on_shortcut, args=(key, defaults, universe),
             )
+            _yahoo_search(key, mode)
             if context:
                 st.caption("Siempre se incluyen como contexto los índices "
                            + ", ".join(str(TICKER_UNIVERSE.get(t, {}).get("name", t)) for t in context)

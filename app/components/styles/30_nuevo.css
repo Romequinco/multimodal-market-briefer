@@ -205,3 +205,6 @@
     min-width: 32px; min-height: 32px; display: inline-flex; align-items: center; justify-content: center;
   }
 }
+
+/* Buscador de Yahoo: sin la pista en inglés de Streamlit («Press Enter to submit form») */
+[data-testid="stDialog"] [data-testid="InputInstructions"] { display: none; }
