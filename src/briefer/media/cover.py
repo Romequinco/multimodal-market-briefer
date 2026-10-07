@@ -16,6 +16,7 @@ local o mock). Salida: ruta PNG o ``None`` si no hay generador configurado.
 
 from __future__ import annotations
 
+import hashlib
 import os
 import threading
 from collections import Counter
@@ -214,7 +215,7 @@ def overlay_title(image_path: Path, title: str, date_text: str) -> Path:
 #: Prompt corto para los modelos locales de difusión: su codificador de texto (CLIP) corta en 77
 #: tokens y con el prompt largo se perdía el matiz del día (las tres variantes salían iguales).
 _LOCAL_STYLE = (
-    "minimalist flat vector editorial illustration, financial district skyline at night seen from afar, "
+    "minimalist flat vector editorial illustration, financial district skyline at night {view}, "
     "simple geometric buildings, few warm lit windows, one flowing ribbon of light across the sky, "
     "{mood}, deep navy and charcoal, burnt orange accent, soft coral highlights, subtle paper grain, "
     "calm, elegant, wide landscape, empty dark foreground"
@@ -228,10 +229,35 @@ _LOCAL_MOODS = {
 LOCAL_DIFFUSION_PROVIDERS = {"sdxl_turbo", "local"}
 
 
+#: Encuadres de la portada local. El modelo local fija la semilla a partir del prompt, así que sin esta
+#: variación todos los días con el mismo tono darían exactamente la misma imagen; el encuadre se elige con
+#: el titular y la fecha (estable para un mismo briefing, distinto entre briefings).
+_LOCAL_VIEWS = (
+    "seen from afar",
+    "seen from a river bridge",
+    "seen from a rooftop terrace",
+    "reflected in a calm harbour",
+    "seen from a quiet avenue",
+    "seen from a hilltop park",
+    "framed by a wide window",
+    "seen across an empty plaza",
+)
+
+
+def local_cover_view(analysis: Analysis) -> str:
+    """Encuadre de la portada local para este briefing (determinista: titular + fecha)."""
+    key = f"{analysis.headline}|{analysis.date.isoformat()}".encode()
+    return _LOCAL_VIEWS[int.from_bytes(hashlib.sha256(key).digest()[:4], "big") % len(_LOCAL_VIEWS)]
+
+
 def build_cover_prompt_local(analysis: Analysis) -> str:
-    """Versión corta de ``build_cover_prompt`` (cabe en los 77 tokens de CLIP), sin texto ni cifras."""
+    """Versión corta de ``build_cover_prompt`` (cabe en los 77 tokens de CLIP), sin texto ni cifras.
+
+    Combina el tono del día con un encuadre que depende del briefing (``local_cover_view``): dos días con
+    el mismo tono ya no dan la misma imagen.
+    """
     mood = _LOCAL_MOODS.get(dominant_sentiment(analysis), _LOCAL_MOODS["neutral"])
-    return _LOCAL_STYLE.format(mood=mood)
+    return _LOCAL_STYLE.format(mood=mood, view=local_cover_view(analysis))
 
 
 def make_cover(analysis: Analysis, image_gen: ImageGenProvider | None, out_dir: Path) -> Path | None:

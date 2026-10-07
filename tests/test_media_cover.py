@@ -147,3 +147,20 @@ def test_local_diffusion_gets_short_prompt(tmp_path) -> None:
     cover.make_cover(analysis, FakeLocal(), tmp_path)
     assert prompts == [cover.build_cover_prompt_local(analysis)]
     assert len(prompts[0].split()) < 70 and not any(ch.isdigit() for ch in prompts[0])
+
+
+def test_local_prompt_varies_between_briefings_with_same_mood() -> None:
+    """La semilla local sale del prompt: sin variar el encuadre, dos días con el mismo tono daban la misma imagen."""
+    from datetime import timedelta
+
+    from briefer import storage
+    from briefer.media import cover
+
+    base = storage.load_demo_briefing().analysis
+    assert cover.build_cover_prompt_local(base) == cover.build_cover_prompt_local(base)  # estable por briefing
+    variants = [base.model_copy(update={"date": base.date + timedelta(days=i), "headline": f"Titular {i}"})
+                for i in range(12)]
+    prompts = {cover.build_cover_prompt_local(a) for a in variants}
+    assert len(prompts) >= 4, "briefings distintos con el mismo tono deben dar portadas distintas"
+    for p in prompts:
+        assert len(p.split()) < 70 and not any(ch.isdigit() for ch in p)
